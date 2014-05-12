@@ -2,13 +2,16 @@
   "author": "fish <zhengxinlin@gmail.com> (https://github.com/fishbar)",
   "name": "node-cube",
   "description": "a new way to write js in browser",
-  "version": "0.0.1-pre2",
+  "version": "0.0.2",
   "homepage": "https://github.com/fishbar/cube",
   "repository": {
     "type": "git",
     "url": "git://github.com/fishbar/xfs.git"
   },
   "main": "index.js",
+  "bin": { 
+    "cube": "./bin/cube"
+  },
   "scripts": {
     "test": "mocha test --coverage"
   },

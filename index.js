@@ -60,7 +60,7 @@ exports.init = function (config) {
         console.error('[Cube] server fail to start,', err.message);
       } else {
         console.log('[Cube] server started, listen:', config.port);
-        console.log('[Cube] visit: http://localhost:' + config.port + path.join( config.router, '/index.html'));
+        console.log('[Cube] visit: http://localhost:' + config.port + path.join( config.router, '/index.html').replace(/\\/g, '/'));
       }
     });
   }
