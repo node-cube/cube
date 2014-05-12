@@ -1,0 +1,32 @@
+{
+  "author": "fish <zhengxinlin@gmail.com> (https://github.com/fishbar)",
+  "name": "node-cube",
+  "description": "a new way to write js in browser",
+  "version": "0.0.1-pre2",
+  "homepage": "https://github.com/fishbar/cube",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/fishbar/xfs.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test --coverage"
+  },
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "dependencies": {
+    "commander": "2.2.0",
+    "connect" : "2.14.4",
+    "uglify-js" : "2.4.13",
+    "less" : "1.7.0",
+    "xfs" : "0.1.8"
+  },
+  "devDependencies": {
+    "jscoverage": "*",
+    "mocha": "*",
+    "expect.js": "*",
+    "supertest": "*"
+  },
+  "optionalDependencies": {}
+}

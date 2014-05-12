@@ -1,0 +1,103 @@
+#!/usr/bin/env node
+var cmd = require('commander');
+var Cube = require('../index');
+var fs = require('xfs');
+var path = require('path');
+
+cmd.version('v0.0.1')
+  .option('-p, --port [value]', 'server port')
+  .option('-o, --output [value]', 'output dir')
+;
+
+cmd.command('run')
+  .description('start server')
+  .action(function () {
+    Cube.init({
+      root: process.cwd(),
+      port: cmd.port ? cmd.port : 9999,
+      router: '/'
+    });
+  });
+
+cmd.command('init')
+  .description('init project')
+  .action(function () {
+    var base = getBase();
+    // TODO init project
+    // copy cube.js
+    if (!fs.existsSync(path.join(base, './cube.js'))) {
+      fs.sync().save(path.join(base, './cube.js'), fs.readFileSync(path.join(__dirname, '../cube.js')));
+    }
+    if (!fs.existsSync(path.join(base, './index.html'))) {
+      fs.sync().save(path.join(base, './index.html'), fs.readFileSync(path.join(__dirname, '../start.html')));
+    }
+    fs.sync().mkdir('js');
+    fs.sync().mkdir('css');
+    fs.sync().mkdir('img');
+    fs.sync().mkdir('test');
+    fs.sync().save(path.join(base, './js/main.js'),
+      'document.getElementById("msg").innerHTML = "hello, Cube";\n' +
+      'document.getElementById("show").value = document.getElementById("initscript").innerHTML;\n' +
+      'exports.run = function () {console.log("app started!")};'
+    );
+    console.log('inited');
+  });
+
+cmd.command('install')
+  .description('install dependences')
+  .action(function () {
+    // install node_modules
+  });
+
+cmd.command('build')
+  .description('build the hole project, including: less->css->min, script->transfer->min')
+  .action(function () {
+    //TODO build hole project
+    var base = getBase();
+    fs.walk(base, function (err, file, done) {
+      if (/\.min\.(js|css)$/.test(file)) {
+        // do nothing
+      } else {
+        //
+      }
+      done();
+    }, function () {
+      console.log('build success!');
+    });
+  });
+
+cmd.command('help')
+  .description('help')
+  .action(function () {
+    cmd.help();
+  });
+
+cmd.parse(process.argv);
+
+if (!cmd.args.length) {
+  cmd.help();
+}
+
+function getBase() {
+  return process.cwd();
+}
+
+function findJSDir() {
+  var base = process.cwd();
+  var files = fs.readdirSync(base);
+  var flag;
+  files.forEach(function (v) {
+    var st = fs.statSync(path.join(base, v));
+    if (!st.isDirectory()) {
+      return;
+    }
+    if (v === 'js' || v === 'script' || v == 'scripts') {
+      flag = v;
+    }
+  });
+  return flag;
+}
+
+
+
+

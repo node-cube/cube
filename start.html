@@ -1,0 +1,25 @@
+<body style="width: 800px; margin: 20px auto">
+<h1 id="msg"></h1>
+<p>init your page like this:</p>
+<textarea id="show" style="width: 600px; height: 400px"></textarea>
+<div id="initscript">
+<script type="text/javascript" src='/cube.js'></script>
+<script type="text/javascript">
+  (function () {
+    var appConfig = {
+      main: '/js/main.js',
+      base: '/'
+      // app static config here;
+    };
+    Cube.init({
+      charset: 'utf-8',
+      base: appConfig.base,  // or base can be cdn server: http://tbcdn.cn/edp/
+      debug: appConfig.debug
+    });
+    Cube.use(appConfig.main, function (App) {
+      console.log(App.run(appConfig));
+    });
+  })();
+</script>
+</div>
+</body>
