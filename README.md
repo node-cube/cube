@@ -44,7 +44,7 @@ Cube
   var Cube = require('node-cube');
   Cube.init({
     root: '/wwwroot', // static resource path, like wwwwroot below
-    app: app,         // connect app object
+    connect: app,     // connect app object
     router: '/res/'   // static resource url router
   });
 ```
@@ -91,4 +91,3 @@ var c = require('c');
 ## 打包发布
 
   进入生产环境之前，模块都会被预编译、压缩成一个个小文件，然后发布到线上(cdn服务器、云存储 或 其他)
-
