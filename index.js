@@ -11,26 +11,22 @@ var JsProcessor = require('./controller/js_processor');
 var LessProcessor = require('./controller/less_processor');
 var JsTransfer = require('./lib/jstransfer');
 var CssTransfer = require('./lib/csscombine');
+var ug = require('uglify-js');
+var xfs = require('xfs');
 var app;
 /**
  * [init description]
  * @param  {Object} config
  *         - port       listen port [optional]
- *         - app        the connect object
+ *         - connect    the connect object
  *         - root       static root
- *         - router      http path
+ *         - router     http path
+ *         - honeyComb  for honeyComb
  */
 exports.init = function (config) {
   JsProcessor.init(config);
   LessProcessor.init(config);
-  if (config.connect) {
-    app = config.app;
-  } else {
-    app = connect();
-  }
-
-  app.use(connect.query());
-  app.use(config.router, function (req, res, next) {
+  function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
     var qpath = q.pathname;
     var ext = path.extname(qpath);
@@ -50,9 +46,22 @@ exports.init = function (config) {
       default:
         next();
     }
-  });
+  }
+  // for weird honeycomb
+  if (config.honeyComb) {
+    return processQuery;
+  } else {
+    if (config.connect) {
+      app = config.app;
+    } else {
+      app = connect();
+      app.use(connect.query());
+    }
+    app.use(config.router, processQuery);
+    app.use(config.router, connect.static(config.root));
+  }
+
   // other static files
-  app.use(config.router, connect.static(config.root));
 
   if (config.port) {
     app.listen(config.port, function (err) {
@@ -70,9 +79,37 @@ exports.getApp = function () {
   return app;
 };
 
-exports.buildJs = function (file, base, compress) {
+exports.processDir = function (source, dest, reserveList, compress, merge) {
+  compress = compress === undefined ? true : compress;
+  if (!source) {
+    dest = source + '-min';
+  }
+  xfs.walk(source, function (sourceFile) {
+    var relFile = sourceFile.substr(source.length);
+    if (/^(\\|\/)/.test(relFile)) {
+      relFile.substr(1);
+    }
+    var destFile = path.join(dest, relFile);
+    return;
+    // TODO copy file or build file
+    var code = JsTransfer.transferFile(sourceFile, source, compress, merge);
+    xfs.sync().save(destFile, code);
+  });
+};
+/**
+ * transfer js module to browserify node
+ * @param  {[type]} file     [description]
+ * @param  {[type]} base     [description]
+ * @param  {[type]} compress [description]
+ * @param  {[type]} merge    [description]
+ * @return {[type]}          [description]
+ */
+exports.buildJs = function (file, base, compress, merge) {
   JsTransfer.init(base);
-  return JsTransfer.transferFile(file, compress);
+  return JsTransfer.transferFile(file, compress, merge);
+};
+exports.minifyJs = function (file, outfile) {
+  var destCode = ug.minify();
 };
 exports.buildTpl = function (file, base, compress) {
 

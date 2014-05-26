@@ -22,6 +22,7 @@
   };
   Cube.BASE = '';
   Cube.CHARSET = 'utf-8';
+  Cube.VERSION = new Date().getTime();
   Cube.init = function (config) {
     if (config.base && config.base !== '/') {
       this.BASE = config.base;
@@ -29,9 +30,15 @@
     if (config.charset) {
       this.CHARSET = config.charset;
     }
+    if (config.version) {
+      this.VERSION = config.version;
+    }
     return this;
   };
   Cube.use = function (mod, cb) {
+    if (!mod) {
+      throw new Error('Cube.use(moduleName) moduleName is undefined!');
+    }
     var ll = new Cube();
     ll.load(mod, function (module, exports, require) {
       cb(require(mod));
@@ -192,7 +199,7 @@
       script.type = 'text/javascript';
       script.async = 'true';
       script.charset = this.charset;
-      var _src = [ this.base, name, '?m=1&', Cube.V];
+      var _src = [ this.base, name, '?m=1&', Cube.VERSION];
       script.src = _src.join('');
     }
   };

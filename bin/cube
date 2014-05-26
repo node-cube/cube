@@ -65,7 +65,13 @@ cmd.command('build')
       console.log('build success!');
     });
   });
-
+cmd.command('single')
+  .description('output a single independent file')
+  .option('-o, --output [value]', 'output file')
+  .action(function () {
+    console.log(cmd);
+    //Cube.buildJs();
+  });
 cmd.command('help')
   .description('help')
   .action(function () {
