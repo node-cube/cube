@@ -91,11 +91,11 @@ exports.processDir = function (source, dest, compress, cb) {
     dest = source + '-min';
   }
   xfs.walk(source, function (err, sourceFile) {
-    console.log('process file:', sourceFile);
     var relFile = sourceFile.substr(source.length);
     if (/^(\\|\/)/.test(relFile)) {
-      relFile.substr(1);
+      relFile = relFile.substr(1);
     }
+    console.log('process file:', relFile);
     var destFile = path.join(dest, relFile);
     var fileName = path.basename(relFile);
     if (/\.min\.(css|js)$/.test(fileName) || !/\.(js|css|less|sass)$/.test(fileName)) {
@@ -104,7 +104,6 @@ exports.processDir = function (source, dest, compress, cb) {
     } else if (/\.js$/.test(fileName)) {
       JsTransfer.init({root: source});
       var code = JsTransfer.transferFile(relFile, compress);
-      console.log(destFile);
       xfs.sync().save(destFile, code);
     } else if (/\.(css|less|sass)$/.test(fileName)) {
       var code = CssTransfer.transferFile(sourceFile, compress);
@@ -128,9 +127,6 @@ exports.minifyJs = function (file, outfile) {
   var destCode = ug.minify();
 };
 exports.buildTpl = function (file, base, compress) {
-
-};
-exports.buildLess = function (file, base, compress) {
 
 };
 exports.buildCss = function (file, compress) {

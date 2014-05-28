@@ -14,7 +14,6 @@ testMod.init({
   router: '/a/b/'
 });
 request = request('http://localhost:7777');
-
 describe('index.js', function () {
   describe('query js files', function () {
     it('should return regular js file', function (done) {
@@ -101,7 +100,7 @@ describe('index.js', function () {
         .expect(function (res) {
           expect(res.text).to.match(/\/node_modules\/test\/lib\/a\.js/);
           expect(res.text).to.match(/\/node_modules\/test\/lib\/b\.js/);
-          expect(res.text).to.match(/\/node_modules\/test\/index\.js/);
+          expect(res.text).to.match(/\/node_modules\/test\/a\.js/);
         })
         .end(done);
     });
@@ -173,7 +172,6 @@ describe('index.js', function () {
         })
         .end(done);
     });
-
   });
 });
 
