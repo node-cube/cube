@@ -114,15 +114,38 @@ describe('index.js', function () {
         })
         .end(done);
     });
+  });
+
+  describe("query css file", function () {
     it('should return a transfered css file', function (done) {
+      request.get('/a/b/css/test.css')
+        .expect(200)
+        .expect(function (res) {
+          console.log(res.text);
+          expect(res.text).match(/\.test \{/ig);
+        })
+        .end(done);
+    });
+    it('should return a transfered comressed css file', function (done) {
+      request.get('/a/b/css/test.css?c')
+        .expect(200)
+        .expect(function (res) {
+          console.log(res.text);
+          expect(res.text).match(/\.test\{/ig);
+        })
+        .end(done);
+    });
+
+    it('should return a transfered less file', function (done) {
       request.get('/a/b/css/test.less')
         .expect(200)
         .expect(function (res) {
+          console.log(res.text);
           expect(res.text).match(/\.box a \{/ig);
         })
         .end(done);
     });
-    it('should return a transfered compressed css file', function (done) {
+    it('should return a transfered compressed less file', function (done) {
       request.get('/a/b/css/test.less?c')
         .expect(200)
         .expect(function (res) {
@@ -131,6 +154,26 @@ describe('index.js', function () {
         })
         .end(done);
     });
+
+    it('should return a transfered sass file', function (done) {
+      request.get('/a/b/css/test.sass')
+        .expect(200)
+        .expect(function (res) {
+          console.log(res.text);
+          expect(res.text).match(/\.test a \{/ig);
+        })
+        .end(done);
+    });
+    it('should return a transfered compressed sass file', function (done) {
+      request.get('/a/b/css/test.sass?c')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).match(/\.test a\{/ig);
+          expect(res.text).not.match(/\n/);
+        })
+        .end(done);
+    });
+
   });
 });
 

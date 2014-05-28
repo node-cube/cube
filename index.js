@@ -8,9 +8,9 @@ var url = require('url');
 var path = require('path');
 var connect = require('connect');
 var JsProcessor = require('./controller/js_processor');
-var LessProcessor = require('./controller/less_processor');
+var CssProcessor = require('./controller/css_processor');
 var JsTransfer = require('./lib/jstransfer');
-var CssTransfer = require('./lib/csscombine');
+var CssTransfer = require('./lib/csstransfer');
 var ug = require('uglify-js');
 var xfs = require('xfs');
 var app;
@@ -25,7 +25,7 @@ var app;
  */
 exports.init = function (config) {
   JsProcessor.init(config);
-  LessProcessor.init(config);
+  CssProcessor.init(config);
   function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
     var qpath = q.pathname;
@@ -35,13 +35,12 @@ exports.init = function (config) {
     }
     switch(ext) {
       case '.css':
-        next();
+      case '.less':
+      case '.sass':
+        CssProcessor(req, res, next);
         break;
       case '.js':
         JsProcessor(req, res, next);
-        break;
-      case '.less':
-        LessProcessor(req, res, next);
         break;
       default:
         next();
@@ -78,23 +77,40 @@ exports.init = function (config) {
 exports.getApp = function () {
   return app;
 };
-
-exports.processDir = function (source, dest, reserveList, compress, merge) {
+/**
+ * [processDir description]
+ * @param  {abspath}   source   [description]
+ * @param  {[type]}   dest     [description]
+ * @param  {[type]}   compress [description]
+ * @param  {Function} cb       [description]
+ * @return {[type]}            [description]
+ */
+exports.processDir = function (source, dest, compress, cb) {
   compress = compress === undefined ? true : compress;
   if (!source) {
     dest = source + '-min';
   }
-  xfs.walk(source, function (sourceFile) {
+  xfs.walk(source, function (err, sourceFile) {
+    console.log('process file:', sourceFile);
     var relFile = sourceFile.substr(source.length);
     if (/^(\\|\/)/.test(relFile)) {
       relFile.substr(1);
     }
     var destFile = path.join(dest, relFile);
-    return;
-    // TODO copy file or build file
-    var code = JsTransfer.transferFile(sourceFile, source, compress, merge);
-    xfs.sync().save(destFile, code);
-  });
+    var fileName = path.basename(relFile);
+    if (/\.min\.(css|js)$/.test(fileName) || !/\.(js|css|less|sass)$/.test(fileName)) {
+      // copy file
+      xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
+    } else if (/\.js$/.test(fileName)) {
+      JsTransfer.init({root: source});
+      var code = JsTransfer.transferFile(relFile, compress);
+      console.log(destFile);
+      xfs.sync().save(destFile, code);
+    } else if (/\.(css|less|sass)$/.test(fileName)) {
+      var code = CssTransfer.transferFile(sourceFile, compress);
+      xfs.sync().save(destFile, code);
+    }
+  }, cb);
 };
 /**
  * transfer js module to browserify node

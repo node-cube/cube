@@ -25,8 +25,8 @@ cmd.command('init')
     var base = getBase();
     // TODO init project
     // copy cube.js
-    if (!fs.existsSync(path.join(base, './cube.js'))) {
-      fs.sync().save(path.join(base, './cube.js'), fs.readFileSync(path.join(__dirname, '../cube.js')));
+    if (!fs.existsSync(path.join(base, './cube.min.js'))) {
+      fs.sync().save(path.join(base, './cube.min.js'), fs.readFileSync(path.join(__dirname, '../cube.min.js')));
     }
     if (!fs.existsSync(path.join(base, './index.html'))) {
       fs.sync().save(path.join(base, './index.html'), fs.readFileSync(path.join(__dirname, '../start.html')));
@@ -54,15 +54,9 @@ cmd.command('build')
   .action(function () {
     //TODO build hole project
     var base = getBase();
-    fs.walk(base, function (err, file, done) {
-      if (/\.min\.(js|css)$/.test(file)) {
-        // do nothing
-      } else {
-        //
-      }
-      done();
-    }, function () {
-      console.log('build success!');
+    var sourceDir = path.join(base, cmd.args[0]);
+    Cube.processDir(sourceDir, sourceDir + '-build', true, function () {
+      console.log('done!');
     });
   });
 cmd.command('single')
