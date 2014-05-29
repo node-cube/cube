@@ -54,11 +54,14 @@ cmd.command('build')
   .action(function () {
     //TODO build hole project
     var base = getBase();
-    var sourceDir = path.join(base, cmd.args[0]);
-    Cube.processDir(sourceDir, sourceDir + '-build', true, function () {
+    var args = cmd.args.slice(0, cmd.args.length - 1);
+    var sourceDir = path.join(base, args[0]);
+    var destDir = args[1] ? path.join(base, args[1]) : (sourceDir + '-build');
+    Cube.processDir(sourceDir, destDir, true, function () {
       console.log('done!');
     });
   });
+
 cmd.command('single')
   .description('output a single independent file')
   .option('-o, --output [value]', 'output file')

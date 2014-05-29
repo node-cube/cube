@@ -18,6 +18,7 @@ describe('lib/transfer.js', function () {
   after(function () {
     xfs.sync().rm(path.join(__dirname, '../example/node_modules/test2'));
     xfs.sync().rm(path.join(__dirname, '../example/node_modules/test3'));
+    xfs.sync().rm(path.join(__dirname, '../example/node_modules/test4'));
   });
 
   describe('transfer()', function () {
@@ -39,8 +40,8 @@ describe('lib/transfer.js', function () {
     });
     it('should ok when require a module in node_modules: module with folder', function () {
       xfs.sync().save(path.join(__dirname, '../example/node_modules/test3/a.js'), '');
-      xfs.sync().save(path.join(__dirname, '../example/node_modules/test3/package.json'), '{"main":"a"}');
-      var code = 'require("test3");';
+      xfs.sync().save(path.join(__dirname, '../example/node_modules/test3/package.json'), '{"main": "a"}');
+      var code = 'require("test3")';
       code = testMod.transfer('/a/b/c/test.js', code);
       expect(code).to.match(/"\/node_modules\/test3\/a\.js"/);
     });

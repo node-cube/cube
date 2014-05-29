@@ -14,6 +14,39 @@ var CssTransfer = require('./lib/csstransfer');
 var ug = require('uglify-js');
 var xfs = require('xfs');
 var app;
+
+function loadIgnore(path) {
+  try {
+    covIgnore = xfs.readFileSync(path).toString().split(/\r?\n/g);
+  } catch (e) {
+    console.log(e);
+    return [];
+  }
+  var _ignore = [];
+  covIgnore.forEach(function (v, i, a) {
+    if (!v) {
+      return;
+    }
+    if (v.indexOf('/') === 0) {
+      v = '^' + v;
+    }
+    _ignore.push(new RegExp(v.replace(/\./g, '\\.').replace(/\*/g, '.*')));
+  });
+  return _ignore;
+}
+
+function checkIgnore(file, ignores) {
+  var flag = false;
+  var rule;
+  for (var i = 0; i < ignores.length; i++){
+    rule = ignores[i];
+    if (rule.test(file)) {
+      flag = true;
+      break;
+    }
+  };
+  return flag;
+}
 /**
  * [init description]
  * @param  {Object} config
@@ -86,28 +119,34 @@ exports.getApp = function () {
  * @return {[type]}            [description]
  */
 exports.processDir = function (source, dest, compress, cb) {
-  compress = compress === undefined ? true : compress;
-  if (!source) {
-    dest = source + '-min';
+  if (!dest) {
+    dest = source + '-build';
   }
+  JsTransfer.init({root: source});
+  var ignores = loadIgnore(path.join(source, '.cubeignore'));
   xfs.walk(source, function (err, sourceFile) {
     var relFile = sourceFile.substr(source.length);
-    if (/^(\\|\/)/.test(relFile)) {
-      relFile = relFile.substr(1);
-    }
-    console.log('process file:', relFile);
     var destFile = path.join(dest, relFile);
     var fileName = path.basename(relFile);
     if (/\.min\.(css|js)$/.test(fileName) || !/\.(js|css|less|sass)$/.test(fileName)) {
       // copy file
       xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
+      console.log('[copy file]:', relFile.substr(1));
     } else if (/\.js$/.test(fileName)) {
-      JsTransfer.init({root: source});
-      var code = JsTransfer.transferFile(relFile, compress);
-      xfs.sync().save(destFile, code);
+      var code;
+      if (checkIgnore(relFile, ignores)) {
+        code = ug.minify(sourceFile);
+        xfs.sync().save(destFile, code.code);
+        console.log('[minifiy js]:', relFile.substr(1));
+      } else {
+        code = JsTransfer.transferFile(relFile, compress);
+        xfs.sync().save(destFile, code);
+        console.log('[transfer js]:', relFile.substr(1));
+      }
     } else if (/\.(css|less|sass)$/.test(fileName)) {
       var code = CssTransfer.transferFile(sourceFile, compress);
       xfs.sync().save(destFile, code);
+      console.log('[transfer css]:', relFile.substr(1));
     }
   }, cb);
 };

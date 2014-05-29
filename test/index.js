@@ -108,7 +108,6 @@ describe('index.js', function () {
       request.get('/a/b/js/node_modules_not_found.js?m')
         .expect(404)
         .expect(function (res) {
-          console.log(res.text);
           expect(res.text).to.match(/required module not found/);
         })
         .end(done);
@@ -120,7 +119,6 @@ describe('index.js', function () {
       request.get('/a/b/css/test.css')
         .expect(200)
         .expect(function (res) {
-          console.log(res.text);
           expect(res.text).match(/\.test \{/ig);
         })
         .end(done);
@@ -129,7 +127,6 @@ describe('index.js', function () {
       request.get('/a/b/css/test.css?c')
         .expect(200)
         .expect(function (res) {
-          console.log(res.text);
           expect(res.text).match(/\.test\{/ig);
         })
         .end(done);
@@ -139,7 +136,6 @@ describe('index.js', function () {
       request.get('/a/b/css/test.less')
         .expect(200)
         .expect(function (res) {
-          console.log(res.text);
           expect(res.text).match(/\.box a \{/ig);
         })
         .end(done);
@@ -158,7 +154,6 @@ describe('index.js', function () {
       request.get('/a/b/css/test.sass')
         .expect(200)
         .expect(function (res) {
-          console.log(res.text);
           expect(res.text).match(/\.test a \{/ig);
         })
         .end(done);

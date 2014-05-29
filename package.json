@@ -2,7 +2,7 @@
   "author": "fish <zhengxinlin@gmail.com> (https://github.com/fishbar)",
   "name": "node-cube",
   "description": "a new way to write js in browser",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "homepage": "https://github.com/fishbar/cube",
   "repository": {
     "type": "git",
@@ -13,8 +13,7 @@
     "cube": "./bin/cube"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha -r jscoverage test",
-    "build": "node_modules/.bin/uglifyjs cube.js -c -o cube.min.js"
+    "test": "node_modules/.bin/mocha -r jscoverage --coverage 70,80,95 -R spec test"
   },
   "engines": {
     "node": ">=0.8.0"
@@ -24,7 +23,7 @@
     "connect" : "2.14.4",
     "uglify-js" : "2.4.13",
     "less": "1.7.0",
-    "css": "1.6.0",
+    "clean-css": "2.1.8",
     "xfs" : "0.1.9"
   },
   "devDependencies": {
