@@ -33,6 +33,18 @@ describe('index.js', function () {
         })
         .end(done);
     });
+    it('should return transfered coffee file', function (done) {
+      request.get('/a/b/js/test_coffee.coffee?m')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(function (res) {
+          var body = res.text;
+          expect(body).to.match(/var a/);
+          expect(body).to.match(/_m_\("\/js\/test_coffee\.coffee"/);
+        })
+        .end(done);
+    });
+
     it('should return a merge file with @merge', function (done) {
       request.get('/a/b/js/merge.js?m')
         .expect(200)
@@ -159,13 +171,49 @@ describe('index.js', function () {
         .end(done);
     });
     it('should return a transfered compressed sass file', function (done) {
-      request.get('/a/b/css/test.sass?c')
+      request.get('/a/b/css/test.sass?m&c')
         .expect(200)
         .expect(function (res) {
           expect(res.text).match(/\.test a\{/ig);
           expect(res.text).not.match(/\n/);
         })
         .end(done);
+    });
+
+    it('should return a transfered styl file', function (done) {
+      request.get('/a/b/css/test.styl?m')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).match(/\.test a \{/ig);
+        })
+        .end(done);
+    });
+
+    it('should return a transfered styl file', function (done) {
+      request.get('/a/b/css/test.styl?m&c')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).match(/\.test a\{/ig);
+          expect(res.text).not.match(/\n/);
+        })
+        .end(done);
+    });
+  });
+
+  describe('query tpl file', function () {
+    it('should return a compiled ejs file', function (done) {
+      request.get('/a/b/tpl/test.ejs?m')
+        .expect(200)
+        .expect(function (res) {
+          var code = res.text;
+        }).end(done);
+    });
+    it('should return a compiled jade file', function (done) {
+      request.get('/a/b/tpl/test.jade?m')
+        .expect(200)
+        .expect(function (res) {
+          var code = res.text;
+        }).end(done);
     });
   });
 });
@@ -177,8 +225,8 @@ function wrapCode(code) {
     function _m_(mo, requires, cb){\
       var module = {exports: {}}; \
       M[mo] = cb(module, module.exports, require);\
-    }';
-  var footer = 'return M;';
+    }\n';
+  var footer = '\nreturn M;';
   var fn = new Function(header + code + footer);
   return fn;
 }

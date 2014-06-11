@@ -9,8 +9,10 @@ var path = require('path');
 var connect = require('connect');
 var JsProcessor = require('./controller/js_processor');
 var CssProcessor = require('./controller/css_processor');
-var JsTransfer = require('./lib/jstransfer');
-var CssTransfer = require('./lib/csstransfer');
+var TplProcessor = require('./controller/tpl_processor');
+var JsTransfer = require('./lib/js_transfer');
+var CssTransfer = require('./lib/css_transfer');
+var TplTransfer = require('./lib/tpl_transfer');
 var ug = require('uglify-js');
 var xfs = require('xfs');
 var app;
@@ -59,6 +61,7 @@ function checkIgnore(file, ignores) {
 exports.init = function (config) {
   JsProcessor.init(config);
   CssProcessor.init(config);
+  TplProcessor.init(config);
   function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
     var qpath = q.pathname;
@@ -70,10 +73,16 @@ exports.init = function (config) {
       case '.css':
       case '.less':
       case '.sass':
+      case '.styl':
         CssProcessor(req, res, next);
         break;
       case '.js':
+      case '.coffee':
         JsProcessor(req, res, next);
+        break;
+      case '.jade':
+      case '.ejs':
+        TplProcessor(req, res, next);
         break;
       default:
         next();
@@ -123,6 +132,7 @@ exports.processDir = function (source, dest, compress, cb) {
     dest = source + '-build';
   }
   JsTransfer.init({root: source});
+  TplTransfer.init({root: source});
   var ignores = loadIgnore(path.join(source, '.cubeignore'));
   xfs.walk(source, function (err, sourceFile) {
     var relFile = sourceFile.substr(source.length);

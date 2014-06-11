@@ -9,7 +9,7 @@ var fs = require('fs');
 var parser = new(less.Parser);
 var path = require('path');
 var url = require('url');
-var CssTransfer = require('../lib/csstransfer');
+var CssTransfer = require('../lib/css_transfer');
 var root;
 
 module.exports = function (req, res, next) {
@@ -38,6 +38,9 @@ module.exports = function (req, res, next) {
         break;
       case '.sass':
         code = CssTransfer.transferSass(code, compress);
+        break;
+      case '.styl':
+        code = CssTransfer.transferStylus(code, compress);
         break;
       default:
         code = CssTransfer.transferCss(code, compress);

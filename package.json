@@ -20,14 +20,18 @@
   },
   "dependencies": {
     "commander": "2.2.0",
-    "connect" : "2.14.4",
-    "uglify-js" : "2.4.13",
-    "less": "1.7.0",
+    "connect": "2.14.4",
+    "uglify-js": "2.4.13",
     "clean-css": "2.1.8",
-    "xfs" : "0.1.9"
+    "less": "1.7.0",
+    "xfs" : "0.1.9",
+    "stylus": "0.46.3",
+    "coffee-script": "1.7.1",
+    "jade": "1.3.1",
+    "ejs": "1.0.0"
   },
   "devDependencies": {
-    "jscoverage": "*",
+    "jscoverage": "0.5.3",
     "mocha": "*",
     "expect.js": "*",
     "supertest": "*"

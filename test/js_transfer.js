@@ -5,11 +5,11 @@
  * CopyRight 2014 (c) Fish And Other Contributors
  */
 var expect = require('expect.js');
-var testMod = require('../lib/jstransfer');
+var testMod = require('../lib/js_transfer');
 var xfs = require('xfs');
 var path = require('path');
 
-describe('lib/transfer.js', function () {
+describe('lib/js_transfer.js', function () {
 
   before(function () {
     testMod.init({root: path.join(__dirname, '../example')});
@@ -23,14 +23,19 @@ describe('lib/transfer.js', function () {
 
   describe('transfer()', function () {
     it('should ok when require a regular module', function () {
-      var code = 'var b = require("./test.js"); var a = require("../hello");';
-      code = testMod.transfer('/a/b/c/test.js', code);
-      expect(code).to.match(/_m_\("\/a\/b\/c\/test.js", \["\/a\/b\/c\/test\.js","\/a\/b\/hello\.js"\],/);
+      var code = 'var b = require("./js/index"); var a = require("./js/jquery");';
+      code = testMod.transfer('/test.js', code);
+      expect(code).to.match(/_m_\("\/test.js", \["\/js\/index\.js","\/js\/jquery\.js"\],/);
     });
-    it('should ok when require module with abs path', function () {
-      var code = 'var b = require("/test.js");';
-      code = testMod.transfer('/a/b/c/test.js', code);
-      expect(code).to.match(/_m_\("\/a\/b\/c\/test.js", \["\/test\.js"\],/);
+    it('should ok when require module with abs path, through this way is not recommend', function () {
+      var code = 'var b = require("/js/index");';
+      code = testMod.transfer('/test.js', code);
+      expect(code).to.match(/_m_\("\/test.js", \["\/js\/index\.js"\],/);
+    });
+    it('should ok when require a coffee file', function () {
+      var code = 'var b = require("/js/test_coffee");';
+      code = testMod.transfer('/test.js', code);
+      expect(code).to.match(/_m_\("\/test.js", \["\/js\/test_coffee\.coffee"\],/);
     });
     it('should ok when require a module in node_modules: single file', function () {
       xfs.sync().save(path.join(__dirname, '../example/node_modules/test_mod.js'), '');

@@ -46,6 +46,20 @@
     return this;
   };
   /**
+   * @interface inject css into page
+   * css inject is comp
+   * ie8 and lower only support 32 stylesheets, so this function
+   * @param  {String} name module name
+   * @param  {CssCode} css  css code
+   */
+  Cube.css = function (name, css) {
+    /*
+    var style = document.createElement('style');
+    style.setAttribute('mod', name);
+    document.getElementsByTagName('HEAD')[0].appendChild(style);
+    */
+  };
+  /**
    * module already loaded
    */
   Cube._cached = {};
@@ -59,7 +73,10 @@
    * @param  {[type]} mod [description]
    * @return {[type]}     [description]
    */
-  function Require(mod) {
+  function Require(mod, cb) {
+    if (cb) {
+      return Cube.use(mode, cb);
+    }
     return Cube._cached[mod];
   }
   /**

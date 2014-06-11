@@ -27,6 +27,8 @@ cmd.command('init')
     // copy cube.js
     if (!fs.existsSync(path.join(base, './cube.min.js'))) {
       fs.sync().save(path.join(base, './cube.min.js'), fs.readFileSync(path.join(__dirname, '../cube.min.js')));
+      fs.sync().save(path.join(base, './jade_runtime.js'), fs.readFileSync(path.join(__dirname, '../jade_runtime.js')));
+      fs.sync().save(path.join(base, './ejs_runtime.js'), fs.readFileSync(path.join(__dirname, '../ejs_runtime.js')));
     }
     if (!fs.existsSync(path.join(base, './index.html'))) {
       fs.sync().save(path.join(base, './index.html'), fs.readFileSync(path.join(__dirname, '../start.html')));

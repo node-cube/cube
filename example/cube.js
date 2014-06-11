@@ -59,7 +59,10 @@
    * @param  {[type]} mod [description]
    * @return {[type]}     [description]
    */
-  function Require(mod) {
+  function Require(mod, cb) {
+    if (cb) {
+      return Cube.use(mod, cb);
+    }
     return Cube._cached[mod];
   }
   /**
