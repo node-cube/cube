@@ -31,6 +31,7 @@
       ld.load(requires, callback);
     } else {
       this.name = name ? name : '_';
+      this.base = BASE;
       this.charset = CHARSET;
     }
   };

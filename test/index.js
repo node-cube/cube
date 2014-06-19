@@ -22,6 +22,12 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(/^(?!Cube\()/, done);
     });
+    it('should return regular js file which name with dot', function (done) {
+      request.get('/a/b/js/file.dot.js')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(/^(?!Cube\()/, done);
+    });
     it('should return transfered js file', function (done) {
       request.get('/a/b/js/index.js?m')
         .expect(200)

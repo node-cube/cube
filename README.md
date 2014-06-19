@@ -88,6 +88,10 @@ function  init() {
 }
 
 init();
+// 异步加载脚本
+async('./tset.tpl', function(render) {
+  render({appName: "cube"});
+});
 ```
 ok，一个很简单的一个模块，设置头部用户登录昵称
 
