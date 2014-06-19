@@ -21,6 +21,7 @@ module.exports = function (req, res, next) {
   var compress = qs.c !== undefined ? true : false;
   var module = qpath;
   var code;
+  res.setHeader('content-type', 'application/javascript');
   try {
     code = js.transferFile(module, compress);
   } catch (e) {
@@ -31,16 +32,15 @@ module.exports = function (req, res, next) {
         break;
       case 'JSPARSE_ERROR':
         res.statusCode = 500;
-        res.end('Js Parse Error:' + e.message + '\n' + e.stack);
+        res.end('console.error("Js Parse Error:' + e.message + '\n' + e.stack.replace(/\"/g, '\\"') + ');');
         break;
       default:
         res.statusCode = 500;
-        res.end('Internal Error:' + e.message + '\n' + e.stack);
+        res.end('console.error("Js Parse Error:' + e.message + '\n' + e.stack.replace(/\"/g, '\\"') + ');');
     }
     return;
   }
-  res.setHeader('content-type', 'application/javascript');
-  res.end(code);
+  res.end(compress ? code.min : code.source);
 };
 module.exports.init = function (config) {
   jspath = config.jsdir;

@@ -21,28 +21,58 @@ cmd.command('run')
 
 cmd.command('init')
   .description('init project')
-  .action(function () {
+  .option('--jade', 'use jade')
+  .option('--ejs', 'use ejs')
+  .action(function (option) {
     var base = getBase();
     // TODO init project
     // copy cube.js
-    if (!fs.existsSync(path.join(base, './cube.min.js'))) {
-      fs.sync().save(path.join(base, './cube.min.js'), fs.readFileSync(path.join(__dirname, '../cube.min.js')));
-      fs.sync().save(path.join(base, './jade_runtime.js'), fs.readFileSync(path.join(__dirname, '../jade_runtime.js')));
-      fs.sync().save(path.join(base, './ejs_runtime.js'), fs.readFileSync(path.join(__dirname, '../ejs_runtime.js')));
+    if (!checkFile('./cube.min.js')) {
+      var code_cube = fs.readFileSync(sourcePath('./runtime/cube.min.js'));
+      if (option.jade) {
+        console.log('enable jade');
+        code_cube += '\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
+      }
+      if (option.ejs) {
+        console.log('enable ejs');
+        code_cube += '\n' + fs.readdirSync(sourcePath('./runtime/ejs_runtime.min.js'));
+      }
+      fs.sync().save(filePath('./cube.min.js'), code_cube);
+      console.log('inited cube.min.js');
+    } else {
+      console.log('file already exist: ./cube.min.js');
     }
-    if (!fs.existsSync(path.join(base, './index.html'))) {
-      fs.sync().save(path.join(base, './index.html'), fs.readFileSync(path.join(__dirname, '../start.html')));
+    if (!checkFile('./index.html')) {
+      fs.sync().save(filePath('./index.html'), fs.readFileSync(sourcePath('./runtime/start.html')));
+      console.log('inited index.html');
+    } else {
+      console.log('file already exist: ./index.html');
     }
-    fs.sync().mkdir('js');
-    fs.sync().mkdir('css');
-    fs.sync().mkdir('img');
+    if (!checkFile('./.cubeignore')) {
+      fs.sync().save(filePath('./.cubeignore'), '/cube.min.js');
+      console.log('inited .cubeignore');
+    } else {
+      console.log('file already exist: ./.cubeignore');
+    }
+    if (!checkFile('./package.json')) {
+      fs.sync().save(filePath('./package.json'), fs.readFileSync(sourcePath('./runtime/package.json')));
+      console.log('inited package.json');
+    } else {
+      console.log('file already exist: ./package.json');
+    }
+    if (!checkFile('./main.js')) {
+      fs.sync().save(filePath('./main.js'),
+        'document.getElementById("msg").innerHTML = "hello, Cube";\n' +
+        'document.getElementById("show").value = document.getElementById("initscript").innerHTML;\n' +
+        'exports.run = function () {console.log("app started!")};'
+      );
+      console.log('inited main.js');
+    } else {
+      console.log('file already exist: ./main.js');
+    }
     fs.sync().mkdir('test');
-    fs.sync().save(path.join(base, './js/main.js'),
-      'document.getElementById("msg").innerHTML = "hello, Cube";\n' +
-      'document.getElementById("show").value = document.getElementById("initscript").innerHTML;\n' +
-      'exports.run = function () {console.log("app started!")};'
-    );
-    console.log('inited');
+
+    console.log('successfully inited');
   });
 
 cmd.command('install')
@@ -103,6 +133,17 @@ function findJSDir() {
   return flag;
 }
 
+function checkFile(file) {
+  return fs.existsSync(filePath(file));
+}
+function sourcePath(file) {
+  var base = __dirname;
+  return path.join(base, '../', file);
+}
+function filePath(file) {
+  var base = getBase();
+  return path.join(base, file);
+}
 
 
 

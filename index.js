@@ -21,7 +21,13 @@ function loadIgnore(path) {
   try {
     covIgnore = xfs.readFileSync(path).toString().split(/\r?\n/g);
   } catch (e) {
-    console.log(e);
+    var msg = '';
+    if (e.code === 'ENOENT') {
+      msg = '[CUBE] .cubeignore not found, ignore'
+    } else {
+      msg = e.code + ' ' + e.message;
+    }
+    console.log(msg);
     return [];
   }
   var _ignore = [];
@@ -56,7 +62,7 @@ function checkIgnore(file, ignores) {
  *         - connect    the connect object
  *         - root       static root
  *         - router     http path
- *         - honeyComb  for honeyComb
+ *         - middleware  boolean, default false
  */
 exports.init = function (config) {
   JsProcessor.init(config);
@@ -88,8 +94,8 @@ exports.init = function (config) {
         next();
     }
   }
-  // for weird honeycomb
-  if (config.honeyComb) {
+  // return middleware
+  if (config.middleware) {
     return processQuery;
   } else {
     if (config.connect) {
@@ -127,7 +133,8 @@ exports.getApp = function () {
  * @param  {Function} cb       [description]
  * @return {[type]}            [description]
  */
-exports.processDir = function (source, dest, compress, cb) {
+exports.processDir = function (source, dest, sourceMap, cb) {
+  var compress = true;
   if (!dest) {
     dest = source + '-build';
   }
@@ -137,6 +144,8 @@ exports.processDir = function (source, dest, compress, cb) {
   xfs.walk(source, function (err, sourceFile) {
     var relFile = sourceFile.substr(source.length);
     var destFile = path.join(dest, relFile);
+    var destSourceFile = path.join(dest, relFile.replace(/\.(\w+)$/, '.source.$1'));
+    var destMapFile = path.join(dest, relFile.replace(/\.(\w+)$/, '.map'));
     var fileName = path.basename(relFile);
     if (/\.min\.(css|js)$/.test(fileName) || !/\.(js|css|less|sass)$/.test(fileName)) {
       // copy file
@@ -150,7 +159,12 @@ exports.processDir = function (source, dest, compress, cb) {
         console.log('[minifiy js]:', relFile.substr(1));
       } else {
         code = JsTransfer.transferFile(relFile, compress);
-        xfs.sync().save(destFile, code);
+        xfs.sync().save(destFile, code.min);
+        if (sourceMap) {
+          xfs.sync().save(destSourceFile, code.source);
+          if (code.sourceMap)
+            xfs.sync().save(destMapFile, code.sourceMap);
+        }
         console.log('[transfer js]:', relFile.substr(1));
       }
     } else if (/\.(css|less|sass)$/.test(fileName)) {

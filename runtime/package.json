@@ -1,0 +1,30 @@
+{
+  "author": "your-name <your-email> (your-site)",
+  "name": "appName",
+  "description": "",
+  "version": "0.0.1",
+  "scripts": {
+    "test": "mocha -r jscoverage test"
+  },
+  "engines": {
+    "node": ">=0.8.0",
+    "IE": ">8",
+    "chrome": ">20",
+    "safari": "*",
+    "firefox": "*"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "jscoverage": "0.5.3",
+    "mocha": "*",
+    "expect.js": "*",
+    "supertest": "*"
+  },
+  "cube": {
+    "module": {
+      "jade": true,
+      "ejs": false
+    },
+    "ignore": {}
+  }
+}

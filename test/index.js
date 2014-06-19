@@ -20,7 +20,7 @@ describe('index.js', function () {
       request.get('/a/b/js/jquery.js')
         .expect(200)
         .expect('content-type', 'application/javascript')
-        .expect(/^(?!__m\()/, done);
+        .expect(/^(?!Cube\()/, done);
     });
     it('should return transfered js file', function (done) {
       request.get('/a/b/js/index.js?m')
@@ -29,7 +29,7 @@ describe('index.js', function () {
         .expect(function (res) {
           var body = res.text;
           expect(body).to.match(/require\('\/js\/jquery\.js'\)/);
-          expect(body).to.match(/_m_\("\/js\/index\.js"/);
+          expect(body).to.match(/Cube\("\/js\/index\.js"/);
         })
         .end(done);
     });
@@ -40,7 +40,7 @@ describe('index.js', function () {
         .expect(function (res) {
           var body = res.text;
           expect(body).to.match(/var a/);
-          expect(body).to.match(/_m_\("\/js\/test_coffee\.coffee"/);
+          expect(body).to.match(/Cube\("\/js\/test_coffee\.coffee"/);
         })
         .end(done);
     });
@@ -54,8 +54,8 @@ describe('index.js', function () {
           var fn = wrapCode(body);
           var M = fn();
           expect(M['/js/merge.js'].run()).to.match(/jquery running/);
-          expect(body).to.match(/_m_\("\/js\/jquery\.js/);
-          expect(body).to.match(/_m_\("\/js\/merge\.js/);
+          expect(body).to.match(/Cube\("\/js\/jquery\.js/);
+          expect(body).to.match(/Cube\("\/js\/merge\.js/);
         })
         .end(done);
     });
@@ -65,7 +65,7 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
-          expect(body).to.match(/_m_\("\/js\/index\.js/);
+          expect(body).to.match(/Cube\("\/js\/index\.js/);
           expect(body).not.match(/\/\*\!/);
           expect(body).not.match(/module/);
         })
@@ -80,8 +80,8 @@ describe('index.js', function () {
           var fn = wrapCode(body);
           var M = fn();
           expect(M['/js/merge.js'].run()).to.match(/jquery running/);
-          expect(body).to.match(/_m_\("\/js\/jquery\.js/);
-          expect(body).to.match(/_m_\("\/js\/merge\.js/);
+          expect(body).to.match(/Cube\("\/js\/jquery\.js/);
+          expect(body).to.match(/Cube\("\/js\/merge\.js/);
         })
         .end(done);
     });
@@ -99,10 +99,11 @@ describe('index.js', function () {
         .end(done);
     });
     it('should return 500 when file cycle require', function (done) {
-      request.get('/a/b/js/cycle/a.js?m')
-        .expect(500)
+      request.get('/a/b/js/cycle_server/a.js?m&c')
+        .expect(200)
         .expect(function (res) {
-          expect(res.text).match(/cyclical require/ig);
+          var requires = res.text.split('\n');
+          expect(requires.length).to.be(3);
         })
         .end(done);
     });
@@ -206,6 +207,7 @@ describe('index.js', function () {
         .expect(200)
         .expect(function (res) {
           var code = res.text;
+          expect(code).match(/^Cube\(/);
         }).end(done);
     });
     it('should return a compiled jade file', function (done) {
@@ -213,6 +215,7 @@ describe('index.js', function () {
         .expect(200)
         .expect(function (res) {
           var code = res.text;
+          expect(code).match(/^Cube\(/);
         }).end(done);
     });
   });
@@ -222,7 +225,7 @@ function wrapCode(code) {
   var header = '\
     var M = {}; \
     function require(name) {return M[name]};\
-    function _m_(mo, requires, cb){\
+    function Cube(mo, requires, cb){\
       var module = {exports: {}}; \
       M[mo] = cb(module, module.exports, require);\
     }\n';

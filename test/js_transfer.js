@@ -25,42 +25,42 @@ describe('lib/js_transfer.js', function () {
     it('should ok when require a regular module', function () {
       var code = 'var b = require("./js/index"); var a = require("./js/jquery");';
       code = testMod.transfer('/test.js', code);
-      expect(code).to.match(/_m_\("\/test.js", \["\/js\/index\.js","\/js\/jquery\.js"\],/);
+      expect(code.source).to.match(/Cube\("\/test.js", \["\/js\/index\.js","\/js\/jquery\.js"\],/);
     });
     it('should ok when require module with abs path, through this way is not recommend', function () {
       var code = 'var b = require("/js/index");';
       code = testMod.transfer('/test.js', code);
-      expect(code).to.match(/_m_\("\/test.js", \["\/js\/index\.js"\],/);
+      expect(code.source).to.match(/Cube\("\/test.js", \["\/js\/index\.js"\],/);
     });
     it('should ok when require a coffee file', function () {
       var code = 'var b = require("/js/test_coffee");';
       code = testMod.transfer('/test.js', code);
-      expect(code).to.match(/_m_\("\/test.js", \["\/js\/test_coffee\.coffee"\],/);
+      expect(code.source).to.match(/Cube\("\/test.js", \["\/js\/test_coffee\.coffee"\],/);
     });
     it('should ok when require a module in node_modules: single file', function () {
       xfs.sync().save(path.join(__dirname, '../example/node_modules/test_mod.js'), '');
       var code = 'require("test_mod");';
       code = testMod.transfer('/a/b/c/test.js', code);
-      expect(code).to.match(/"\/node_modules\/test_mod\.js"/);
+      expect(code.source).to.match(/"\/node_modules\/test_mod\.js"/);
     });
     it('should ok when require a module in node_modules: module with folder', function () {
       xfs.sync().save(path.join(__dirname, '../example/node_modules/test3/a.js'), '');
       xfs.sync().save(path.join(__dirname, '../example/node_modules/test3/package.json'), '{"main": "a"}');
       var code = 'require("test3")';
       code = testMod.transfer('/a/b/c/test.js', code);
-      expect(code).to.match(/"\/node_modules\/test3\/a\.js"/);
+      expect(code.source).to.match(/"\/node_modules\/test3\/a\.js"/);
     });
     it('should ok when require part of a module in node_modules', function () {
       xfs.sync().save(path.join(__dirname, '../example/node_modules/test2/a.js'), '');
       var code = 'require("test2/a");';
       code = testMod.transfer('/a/b/c/test.js', code);
-      expect(code).to.match(/"\/node_modules\/test2\/a\.js"/);
+      expect(code.source).to.match(/"\/node_modules\/test2\/a\.js"/);
     });
     it('should ok when require a module in node_modules: without package.json::main', function () {
       xfs.sync().save(path.join(__dirname, '../example/node_modules/test4/index.js'), '');
       var code = 'require("test4");';
       code = testMod.transfer('/a/b/c/test.js', code);
-      expect(code).to.match(/"\/node_modules\/test4\/index\.js"/);
+      expect(code.source).to.match(/"\/node_modules\/test4\/index\.js"/);
     });
     it('should return error when require none exists module', function () {
       function test(){
@@ -72,18 +72,18 @@ describe('lib/js_transfer.js', function () {
     it('should ok when require with wrong param', function () {
       var code = '/**@merge **/var b = require(); var a = require(""); var c = require(" ");var d = require(null); var e = require(1);';
       code = testMod.transfer('/a/b/c/test.js', code);
-      expect(code).to.match(/_m_\("\/a\/b\/c\/test.js", \[\],/);
+      expect(code.source).to.match(/Cube\("\/a\/b\/c\/test.js", \[\],/);
     });
     it('should ok when compress code', function () {
       var code = 'var a = 1;';
       code = testMod.transfer('/test.js', code, true);
-      expect(code).to.match(/_m_/);
-      expect(code).to.not.match(/module|require/);
+      expect(code.min).to.match(/Cube/);
+      expect(code.min).to.not.match(/module|require/);
     });
     it('should recognize the local require() when require is override', function () {
       var code = 'function require(){} require("query");';
       code = testMod.transfer('/test.js', code);
-      expect(code).to.match(/_m_\("\/test\.js", \[\], /);
+      expect(code.source).to.match(/Cube\("\/test\.js", \[\], /);
     });
   });
 });

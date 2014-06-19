@@ -5,6 +5,7 @@
  * CopyRight 2014 (c) Fish And Other Contributors
  */
 var jquery = require('./jquery');
+var cycle = require('./cycle_require_test');
 //var tpl = require('../tpl/test.jade');
 exports.run = jquery.run;
 
@@ -13,4 +14,8 @@ require('../tpl/test.jade', function (tpl) {
 });
 require('../tpl/test.ejs', function (tpl) {
   console.log(tpl({user:{name: 'ejs'}}));
+});
+
+async('./test_async', function (mod) {
+  mod.run();
 });

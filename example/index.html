@@ -1,15 +1,18 @@
 <script type="text/javascript" src='/cube.js'></script>
+<script type="text/javascript" src='/js/test_coffee.coffee'></script>
 <script type="text/javascript">
   (function () {
     var appConfig = {
       main: '/js/index.js',
-      base: '/'
+      base: '/',
+      debug: true
       // app static config here;
     };
     Cube.init({
       charset: 'utf-8',
       base: appConfig.base,  // or base can be cdn server: http://tbcdn.cn/edp/
-      debug: appConfig.debug
+      debug: appConfig.debug,
+      version: 12345
     });
     Cube.use(appConfig.main, function (App) {
       console.log(App.run(appConfig));

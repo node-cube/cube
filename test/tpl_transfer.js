@@ -35,7 +35,7 @@ function wrapCode(code) {
   var header = '\
     var M = {}; \
     function require(name) {return M[name]};\
-    function _m_(mo, requires, cb) {\
+    function Cube(mo, requires, cb) {\
       var module = {exports: {}}; \
       M[mo] = cb(module, module.exports, require);\
     }\n';

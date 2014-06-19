@@ -17,17 +17,29 @@ Cube
 
 ```sh
   webapp -|
-          | - wwwroot | 静态资源目录
+          | - wwwroot | << 静态资源目录
                       | - js
                       | - css
                       | - imgs
+
+  // 或者这种结构
+  webapp -|
+          | - wwwroot |  << 静态资源目录
+                      | main.js
+                      | - controller
+                      | - lib
+                      | - component |
+                                    | - tabel |
+                                              | table.js
+                                              | table.css
+                                              | table.tpl
 ```
 
   cube的初始化就从这个wwwroot开始，进入wwwroot目录，cube内建静态资源服务，启动服务:
 
 ```sh
   # 初始化工程
-  cube init
+  cube init  // --jade 启用jade, --ejs 启用ejs
   # 启动静态服务
   cube run
 ```
@@ -49,6 +61,18 @@ Cube
   });
 ```
   ok, 访问你的调试环境  `http://localhost:port/res/xxx`, 静态资源+模块化支持
+
+## 集成到其他框架中
+
+  加入你的框架比较特殊，没关系，cube可以返回一个middleware方法 `middleware(req, res, next)`
+
+```js
+var Cube = require('node-cube');
+var middleware = Cube.init({
+  root: '/wwwroot', // static resource path, like wwwwroot below
+  middleware: true //
+});
+```
 
 ## 编写一个模块
 
