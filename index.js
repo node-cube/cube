@@ -67,49 +67,65 @@ function checkIgnore(file, ignores) {
  */
 exports.init = function (config) {
   config.root = config.root.replace(/[\\\/]$/, '');
-  JsProcessor.init(config);
-  CssProcessor.init(config);
-  TplProcessor.init(config);
-  var connectStatic = connect.static(config.root);
-  function processQuery(req, res, next) {
-    var q = url.parse(req.url, true);
-    var qpath = q.pathname;
-    var ext = path.extname(qpath);
-    if (qpath === '/') {
-      req.url = '/index.html'
-    }
-    if (!req.query) {
-      var originalUrl = req.originalUrl;
-      originalUrl = originalUrl ? originalUrl : req.url;
-      var queryString = url.parse(originalUrl).query;
-      req.query = qs.parse(queryString);
-    }
-    switch(ext) {
-      case '.css':
-      case '.less':
-      case '.sass':
-      case '.styl':
-        CssProcessor(req, res, next);
-        break;
-      case '.js':
-      case '.coffee':
-        JsProcessor(req, res, next);
-        break;
-      case '.jade':
-      case '.ejs':
-        TplProcessor(req, res, next);
-        break;
-      default:
+  config.cached = config.cached ? config.cached : config.root + '.release';
+  var middleware, connectStatic;
+  // check if release dir exist
+  if (xfs.existsSync(config.cached)) {
+    connect.static.mime.define({
+      'application/javascript': ['coffee', 'ejs', 'jade'],
+      'text/css': ['less', 'sass', 'styl']
+    });
+    // run in release model, using cached files
+    config.root = config.cached;
+    middleware = connect.static(config.root);
+  } else {
+    JsProcessor.init(config);
+    CssProcessor.init(config);
+    TplProcessor.init(config);
+    connectStatic = connect.static(config.root);
+    // run in dev model
+    middleware = function (req, res, next) {
+      var q = url.parse(req.url, true);
+      var qpath = q.pathname;
+      var ext = path.extname(qpath);
+      if (qpath === '/') {
+        req.url = '/index.html'
+      }
+      if (!req.query) {
+        var originalUrl = req.originalUrl;
+        originalUrl = originalUrl ? originalUrl : req.url;
+        var queryString = url.parse(originalUrl).query;
+        req.query = qs.parse(queryString);
+      }
+      function wrapNext() {
         connectStatic(req, res, next);
+      };
+      switch(ext) {
+        case '.css':
+        case '.less':
+        case '.sass':
+        case '.styl':
+          CssProcessor(req, res, wrapNext);
+          break;
+        case '.js':
+        case '.coffee':
+          JsProcessor(req, res, wrapNext);
+          break;
+        case '.jade':
+        case '.ejs':
+          TplProcessor(req, res, wrapNext);
+          break;
+        default:
+          wrapNext()
+      }
     }
   }
   // return middleware
   if (config.middleware) {
-    return processQuery;
+    return middleware;
   } else {
     app = connect();
-    app.use(config.router, processQuery);
-    app.use(config.router, connect.static(config.root));
+    app.use(config.router, middleware);
   }
 
   // other static files
