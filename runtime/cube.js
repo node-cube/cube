@@ -43,7 +43,7 @@
    */
   Cube.init = function (config) {
     if (config.base && config.base !== '/') {
-      BASE = config.base;
+      BASE = config.base.replace(/\/$/, '');
     }
     if (config.charset) {
       CHARSET = config.charset;

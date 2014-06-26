@@ -5,6 +5,7 @@
  * CopyRight 2014 (c) Fish And Other Contributors
  */
 var url = require('url');
+var qs = require('querystring');
 var path = require('path');
 var connect = require('connect');
 var JsProcessor = require('./controller/js_processor');
@@ -65,15 +66,23 @@ function checkIgnore(file, ignores) {
  *         - middleware  boolean, default false
  */
 exports.init = function (config) {
+  config.root = config.root.replace(/[\\\/]$/, '');
   JsProcessor.init(config);
   CssProcessor.init(config);
   TplProcessor.init(config);
+  var connectStatic = connect.static(config.root);
   function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
     var qpath = q.pathname;
     var ext = path.extname(qpath);
     if (qpath === '/') {
       req.url = '/index.html'
+    }
+    if (!req.query) {
+      var originalUrl = req.originalUrl;
+      originalUrl = originalUrl ? originalUrl : req.url;
+      var queryString = url.parse(originalUrl).query;
+      req.query = qs.parse(queryString);
     }
     switch(ext) {
       case '.css':
@@ -91,26 +100,21 @@ exports.init = function (config) {
         TplProcessor(req, res, next);
         break;
       default:
-        next();
+        connectStatic(req, res, next);
     }
   }
   // return middleware
   if (config.middleware) {
     return processQuery;
   } else {
-    if (config.connect) {
-      app = config.app;
-    } else {
-      app = connect();
-      app.use(connect.query());
-    }
+    app = connect();
     app.use(config.router, processQuery);
     app.use(config.router, connect.static(config.root));
   }
 
   // other static files
 
-  if (config.port) {
+  if (!config.middleware && config.port) {
     app.listen(config.port, function (err) {
       if (err) {
         console.error('[Cube] server fail to start,', err.message);

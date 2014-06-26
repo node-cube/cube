@@ -9,7 +9,7 @@ var testMod = require('../index');
 var path = require('path');
 var request = require('supertest');
 testMod.init({
-  root: path.join(__dirname, '../example'),
+  root: path.join(__dirname, '../example') + '/',
   port: 7777,
   router: '/a/b/'
 });

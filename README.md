@@ -55,9 +55,9 @@ Cube
 ```js
   var Cube = require('node-cube');
   Cube.init({
-    root: '/wwwroot', // static resource path, like wwwwroot below
-    connect: app,     // connect app object
-    router: '/res/'   // static resource url router
+    root: '/wwwroot',  // static resource path, like wwwwroot below
+    router: '/res/',   // static resource url router
+    middleware: false  // run as a service, not return a middleware
   });
 ```
   ok, 访问你的调试环境  `http://localhost:port/res/xxx`, 静态资源+模块化支持
@@ -72,6 +72,8 @@ var middleware = Cube.init({
   root: '/wwwroot', // static resource path, like wwwwroot below
   middleware: true //
 });
+
+app.use('/static', middleware);
 ```
 
 ## 编写一个模块
@@ -118,4 +120,10 @@ var c = require('c');
 
 ## 打包发布
 
-  进入生产环境之前，模块都会被预编译、压缩成一个个小文件，然后发布到线上(cdn服务器、云存储 或 其他)
+进入生产环境之前，模块都会被预编译、压缩成一个个小文件，然后发布到线上(cdn服务器、云存储 或 其他)
+
+```sh
+cube build static_file_path
+```
+
+在静态资源目录下，编写 `.cubeignore`来排除不需要被处理的文件，格式和.gitignore一样
