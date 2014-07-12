@@ -1,1 +1,2 @@
-a = 1
+exports.run = () ->
+  console.log 'hello'

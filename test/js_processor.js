@@ -5,11 +5,11 @@
  * CopyRight 2014 (c) Fish And Other Contributors
  */
 var expect = require('expect.js');
-var testMod = require('../lib/js_transfer');
+var testMod = require('../lib/js_processor');
 var xfs = require('xfs');
 var path = require('path');
 
-describe('lib/js_transfer.js', function () {
+describe('lib/js_processor.js', function () {
 
   before(function () {
     testMod.init({root: path.join(__dirname, '../example')});
@@ -35,7 +35,7 @@ describe('lib/js_transfer.js', function () {
     it('should ok when require a coffee file', function () {
       var code = 'var b = require("/js/test_coffee");';
       code = testMod.transfer('/test.js', code);
-      expect(code.source).to.match(/Cube\("\/test.js", \["\/js\/test_coffee\.coffee"\],/);
+      expect(code.source).to.match(/Cube\("\/test.js", \["\/js\/test_coffee\.js"\],/);
     });
     it('should ok when require a module in node_modules: single file', function () {
       xfs.sync().save(path.join(__dirname, '../example/node_modules/test_mod.js'), '');
@@ -76,7 +76,7 @@ describe('lib/js_transfer.js', function () {
     });
     it('should ok when compress code', function () {
       var code = 'var a = 1;';
-      code = testMod.transfer('/test.js', code, true);
+      code = testMod.transfer('/test.js', code, {compress: true});
       expect(code.min).to.match(/Cube/);
       expect(code.min).to.not.match(/module|require/);
     });

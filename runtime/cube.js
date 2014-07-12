@@ -13,6 +13,8 @@
   var VERSION = new Date().getTime();
   var TIMEOUT = 10000; // default 10's
   var DEBUG = false;
+  var ENABLE_CSS = false;
+  var ENABLE_SOURCE = window.localStorage ? window.localStorage.getItem('__cube_debug__') : false;
 
   /**
    * Class Cube
@@ -34,7 +36,7 @@
       this.base = BASE;
       this.charset = CHARSET;
     }
-  };
+  }
   /**
    * init global setting for Cube
    * @static
@@ -57,6 +59,9 @@
     if (config.timeout) {
       TIMEOUT = config.timeout;
     }
+    if (config.enableCss) {
+      ENABLE_CSS = config.enableCss;
+    }
     return this;
   };
   /**
@@ -64,8 +69,15 @@
    * it's useful in pre env for debug, much better then sourcemap
    * @public
    */
-  Cube.source = function () {
-
+  Cube.debug = function () {
+    if (window.localStorage) {
+      var item = localStorage.getItem('__cube_debug__');
+      if (item) {
+        localStorage.removeItem('__cube_debug__');
+      } else {
+        localStorage.setItem('__cube_debug__', true);
+      }
+    }
   };
   /**
    * loading module async, this function only support abs path
@@ -91,13 +103,7 @@
    * @param  {String} name module name
    * @param  {CssCode} css  css code
    */
-  Cube.css = function (name, css) {
-    /*
-    var style = document.createElement('style');
-    style.setAttribute('mod', name);
-    document.getElementsByTagName('HEAD')[0].appendChild(style);
-    */
-  };
+  Cube.css = function (mod, namespace) {};
   /**
    * remove module from mem cache
    * css remove should override this function to delete style node
@@ -139,8 +145,33 @@
   function Require(mod, cb) {
     return Cube._cached[mod];
   }
-  function Async(mod, cb) {
-    Cube.use(mod, cb);
+  /**
+   * async loading resource
+   * i.e
+   *   async(modName, function(mod){ //TODO// });
+   *   async(cssMod, nameSpace, function(){ //TODO// });
+   * @param {Path}   mod   [description]
+   * @param {Function|String} cb    [description]
+   * @param {Function}   param
+   */
+  function Async(mod, cb, param) {
+    if (/\.css(\.js)?$/.test(mod)) {
+      if (!ENABLE_CSS) {
+        console.warn('[Cube] dynamic loading css disabled!');
+        return;
+      }
+      // mod cb -> namespace
+      Cube.use(mod, function (css) {
+        if (typeof cb === 'function') {
+          cb(css);
+        } else {
+          Cube.css(css, cb, mod);
+          param && param();
+        }
+      });
+    } else {
+      Cube.use(mod, cb);
+    }
   }
   /**
    get module by name
@@ -154,18 +185,14 @@
      * @param {string|array} require
      * @param {function} cb callback
      */
-    load: function (require, cb) {
+    load: function (req, cb) {
       var mName = this.name;
+      var require = req;
       if (typeof require === 'string') {
-        // TODO which file timeout
+        // setup file timeout
         setTimeout(function () {
-          var flag = false;
-          for (var i in Cube._flag) {
-            flag = true;
-            break;
-          }
-          if (flag) {
-            console.error('load script timeout:', require, mName);
+          if (Cube._flag[req]) {
+            console.error('load script timeout:', req);
           }
         }, TIMEOUT);
       }
@@ -300,6 +327,9 @@
       script.type = 'text/javascript';
       script.async = 'true';
       script.charset = this.charset;
+      if (ENABLE_SOURCE && !/\.css\.js$/.test(name)) {
+        name = name.replace(/\.js$/, '.source.js');
+      }
       var _src = [ this.base, name, '?m=1&', VERSION];
       script.src = _src.join('');
     }

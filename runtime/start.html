@@ -11,13 +11,13 @@
       <script type="text/javascript" src='/cube.min.js'></script>
       <script type="text/javascript">
         (function () {
+          // main config for this page
           var appConfig = {
             main: '/main.js',
-            base: '/'
-            // app static config here;
+            base: '/',
+            debug: true
           };
           Cube.init({
-            charset: 'utf-8',
             base: appConfig.base,  // or base can be cdn server: http://tbcdn.cn/edp/
             debug: appConfig.debug,
             timeout: 20000 // load resource timeout

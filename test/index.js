@@ -11,7 +11,8 @@ var request = require('supertest');
 testMod.init({
   root: path.join(__dirname, '../example') + '/',
   port: 7777,
-  router: '/a/b/'
+  router: '/a/b/',
+  middleware: false
 });
 request = request('http://localhost:7777');
 describe('index.js', function () {
@@ -45,26 +46,12 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
-          expect(body).to.match(/var a/);
-          expect(body).to.match(/Cube\("\/js\/test_coffee\.coffee"/);
+          expect(body).to.match(/exports.run\s+=/);
+          expect(body).to.match(/Cube\("\/js\/test_coffee\.js"/);
         })
         .end(done);
     });
 
-    it('should return a merge file with @merge', function (done) {
-      request.get('/a/b/js/merge.js?m')
-        .expect(200)
-        .expect('content-type', 'application/javascript')
-        .expect(function (res) {
-          var body = res.text;
-          var fn = wrapCode(body);
-          var M = fn();
-          expect(M['/js/merge.js'].run()).to.match(/jquery running/);
-          expect(body).to.match(/Cube\("\/js\/jquery\.js/);
-          expect(body).to.match(/Cube\("\/js\/merge\.js/);
-        })
-        .end(done);
-    });
     it('should return a compress file', function (done) {
       request.get('/a/b/js/index.js?m&c')
         .expect(200)
@@ -77,39 +64,23 @@ describe('index.js', function () {
         })
         .end(done);
     });
-    it('should return a compress file with @merge flag', function (done) {
-      request.get('/a/b/js/merge.js?m&c')
-        .expect(200)
-        .expect('content-type', 'application/javascript')
-        .expect(function (res) {
-          var body = res.text;
-          var fn = wrapCode(body);
-          var M = fn();
-          expect(M['/js/merge.js'].run()).to.match(/jquery running/);
-          expect(body).to.match(/Cube\("\/js\/jquery\.js/);
-          expect(body).to.match(/Cube\("\/js\/merge\.js/);
-        })
-        .end(done);
-    });
-    it('should return 404 when file not found', function (done) {
+    it('should return err message when file not found when moduleWrap is on', function (done) {
       request.get('/a/b/js/jquery-notfound.js?m')
+        .expect(200)
+        .expect(/console\.error/)
+        .expect(/file not found/)
+        .expect(/jquery-notfound/, done);
+    });
+    it('should return err message when file not found when normal query', function (done) {
+      request.get('/a/b/js/jquery-notfound.js')
         .expect(404)
-        .expect(/module not found/, done);
+        .expect(/file not found/, done);
     });
-    it('should return 500 when file parse ast error', function (done) {
+    it('should return error message in console when file parse ast error', function (done) {
       request.get('/a/b/js/error.js?m')
-        .expect(500)
-        .expect(function (res) {
-          expect(res.text).match(/js parse error/ig);
-        })
-        .end(done);
-    });
-    it('should return 500 when file cycle require', function (done) {
-      request.get('/a/b/js/cycle_server/a.js?m&c')
         .expect(200)
         .expect(function (res) {
-          var requires = res.text.split('\n');
-          expect(requires.length).to.be(3);
+          expect(res.text).match(/JS_Parser_Error/ig);
         })
         .end(done);
     });
@@ -125,7 +96,7 @@ describe('index.js', function () {
     });
     it('should return 404 when file require node_modules not exist', function (done) {
       request.get('/a/b/js/node_modules_not_found.js?m')
-        .expect(404)
+        .expect(200)
         .expect(function (res) {
           expect(res.text).to.match(/required module not found/);
         })
@@ -133,7 +104,7 @@ describe('index.js', function () {
     });
   });
 
-  describe("query css file", function () {
+  describe('query css file', function () {
     it('should return a transfered css file', function (done) {
       request.get('/a/b/css/test.css')
         .expect(200)
@@ -150,9 +121,18 @@ describe('index.js', function () {
         })
         .end(done);
     });
-
+    it('should return a transfered comressed css file with wrap', function (done) {
+      request.get('/a/b/css/test.css?m&c')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).match(/\.test\{/ig);
+          expect(res.text).match(/^Cube\("\/css\/test\.css", *\[\]/);
+          expect(res.text).match(/\.test\{color:#f30\}/);
+        })
+        .end(done);
+    });
     it('should return a transfered less file', function (done) {
-      request.get('/a/b/css/test.less')
+      request.get('/a/b/css/test_less.less')
         .expect(200)
         .expect(function (res) {
           expect(res.text).match(/\.box a \{/ig);
@@ -160,7 +140,7 @@ describe('index.js', function () {
         .end(done);
     });
     it('should return a transfered compressed less file', function (done) {
-      request.get('/a/b/css/test.less?c')
+      request.get('/a/b/css/test_less.less?c')
         .expect(200)
         .expect(function (res) {
           expect(res.text).match(/\.box a\{/ig);
@@ -169,26 +149,8 @@ describe('index.js', function () {
         .end(done);
     });
 
-    it('should return a transfered sass file', function (done) {
-      request.get('/a/b/css/test.sass')
-        .expect(200)
-        .expect(function (res) {
-          expect(res.text).match(/\.test a \{/ig);
-        })
-        .end(done);
-    });
-    it('should return a transfered compressed sass file', function (done) {
-      request.get('/a/b/css/test.sass?m&c')
-        .expect(200)
-        .expect(function (res) {
-          expect(res.text).match(/\.test a\{/ig);
-          expect(res.text).not.match(/\n/);
-        })
-        .end(done);
-    });
-
     it('should return a transfered styl file', function (done) {
-      request.get('/a/b/css/test.styl?m')
+      request.get('/a/b/css/test_styl.styl?m')
         .expect(200)
         .expect(function (res) {
           expect(res.text).match(/\.test a \{/ig);
@@ -197,7 +159,7 @@ describe('index.js', function () {
     });
 
     it('should return a transfered styl file', function (done) {
-      request.get('/a/b/css/test.styl?m&c')
+      request.get('/a/b/css/test_styl.styl?m&c')
         .expect(200)
         .expect(function (res) {
           expect(res.text).match(/\.test a\{/ig);
@@ -209,7 +171,7 @@ describe('index.js', function () {
 
   describe('query tpl file', function () {
     it('should return a compiled ejs file', function (done) {
-      request.get('/a/b/tpl/test.ejs?m')
+      request.get('/a/b/tpl/test_ejs.ejs?m')
         .expect(200)
         .expect(function (res) {
           var code = res.text;
@@ -217,7 +179,7 @@ describe('index.js', function () {
         }).end(done);
     });
     it('should return a compiled jade file', function (done) {
-      request.get('/a/b/tpl/test.jade?m')
+      request.get('/a/b/tpl/test_jade.jade?m')
         .expect(200)
         .expect(function (res) {
           var code = res.text;

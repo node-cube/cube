@@ -3,39 +3,87 @@ var cmd = require('commander');
 var Cube = require('../index');
 var fs = require('xfs');
 var path = require('path');
+var pkg = require(path.join(__dirname, '../package'));
 
-cmd.version('v0.0.1')
-  .option('-p, --port [value]', 'server port')
-  .option('-o, --output [value]', 'output dir')
-;
+function getBase() {
+  return process.cwd();
+}
+/** find cube.js **/
+function findCube(cb) {
+  var tar = [];
+  fs.walk(getBase(), function (err, file) {
+    var filename = path.basename(file);
+    if (/^cube\.(min\.)?js$/.test(filename)) {
+      tar.push(file);
+    }
+  }, function () {
+    if (tar.length > 1) {
+      console.log('[ERROR] more then one cube founded!', tar);
+      return cb(null);
+    }
+    cb(tar[0]);
+  });
+}
+function filePath(file) {
+  var base = getBase();
+  return path.join(base, file);
+}
+function checkFile(file) {
+  return fs.existsSync(filePath(file));
+}
+function sourcePath(file) {
+  var base = __dirname;
+  return path.join(base, '../', file);
+}
+
+cmd.version('v' + pkg.version);
+
+function run() {
+  var argv = Array.prototype.slice.call(arguments);
+  var args = argv.pop();
+  var params = argv;
+  Cube.init({
+    root: path.join(process.cwd(), params[0] || ''),
+    port: cmd.port ? cmd.port : 9999,
+    router: args.vpath || '/',
+    middleware: false
+  });
+}
 
 cmd.command('run')
+  .description('start server, @deprecate, using `cube start`')
+  .option('--vpath [value]', 'the http virtual path, i.e `http://static.taobao.com/res/js/`, vpath -> `/res/js/`')
+  .option('-p, --port [value]', 'server port')
+  .option('-o, --output [value]', 'output dir')
+  .action(run);
+cmd.command('start')
   .description('start server')
-  .action(function () {
-    Cube.init({
-      root: process.cwd(),
-      port: cmd.port ? cmd.port : 9999,
-      router: '/'
-    });
-  });
+  .option('-b --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, vpath -> `/res/js/`')
+  .option('-p, --port [value]', 'server port')
+  .option('-o, --output [value]', 'output dir')
+  .action(run);
 
 cmd.command('init')
   .description('init project')
-  .option('--jade', 'use jade')
-  .option('--ejs', 'use ejs')
+  .option('--jade', 'enable jade, inject jade_runtime to cube.js')
+  .option('--ejs', 'enable ejs, inject ejs_runtime to cube.js')
+  .option('--mcss', 'enable modulize css, inject cube_css to cube.js')
   .action(function (option) {
-    var base = getBase();
     // TODO init project
     // copy cube.js
     if (!checkFile('./cube.min.js')) {
-      var code_cube = fs.readFileSync(sourcePath('./runtime/cube.min.js'));
+      var code_cube = '//cube.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
       if (option.jade) {
         console.log('enable jade');
-        code_cube += '\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
+        code_cube += '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
       }
       if (option.ejs) {
         console.log('enable ejs');
-        code_cube += '\n' + fs.readdirSync(sourcePath('./runtime/ejs_runtime.min.js'));
+        code_cube += '\n//ejs_runtime\n' + fs.readdirSync(sourcePath('./runtime/ejs_runtime.min.js'));
+      }
+      if (option.mcss) {
+        console.log('enable mcss');
+        code_cube += '\n//cube_css.min.js\n' + fs.readdirSync(sourcePath('./runtime/cube_css.min.js'));
       }
       fs.sync().save(filePath('./cube.min.js'), code_cube);
       console.log('inited cube.min.js');
@@ -81,25 +129,62 @@ cmd.command('install')
     // install node_modules
   });
 
-cmd.command('build')
-  .description('build the hole project, including: less->css->min, script->transfer->min')
-  .action(function () {
-    //TODO build hole project
-    var base = getBase();
-    var args = cmd.args.slice(0, cmd.args.length - 1);
-    var sourceDir = path.join(base, args[0]);
-    var destDir = args[1] ? path.join(base, args[1]) : (sourceDir + '-build');
-    Cube.processDir(sourceDir, destDir, true, function () {
-      console.log('done!');
+cmd.command('enable')
+  .description('enable functions, usage: enable [ejs|jade|mcss]')
+  .action(function() {
+    findCube(function(cubeFile) {
+      if (!cubeFile) {
+        return console.log('cube not found');
+      }
+      console.log(cubeFile);
     });
   });
 
-cmd.command('single')
-  .description('output a single independent file')
+cmd.command('build')
+  .description('build the hole project, including: less->css->min, script->transfer->min')
+  .action(function (source, args) {
+    //TODO build hole project
+    var base = getBase();
+    var sourceDir = path.join(base, source).replace(/\/$/, '');
+    var destDir = args[1] ? path.join(base, args[1]) : (sourceDir + '.release');
+    Cube.processDir(sourceDir, destDir, true, function (err, info) {
+      console.log('==================');
+      console.log('files:', info.total, 'cost:', info.time + 's');
+      if (err.length) {
+        console.log('Error:', err.length);
+        err.forEach(function (e) {
+          console.log('\t*', e.code, e.message);
+        });
+      } else {
+        console.log('Build successfully');
+      }
+      console.log('==================');
+    });
+  });
+
+cmd.command('js')
+  .description('output a single js independent file')
   .option('-o, --output [value]', 'output file')
-  .action(function () {
-    console.log(cmd);
-    //Cube.buildJs();
+  .option('-b, --base [value]', 'base dir')
+  .action(function (file, args) {
+    var pwd = getBase();
+    var output = args.output;
+    var base = args.base;
+    if (!base) {
+      base = pwd;
+    }
+    if (!/^\//.test(base)) {
+      base = path.join(pwd, base);
+    }
+    if (!output) {
+      output = file.replace(/\.js$/, '.out.js');
+    }
+    file = path.join(pwd, file);
+    output = path.join(pwd, output);
+    console.log(base, file);
+    var code = Cube.buildJs(file.substr(base.length), base, true, true);
+    console.log(output);
+    fs.writeFileSync(output, code.min);
   });
 cmd.command('help')
   .description('help')
@@ -111,38 +196,6 @@ cmd.parse(process.argv);
 
 if (!cmd.args.length) {
   cmd.help();
-}
-
-function getBase() {
-  return process.cwd();
-}
-
-function findJSDir() {
-  var base = process.cwd();
-  var files = fs.readdirSync(base);
-  var flag;
-  files.forEach(function (v) {
-    var st = fs.statSync(path.join(base, v));
-    if (!st.isDirectory()) {
-      return;
-    }
-    if (v === 'js' || v === 'script' || v == 'scripts') {
-      flag = v;
-    }
-  });
-  return flag;
-}
-
-function checkFile(file) {
-  return fs.existsSync(filePath(file));
-}
-function sourcePath(file) {
-  var base = __dirname;
-  return path.join(base, '../', file);
-}
-function filePath(file) {
-  var base = getBase();
-  return path.join(base, file);
 }
 
 

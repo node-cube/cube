@@ -6,16 +6,18 @@
  */
 var jquery = require('./jquery');
 var cycle = require('./cycle_require_test');
+var testCoffee = require('./test_coffee');
+var merge = require('./merge');
 //var tpl = require('../tpl/test.jade');
 exports.run = jquery.run;
 
-require('../tpl/test.jade', function (tpl) {
+async('../tpl/test_jade', function (tpl) {
   console.log(tpl({user:{name: 'jade'}}));
 });
-require('../tpl/test.ejs', function (tpl) {
+async('../tpl/test_jade', function (tpl) {
   console.log(tpl({user:{name: 'ejs'}}));
 });
 
-async('./test_async', function (mod) {
-  mod.run();
-});
+async('../css/test_less.less');
+
+testCoffee.run();

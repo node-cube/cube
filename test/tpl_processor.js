@@ -5,28 +5,33 @@
  * CopyRight 2014 (c) Alibaba Group
  */
 var expect = require('expect.js');
-var testMod = require('../lib/tpl_transfer');
+var testMod = require('../lib/tpl_processor');
 var xfs = require('xfs');
 var path = require('path');
+var root;
 
-describe('lib/tpl_transfer.js', function () {
+describe('lib/tpl_processor.js', function () {
 
   before(function () {
-    testMod.init({root: path.join(__dirname, '../example')});
+    root = path.join(__dirname, '../example');
   });
 
   describe('transferFile(file, compress)', function () {
     it('should ok when transfer ejs', function () {
       xfs.sync().save(path.join(__dirname, '../example/tpl/test.ejs'), '<div><%= user.name %></div>');
-      var res = testMod.transferFile('/tpl/test.ejs', true);
-      var M = wrapCode(res);
-      expect(M['/tpl/test.ejs']).to.be.a('function');
+      testMod(root, '/tpl/test.ejs', {compress: true}, function (err, code) {
+        var M = wrapCode(code.source);
+        expect(M['/tpl/test.js']).to.be.a('function');
+        expect(err).to.be(null);
+      });
     });
     it('should ok when transfer jade', function () {
       xfs.sync().save(path.join(__dirname, '../example/tpl/test.jade'), 'div #{user.name}');
-      var res = testMod.transferFile('/tpl/test.jade', true);
-      var M = wrapCode(res);
-      expect(M['/tpl/test.jade']).to.be.a('function');
+      testMod(root, '/tpl/test.jade', {compress: true}, function (err, code) {
+        var M = wrapCode(code.source);
+        expect(M['/tpl/test.js']).to.be.a('function');
+        expect(err).to.be(null);
+      });
     });
   });
 });

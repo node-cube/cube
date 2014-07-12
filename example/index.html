@@ -1,5 +1,8 @@
+<div>
+  <h1>Cube</h1>
+  <p>new way to writting front-end code</p>
+</div>
 <script type="text/javascript" src='/cube.js'></script>
-<script type="text/javascript" src='/js/test_coffee.coffee'></script>
 <script type="text/javascript">
   (function () {
     var appConfig = {
@@ -12,7 +15,10 @@
       charset: 'utf-8',
       base: appConfig.base,  // or base can be cdn server: http://tbcdn.cn/edp/
       debug: appConfig.debug,
-      version: 12345
+      enableCss: true,
+      version: 12345,
+      timeout: 2000,
+      enableCss: true
     });
     Cube.use(appConfig.main, function (App) {
       console.log(App.run(appConfig));
