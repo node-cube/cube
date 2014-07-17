@@ -91,6 +91,7 @@ exports.init = function(config) {
         }
       }
       debug('query: %s target: %s type: %s %s', qpath, realPath, type, G.mimeType[type]);
+      options.qpath = qpath;
       processor(root, realPath, options, function (err, result) {
         if (err) {
           debug('[ERROR]: %s %s %s', err.code, err.message);

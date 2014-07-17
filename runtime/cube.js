@@ -327,7 +327,9 @@
       script.type = 'text/javascript';
       script.async = 'true';
       script.charset = this.charset;
-      if (ENABLE_SOURCE && !/\.css\.js$/.test(name)) {
+      // because here can not detect css file or js file
+      // so ignore js source file like:  jquery.scroll.js
+      if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
         name = name.replace(/\.js$/, '.source.js');
       }
       var _src = [ this.base, name, '?m=1&', VERSION];

@@ -51,6 +51,17 @@ describe('index.js', function () {
         })
         .end(done);
     });
+    it('should return transfered coffee file call like a js file', function (done) {
+      request.get('/a/b/js/test_coffee.js?m')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(function (res) {
+          var body = res.text;
+          expect(body).to.match(/exports.run\s+=/);
+          expect(body).to.match(/Cube\("\/js\/test_coffee\.js"/);
+        })
+        .end(done);
+    });
 
     it('should return a compress file', function (done) {
       request.get('/a/b/js/index.js?m&c')
@@ -58,7 +69,6 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
-          console.log(body);
           expect(body).to.match(/Cube\("\/js\/index\.js/);
           expect(body).not.match(/\/\*\!/);
           expect(body).not.match(/module/);

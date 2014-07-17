@@ -15,8 +15,8 @@ function findCube(cb) {
   debug('find cube file: %s', base);
   var tar = [];
   fs.walk(base, function (err, file) {
-    if (/\/node_modules\//.test(file)) {
-      return;
+    if (/(\/node_modules\/|\/\.git)/.test(file)) {
+      return ;
     }
     var filename = path.basename(file);
     if (/^cube\.(min\.)?js$/.test(filename)) {
@@ -148,15 +148,16 @@ cmd.command('update')
       }
       var code_cube = '//cube.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
       if (!option.min) {
-        console.log('enable jade');
+        console.log('enabled jade');
         code_cube += '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
-        console.log('enable ejs');
+        console.log('enabled ejs');
         code_cube += '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
-        console.log('enable mcss');
+        console.log('enabled mcss');
         code_cube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
         optmizeInfo();
       }
       fs.sync().save(cubeFile, code_cube);
+      console.log(cubeFile, 'updated');
     });
   });
 
