@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+var debug = require('debug')('cube:cli');
 var cmd = require('commander');
 var Cube = require('../index');
 var fs = require('xfs');
@@ -10,8 +11,13 @@ function getBase() {
 }
 /** find cube.js **/
 function findCube(cb) {
+  var base = getBase();
+  debug('find cube file: %s', base);
   var tar = [];
-  fs.walk(getBase(), function (err, file) {
+  fs.walk(base, function (err, file) {
+    if (/\/node_modules\//.test(file)) {
+      return;
+    }
     var filename = path.basename(file);
     if (/^cube\.(min\.)?js$/.test(filename)) {
       tar.push(file);
@@ -20,9 +26,16 @@ function findCube(cb) {
     if (tar.length > 1) {
       console.log('[ERROR] more then one cube founded!', tar);
       return cb(null);
+    } else if (!tar.length) {
+      console.log('[]ERROR] cube not found');
+      return cb(null);
     }
     cb(tar[0]);
   });
+}
+
+function optmizeInfo() {
+  console.log('[INFO] you can custom cube.min.js file, i.e : delete jade_runtime, ejs_runtime, css_runtime');
 }
 function filePath(file) {
   var base = getBase();
@@ -52,38 +65,34 @@ function run() {
 
 cmd.command('run')
   .description('start server, @deprecate, using `cube start`')
-  .option('--vpath [value]', 'the http virtual path, i.e `http://static.taobao.com/res/js/`, vpath -> `/res/js/`')
+  .option('-b --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-p, --port [value]', 'server port')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 cmd.command('start')
   .description('start server')
-  .option('-b --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, vpath -> `/res/js/`')
+  .option('-b --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-p, --port [value]', 'server port')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 
 cmd.command('init')
   .description('init project')
-  .option('--jade', 'enable jade, inject jade_runtime to cube.js')
-  .option('--ejs', 'enable ejs, inject ejs_runtime to cube.js')
-  .option('--mcss', 'enable modulize css, inject cube_css to cube.js')
+  .option('--min', 'simple cube.js')
+  .option('-f --force', 'force update cube.min.js')
   .action(function (option) {
     // TODO init project
     // copy cube.js
-    if (!checkFile('./cube.min.js')) {
+    if (!checkFile('./cube.min.js') || option.force) {
       var code_cube = '//cube.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
-      if (option.jade) {
+      if (!option.min) {
         console.log('enable jade');
         code_cube += '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
-      }
-      if (option.ejs) {
         console.log('enable ejs');
-        code_cube += '\n//ejs_runtime\n' + fs.readdirSync(sourcePath('./runtime/ejs_runtime.min.js'));
-      }
-      if (option.mcss) {
+        code_cube += '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
         console.log('enable mcss');
-        code_cube += '\n//cube_css.min.js\n' + fs.readdirSync(sourcePath('./runtime/cube_css.min.js'));
+        code_cube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
+        optmizeInfo();
       }
       fs.sync().save(filePath('./cube.min.js'), code_cube);
       console.log('inited cube.min.js');
@@ -129,14 +138,25 @@ cmd.command('install')
     // install node_modules
   });
 
-cmd.command('enable')
-  .description('enable functions, usage: enable [ejs|jade|mcss]')
-  .action(function() {
+cmd.command('update')
+  .description('update cube.min.js')
+  .option('--min', 'simple cube.min.js, no other run_time inculde')
+  .action(function(option) {
     findCube(function(cubeFile) {
       if (!cubeFile) {
-        return console.log('cube not found');
+        return;
       }
-      console.log(cubeFile);
+      var code_cube = '//cube.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
+      if (!option.min) {
+        console.log('enable jade');
+        code_cube += '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
+        console.log('enable ejs');
+        code_cube += '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
+        console.log('enable mcss');
+        code_cube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
+        optmizeInfo();
+      }
+      fs.sync().save(cubeFile, code_cube);
     });
   });
 

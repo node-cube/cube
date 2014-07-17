@@ -8,13 +8,14 @@ var jquery = require('./jquery');
 var cycle = require('./cycle_require_test');
 var testCoffee = require('./test_coffee');
 var merge = require('./merge');
+var dash = require('./file.with.dash');
 //var tpl = require('../tpl/test.jade');
 exports.run = jquery.run;
 
-async('../tpl/test_jade', function (tpl) {
+async('../tpl/test_jade.jade', function (tpl) {
   console.log(tpl({user:{name: 'jade'}}));
 });
-async('../tpl/test_jade', function (tpl) {
+async('../tpl/test_jade.ejs', function (tpl) {
   console.log(tpl({user:{name: 'ejs'}}));
 });
 

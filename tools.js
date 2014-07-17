@@ -59,9 +59,11 @@ function processDir(source, dest, options, cb) {
   var ignores = loadIgnore(path.join(source, '.cubeignore'));
   var errors = [];
   xfs.walk(source, function (err, sourceFile) {
+    if (err) {
+      throw err;
+    }
     var relFile = sourceFile.substr(source.length);
     var destFile = path.join(dest, relFile);
-    var destSourceFile = path.join(dest, relFile.replace(/\.(\w+)$/, '.source.$1'));
     // var destMapFile = path.join(dest, relFile.replace(/\.(\w+)$/, '.map'));
     var fileName = path.basename(relFile);
     var ext = path.extname(relFile);
@@ -105,19 +107,26 @@ function processDir(source, dest, options, cb) {
         console.log('[ERROR]', err.message);
         return errors.push(err);
       }
+      var finalFile, wrapDestFile, wrapCode, modName;
       if (type === 'script') {
-        destFile = destFile.replace(/\w+$/, 'js');
+        destFile = destFile.replace(/\.\w+$/, '.js');
+        var destSourceFile = destFile.replace(/\.js/, '.source.js');
         xfs.sync().save(destFile, result.min);
         xfs.sync().save(destSourceFile, result.source);
         console.log('[transfer script]:', relFile.substr(1));
       } else if (type === 'style') {
-        destFile = destFile.replace(/\w+$/, 'css');
-        var wrapDestFile = destFile + '.js';
-        var modFile = relFile.replace(/\.\w+/, '.css.js');
-        var wrapCode = 'Cube("' + modFile + '",[],function(){return ' + JSON.stringify(result.min) + '});';
+        finalFile = destFile.replace(/\w+$/, 'css');
+        wrapDestFile = destFile + '.js';
+        modName = relFile + '.js';
+        wrapCode = 'Cube("' + modName + '",[],function(){return ' + JSON.stringify(result.min) + '});';
         xfs.sync().save(wrapDestFile, wrapCode);
-        xfs.sync().save(destFile, result.min);
+        xfs.sync().save(finalFile, result.min);
         console.log('[transfer style]:', relFile.substr(1));
+      } else if (type === 'template') {
+        wrapDestFile = destFile + '.js';
+        xfs.sync().save(destFile, result.source);
+        xfs.sync().save(wrapDestFile, result.wrap);
+        console.log('[transfer template]:', relFile.substr(1));
       }
     });
   }, function () {

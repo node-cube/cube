@@ -20,16 +20,32 @@ describe('lib/tpl_processor.js', function () {
     it('should ok when transfer ejs', function () {
       xfs.sync().save(path.join(__dirname, '../example/tpl/test.ejs'), '<div><%= user.name %></div>');
       testMod(root, '/tpl/test.ejs', {compress: true}, function (err, code) {
-        var M = wrapCode(code.source);
-        expect(M['/tpl/test.js']).to.be.a('function');
+        var M = wrapCode(code.wrap);
+        expect(M['/tpl/test.ejs']).to.be.a('function');
+        expect(err).to.be(null);
+      });
+    });
+    it('should ok when transfer ejs release model', function () {
+      xfs.sync().save(path.join(__dirname, '../example/tpl/test.ejs'), '<div><%= user.name %></div>');
+      testMod(root, '/tpl/test.ejs', {compress: true, release: true}, function (err, code) {
+        var M = wrapCode(code.wrap);
+        expect(M['/tpl/test.ejs.js']).to.be.a('function');
         expect(err).to.be(null);
       });
     });
     it('should ok when transfer jade', function () {
       xfs.sync().save(path.join(__dirname, '../example/tpl/test.jade'), 'div #{user.name}');
       testMod(root, '/tpl/test.jade', {compress: true}, function (err, code) {
-        var M = wrapCode(code.source);
-        expect(M['/tpl/test.js']).to.be.a('function');
+        var M = wrapCode(code.wrap);
+        expect(M['/tpl/test.jade']).to.be.a('function');
+        expect(err).to.be(null);
+      });
+    });
+    it('should ok when transfer jade in release model', function () {
+      xfs.sync().save(path.join(__dirname, '../example/tpl/test.jade'), 'div #{user.name}');
+      testMod(root, '/tpl/test.jade', {compress: true, release: true}, function (err, code) {
+        var M = wrapCode(code.wrap);
+        expect(M['/tpl/test.jade.js']).to.be.a('function');
         expect(err).to.be(null);
       });
     });

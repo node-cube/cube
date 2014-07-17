@@ -16,6 +16,7 @@
   var ENABLE_CSS = false;
   var ENABLE_SOURCE = window.localStorage ? window.localStorage.getItem('__cube_debug__') : false;
 
+  function dummy() {}
   /**
    * Class Cube
    *
@@ -90,6 +91,9 @@
     if (!mod) {
       throw new Error('Cube.use(moduleName) moduleName is undefined!');
     }
+    if (!cb) {
+      cb = dummy;
+    }
     var ll = new Cube();
     ll.load(mod, function (module, exports, require) {
       cb(require(mod));
@@ -154,23 +158,19 @@
    * @param {Function|String} cb    [description]
    * @param {Function}   param
    */
-  function Async(mod, cb, param) {
-    if (/\.css(\.js)?$/.test(mod)) {
+  function Async(mod, param1, param2) {
+    if (typeof param1 !== 'function') {
       if (!ENABLE_CSS) {
         console.warn('[Cube] dynamic loading css disabled!');
         return;
       }
       // mod cb -> namespace
       Cube.use(mod, function (css) {
-        if (typeof cb === 'function') {
-          cb(css);
-        } else {
-          Cube.css(css, cb, mod);
-          param && param();
-        }
+        Cube.css(css, param1, mod);
+        param2 && param2(css);
       });
     } else {
-      Cube.use(mod, cb);
+      Cube.use(mod, param1);
     }
   }
   /**

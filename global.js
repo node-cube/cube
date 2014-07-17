@@ -14,6 +14,10 @@
  *           style: {
  *             '.css': 'css_processor',
  *             '.less': 'less_processor'
+ *           },
+ *           template: {
+ *             '.jade': 'tpl_processor',
+ *             '.ejs': 'tpl_processor'
  *           }
  *         }
  *       }

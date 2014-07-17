@@ -50,22 +50,23 @@ exports.init = function(config) {
       originalUrl = originalUrl ? originalUrl : req.url;
       var queryString = url.parse(originalUrl).query;
       req.query = qs.parse(queryString);
+      debug('parse request query object', req.query);
     }
-
+    debug('query file', qpath);
 
     var type =  G.processors.map[ext];
     if (type === undefined) {
-      // unknow type, pass to next
+      debug('unknow file type, query will passed to connect.static handler');
       return connectStatic(req, res, next);
     }
     var ps = G.processors.types[type];
-    debug('query file', qpath);
     var options = {
       moduleWrap: req.query.m === undefined ? false : true,
       sourceMap: false,
       compress: req.query.c === undefined ? false : true,
       buildInModule: G.buildInModule
     };
+    debug('recognize file type: %s', type);
     // seek for realpath
     utils.seekFile(root, qpath, ps, function (err, realPath, ext, processor) {
       if (err) {
@@ -104,8 +105,12 @@ exports.init = function(config) {
         }
         // resule {source, min, sourceMap}
         var code = options.compress ? result.min : result.source;
-        if (options.moduleWrap && type === 'style') {
-          code = 'Cube("' + qpath + '", [], function(){return ' + JSON.stringify(code) + '});';
+        if (options.moduleWrap) {
+          if(type === 'style') {
+            code = 'Cube("' + qpath + '", [], function(){return ' + JSON.stringify(code) + '});';
+          } else if (type === 'template') {
+            code = result.wrap;
+          }
         }
         res.statusCode = 200;
         res.setHeader('content-type', G.mimeType[type]);

@@ -12,8 +12,9 @@ var utils = require('./lib/utils');
 
 G.bind('script', '.js', './lib/js_processor');
 G.bind('script', '.coffee', './lib/js_processor');
-G.bind('script', '.ejs', './lib/tpl_processor');
-G.bind('script', '.jade', './lib/tpl_processor');
+G.bind('template', '.ejs', './lib/tpl_processor');
+G.bind('template', '.jade', './lib/tpl_processor');
+G.bind('template', '.html', './lib/html_processor');
 G.bind('style', '.css', './lib/css_processor');
 G.bind('style', '.less', './lib/less_processor');
 G.bind('style', '.styl', './lib/styl_processor');

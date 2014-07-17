@@ -47,7 +47,7 @@ describe('index.js', function () {
         .expect(function (res) {
           var body = res.text;
           expect(body).to.match(/exports.run\s+=/);
-          expect(body).to.match(/Cube\("\/js\/test_coffee\.js"/);
+          expect(body).to.match(/Cube\("\/js\/test_coffee\.coffee"/);
         })
         .end(done);
     });
@@ -58,6 +58,7 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
+          console.log(body);
           expect(body).to.match(/Cube\("\/js\/index\.js/);
           expect(body).not.match(/\/\*\!/);
           expect(body).not.match(/module/);
@@ -163,6 +164,16 @@ describe('index.js', function () {
         .expect(200)
         .expect(function (res) {
           expect(res.text).match(/\.test a\{/ig);
+          expect(res.text).not.match(/\n/);
+        })
+        .end(done);
+    });
+
+    it('shoud seekFile success', function (done) {
+      request.get('/a/b/css/test.styl?c')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).match(/\.test\{color:#f30\}/ig);
           expect(res.text).not.match(/\n/);
         })
         .end(done);
