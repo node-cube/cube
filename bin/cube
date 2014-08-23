@@ -170,7 +170,7 @@ cmd.command('build')
     var destDir = args[1] ? path.join(base, args[1]) : (sourceDir + '.release');
     Cube.processDir(sourceDir, destDir, true, function (err, info) {
       console.log('==================');
-      console.log('files:', info.total, 'cost:', info.time + 's');
+      console.log('Files:', info.total, 'Cost:', info.time + 's');
       if (err.length) {
         console.log('Error:', err.length);
         err.forEach(function (e) {

@@ -38,6 +38,8 @@
       this.charset = CHARSET;
     }
   }
+  /** version **/
+  Cube.toString = function () {return 'Cube:v$$version$$';};
   /**
    * init global setting for Cube
    * @static

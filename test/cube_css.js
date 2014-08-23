@@ -30,7 +30,7 @@ describe('runtime/cube_css.js', function () {
     var css = '/** test */\n.test div > p, a.select:active {font-weight:bolder;}';
     Cube.css(css, '.name', 'test1.css');
     var newCss = findNode('test1.css').innerHTML;
-    expect(newCss).match(/\.name \.test div > p/);
+    expect(newCss).match(/\.name \/\*\* test \*\/\n\.test div > p/);
     expect(newCss).match(/\.name a\.select:active/);
   });
   it('should ok when parse normal css without namespace', function () {
