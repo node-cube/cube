@@ -73,7 +73,7 @@ exports.init = function(config) {
         debug('seek file error', err, options);
         if (type === 'script' && options.moduleWrap) {
           res.statusCode = 200;
-          res.end('console.error("[CUBE]", ' + err.stack + ');');
+          res.end('console.error("[CUBE]",' + JSON.stringify(err.stack) + ');');
           return ;
         }
         res.statusCode = 404;

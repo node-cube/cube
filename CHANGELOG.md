@@ -1,3 +1,9 @@
+v0.0.18
+  * cube build support `-i` option, for set up build-in module ignore
+  * fix css inject when namespace is undefined
+  * fix jsprocessor build-in ignore bug
+  * update readme
+
 v0.0.17
   * add version num to cube.js
   * simplify cube_css.js

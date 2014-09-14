@@ -65,13 +65,13 @@ function run() {
 
 cmd.command('run')
   .description('start server, @deprecate, using `cube start`')
-  .option('-b --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
+  .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-p, --port [value]', 'server port')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 cmd.command('start')
   .description('start server')
-  .option('-b --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
+  .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-p, --port [value]', 'server port')
   .option('-o, --output [value]', 'output dir')
   .action(run);
@@ -79,7 +79,7 @@ cmd.command('start')
 cmd.command('init')
   .description('init project')
   .option('--min', 'simple cube.js')
-  .option('-f --force', 'force update cube.min.js')
+  .option('-f, --force', 'force update cube.min.js')
   .action(function (option) {
     // TODO init project
     // copy cube.js
@@ -163,11 +163,19 @@ cmd.command('update')
 
 cmd.command('build')
   .description('build the hole project, including: less->css->min, script->transfer->min')
+  .option('-i, --buildin [value]', 'build in modules, tell cube ignore them')
   .action(function (source, args) {
     //TODO build hole project
+    var buildIns = {};
+
+    args.buildin && args.buildin.split(',').forEach(function (v) {
+      buildIns[v.trim()] = true;
+    });
+
     var base = getBase();
     var sourceDir = path.join(base, source).replace(/\/$/, '');
     var destDir = args[1] ? path.join(base, args[1]) : (sourceDir + '.release');
+    Cube.setBuildInModule(buildIns);
     Cube.processDir(sourceDir, destDir, true, function (err, info) {
       console.log('==================');
       console.log('Files:', info.total, 'Cost:', info.time + 's');

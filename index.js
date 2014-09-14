@@ -19,5 +19,6 @@ G.bind('style', '.css', './lib/css_processor');
 G.bind('style', '.less', './lib/less_processor');
 G.bind('style', '.styl', './lib/styl_processor');
 
+utils.merge(exports, G);
 utils.merge(exports, T);
 utils.merge(exports, S);

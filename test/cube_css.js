@@ -37,8 +37,7 @@ describe('runtime/cube_css.js', function () {
     var css = '/** test */\n.test div > p, a.select:active {font-weight:bolder;}';
     Cube.css(css, undefined, 'test1.css');
     var newCss = findNode('test1.css').innerHTML;
-    expect(newCss).match(/\.test div > p/);
-    expect(newCss).match(/a\.select:active/);
+    expect(newCss).eql(css);
   });
   it('should throw error when parse error css', function () {
     var css = '.test div > p {font-weight:bolder;';

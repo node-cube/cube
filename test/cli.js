@@ -5,7 +5,7 @@ var path = require('path');
 describe('cli', function () {
   it('bind should throw exception', function (done) {
     var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-    cmd += 'bin/cube build example';
+    cmd += 'bin/cube build -i build_in_module example';
 
     exec(cmd, function (err, stdout, stderr) {
       var res = stdout.toString().split('\n');

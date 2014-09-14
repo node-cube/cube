@@ -12,5 +12,9 @@ release:
 
 publish: release
 	@npm publish
-.PHONY:
-	install release publish
+
+test:
+	@npm test
+
+.PHONY: \
+	install release publish test

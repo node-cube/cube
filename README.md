@@ -12,36 +12,18 @@ Cube会将这些语言，转换为服务于web的js 和 css
 
   npm install -g node-cube
 
-## init
-
-  每一个web应用都有一包静态资源
-  每一个web应用的静态资源，都应该被设计成可自由部署 (static.server/path, 虽然很多时候静态资源都在同域下)
-  每一个web应用都会包含这么一个目录叫静态资源, 比如:
+## command line usage
 
 ```sh
-  webapp -|
-          | - wwwroot | << 静态资源目录
-                      | - js
-                      | - css
-                      | - imgs
+# init project
+cube init your_app_path
+
+# start an http server
+cube start your_app_path
+
 ```
 
-  cube的初始化就从这个wwwroot开始，进入wwwroot目录，cube内建静态资源服务，启动服务:
-
-```sh
-  cd static_dir
-  # 初始化工程
-  cube init  // --jade 启用jade, --ejs 启用ejs
-  # 启动静态服务
-  cube start
-```
-
-  根据命令行提示的地址访问, ok，你的前端资源可以像node.js一样编写了。
-
-  在设计前端框架的时候，通常都会考虑到这点：前端资源需要可以被方便的部署到CDN等资源（动静态资源分离）
-  cube的运行模式就是遵循这一设计思路的
-
-## 集成到项目的connect中
+## run with connect 集成到connect中
 
   假如你的工程已经是connect工程，或者express工程，那么可以很方便的将cube集成到工程中
   cube可以返回一个middleware方法 `middleware(req, res, next)`
@@ -103,29 +85,42 @@ ok，一个很简单的一个模块，设置头部用户登录昵称
 </script>
 ```
 
-## 优化加载
-
-  模块化之后带来的一个问题，就是文件非常零碎，有时候甚至影响到了执行性能。
-  这个时候可以通过 `@merge` 这个标记来优化文件
-
-```js
-/**
- * file description
- * @merge
- */
-var a = require('a');
-var b = require('b');
-var c = require('c');
-```
-  通过标记`@merge`, 服务器会将`a`,`b`,`c`三个模块合并到当前模块的文件中，一起输出。
-  通过这个方法，可以将整个app中常用的一些模块打包成一个文件
-
 ## 打包发布
 
 进入生产环境之前，模块都会被预编译、压缩成一个个小文件，然后发布到线上(cdn服务器、云存储 或 其他)
 
 ```sh
+# build static folder
 cube build resource_path
+
+# set up build_in_module ignore
+cube build -i jquery,d3 resource_path
 ```
 
 在静态资源目录下，编写 `.cubeignore`来排除不需要被处理的文件，格式和.gitignore一样
+
+
+## why cube
+
+  每一个web应用都有一包静态资源
+  每一个web应用的静态资源，都应该被设计成可自由部署 (static.server/path, 虽然很多时候静态资源都在同域下)
+  每一个web应用都会包含这么一个目录叫静态资源, 比如:
+
+```sh
+  webapp -|
+          | - wwwroot | << 静态资源目录
+                      | - js
+                      | - css
+                      | - imgs
+```
+  在设计前端框架的时候，通常都会考虑到这点：前端资源需要可以被方便的部署到CDN等资源（动静态资源分离）
+  cube的运行模式就是遵循这一设计思路的
+
+  cube的初始化就从这个wwwroot开始，进入wwwroot目录，cube内建静态资源服务，启动服务:
+
+  根据命令行提示的地址访问, ok，你的前端资源可以像node.js一样编写了。
+
+  cube让前端开发模块化，更好的代码组织方式，让代码轻松复用。
+  cube集成各种工具，让coffee，styl，jade，ejs，less等等默认支持，选择你所熟悉的工具。
+  cube支持扩展，你可以动手集成插件进入其中。
+

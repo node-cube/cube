@@ -12,7 +12,10 @@ testMod.init({
   root: path.join(__dirname, '../example') + '/',
   port: 7777,
   router: '/a/b/',
-  middleware: false
+  middleware: false,
+  buildInModule: {
+    'build_in_module': true
+  }
 });
 request = request('http://localhost:7777');
 describe('index.js', function () {
@@ -110,6 +113,14 @@ describe('index.js', function () {
         .expect(200)
         .expect(function (res) {
           expect(res.text).to.match(/required module not found/);
+        })
+        .end(done);
+    });
+    it('should ignore build in modules', function (done) {
+      request.get('/a/b/js/test_build_in_module.js?m')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).to.match(/\["build_in_module"\]/);
         })
         .end(done);
     });
