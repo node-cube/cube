@@ -143,9 +143,10 @@ describe('index.js', function () {
         })
         .end(done);
     });
-    it('should return a transfered comressed css file with wrap', function (done) {
+    it('should return a transfered comressed css file with wrap, actually a js module', function (done) {
       request.get('/a/b/css/test.css?m&c')
         .expect(200)
+        .expect('content-type', 'application/javascript')
         .expect(function (res) {
           expect(res.text).match(/\.test\{/ig);
           expect(res.text).match(/^Cube\("\/css\/test\.css", *\[\]/);

@@ -106,15 +106,17 @@ exports.init = function(config) {
         }
         // resule {source, min, sourceMap}
         var code = options.compress ? result.min : result.source;
+        var mime = G.mimeType[type];
         if (options.moduleWrap) {
           if(type === 'style') {
             code = 'Cube("' + qpath + '", [], function(){return ' + JSON.stringify(code) + '});';
           } else if (type === 'template') {
             code = result.wrap;
           }
+          mime = G.mimeType['script'];
         }
         res.statusCode = 200;
-        res.setHeader('content-type', G.mimeType[type]);
+        res.setHeader('content-type', mime); // fix #10
         res.end(code);
       });
     });

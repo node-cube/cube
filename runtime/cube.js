@@ -96,6 +96,13 @@
     if (!cb) {
       cb = dummy;
     }
+    /** fix #12 **/
+    if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
+      mod = mod.substr(1);
+    } else if (mod[0] !== '/') {    // be campatible with test.js
+      mod = '/' + mod;
+    }
+
     var ll = new Cube();
     ll.load(mod, function (module, exports, require) {
       cb(require(mod));
