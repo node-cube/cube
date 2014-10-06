@@ -163,20 +163,24 @@ cmd.command('update')
 
 cmd.command('build')
   .description('build the hole project, including: less->css->min, script->transfer->min')
-  .option('-i, --buildin [value]', 'build in modules, tell cube ignore them')
+  .option('-p, --processors [value]', 'build in modules, tell cube ignore them')
   .action(function (source, args) {
-    //TODO build hole project
-    var buildIns = {};
 
-    args.buildin && args.buildin.split(',').forEach(function (v) {
-      buildIns[v.trim()] = true;
+    args.processors && args.processors.split(',').forEach(function (v, i, a) {
+      a[i] = v.trim();
     });
 
     var base = getBase();
     var sourceDir = path.join(base, source).replace(/\/$/, '');
     var destDir = args[1] ? path.join(base, args[1]) : (sourceDir + '.release');
-    Cube.setBuildInModule(buildIns);
-    Cube.processDir(sourceDir, destDir, true, function (err, info) {
+    var cube = new Cube({
+      release: true,
+      root: sourceDir,
+      middleware: false,
+      processors: args.processors,
+    });
+    var tool = Cube.getTool();
+    tool.processDir(cube, sourceDir, destDir, true, function (err, info) {
       console.log('==================');
       console.log('Files:', info.total, 'Cost:', info.time + 's');
       if (err.length) {

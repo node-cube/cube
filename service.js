@@ -7,9 +7,8 @@ var url = require('url');
 var qs = require('querystring');
 var path = require('path');
 var connect = require('connect');
+var connectStatic = require('serve-static');
 var utils = require('./lib/utils');
-var G = require('./global');
-var app;
 /**
  * init cube
  *
@@ -20,22 +19,21 @@ var app;
  *         - router     http path
  *         - middleware  boolean, default false
  */
-exports.init = function(config) {
-  config.cached = config.cached ? config.cached : config.root + '.release';
+exports.init = function(cube, config) {
   if (config.middleware === undefined) {
-    config.middleware = true;
+    config.middleware = false;
   }
-  if (config.buildInModule) {
-    G.setBuildInModule(config.buildInModule);
-  }
-  var root = config.root = config.root.replace(/[\\\/]$/, '');
-  var connectStatic;
+  var root = cube.config.root;
+  var serveStatic;
+  var app;
+
+  config.cached = config.cached ? config.cached : root + '.release';
 
   if (!xfs.existsSync(config.cached)) {
      config.cached = false;
   }
 
-  connectStatic = connect.static(config.cached ? config.cached : config.root);
+  serveStatic = connectStatic(config.cached ? config.cached : config.root);
 
   function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
@@ -54,21 +52,21 @@ exports.init = function(config) {
     }
     debug('query file', qpath);
 
-    var type =  G.processors.map[ext];
+    var type =  cube.processors.map[ext];
     if (type === undefined) {
       debug('unknow file type, query will passed to connect.static handler');
-      return connectStatic(req, res, next);
+      return serveStatic(req, res, next);
     }
-    var ps = G.processors.types[type];
+    var ps = cube.processors.types[type];
     var options = {
+      root: root,
       moduleWrap: req.query.m === undefined ? false : true,
       sourceMap: false,
       compress: req.query.c === undefined ? false : true,
-      buildInModule: G.buildInModule
     };
     debug('recognize file type: %s', type);
     // seek for realpath
-    utils.seekFile(root, qpath, ps, function (err, realPath, ext, processor) {
+    utils.seekFile(cube, root, qpath, ps, function (err, realPath, ext, processor) {
       if (err) {
         debug('seek file error', err, options);
         if (type === 'script' && options.moduleWrap) {
@@ -79,22 +77,25 @@ exports.init = function(config) {
         res.statusCode = 404;
         return res.end('file not found:' + qpath);
       }
+      /*
       // lazy loading processing
       if (typeof processor === 'string') {
         try {
-          processor = require(processor);
-          G.processors.types[type][ext] = processor;
+          processor = new (require(processor))(cube);
+          cube.processors.types[type][ext] = processor;
         } catch (e) {
-          e.message = 'loading transform error: type:`' + type + '` ext:`' + ext + '`';
+          e.message = 'loading cube processor error, type: ' + type + ', ext: ' + ext + ', msg: ' + e.message;
+          e.message += '. you need to `npm install` this processor module';
           e.code = 'CUBE_LOADING_TRANSFORM_ERROR';
           throw e;
         }
       }
-      debug('query: %s target: %s type: %s %s', qpath, realPath, type, G.mimeType[type]);
+      */
+      debug('query: %s target: %s type: %s %s', qpath, realPath, type, cube.mimeType[type]);
       options.qpath = qpath;
-      processor(root, realPath, options, function (err, result) {
+      processor.process(realPath, options, function (err, result) {
         if (err) {
-          debug('[ERROR]: %s %s %s', err.code, err.message);
+          debug('[ERROR]: %s %s %s', err.code, err.message, err.stack);
           if (options.moduleWrap) {
             res.statusCode = 200;
             res.end('console.error("[CUBE]",' + JSON.stringify(err.message) + ');');
@@ -104,16 +105,30 @@ exports.init = function(config) {
           }
           return;
         }
-        // resule {source, min, sourceMap}
-        var code = options.compress ? result.min : result.source;
-        var mime = G.mimeType[type];
+        // resule {source, code, wraped}
+        var code;
+        var mime;
         if (options.moduleWrap) {
+          /**
           if(type === 'style') {
             code = 'Cube("' + qpath + '", [], function(){return ' + JSON.stringify(code) + '});';
+            mime = cube.mimeType['script'];
           } else if (type === 'template') {
             code = result.wrap;
+            mime = cube.mimeType['script'];
           }
-          mime = G.mimeType['script'];
+          */
+          code = result.wraped !== undefined ? result.wraped : result.code;
+          mime = cube.getMIMEType('script');
+        } else {
+          if (options.compress) {
+            code = result.code;
+          } else if (realPath === qpath) {
+            code = result.source;
+          } else {
+            code = result.code;
+          }
+          mime = cube.getMIMEType(type);
         }
         res.statusCode = 200;
         res.setHeader('content-type', mime); // fix #10
@@ -123,10 +138,14 @@ exports.init = function(config) {
   }
   // return middleware
   if (config.middleware) {
-    return config.cached ? connectStatic : processQuery;
+    cube.middleware = config.cached ? serveStatic : processQuery;
+    cube.middleware.getCube = function () {
+      return cube;
+    };
   } else {
     app = connect();
-    app.use(config.router, config.cached ? connectStatic : processQuery);
+    app.use(config.router, config.cached ? serveStatic : processQuery);
+    cube.connect = app;
   }
 
   // other static files
@@ -141,17 +160,4 @@ exports.init = function(config) {
       }
     });
   }
-};
-
-/**
- * band ext to processor, you can custom the own processor
- * like   '.coffee', '.styl'
- *
- * @param {String} ext  file ext name, like `.js` `.coffee`
- * @param {Function|Path} processor(file, base, options) the transfer function
- * @param {Boolean} force force override
- */
-exports.bind = G.bind;
-exports.getApp = function () {
-  return app;
 };

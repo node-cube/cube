@@ -1,9 +1,4 @@
-!(function () {
-
-if (typeof Cube === 'undefined') {
-  return;
-}
-
+!(function (Cube) {
 var parseCssRe = /\}\n?([\s\S]*?)\{/g;
 Cube.css = function (css, namespace, file) {
   if (!css) {
@@ -26,8 +21,11 @@ Cube.css = function (css, namespace, file) {
   var style = document.createElement('style');
   style.setAttribute('type', 'text/css');
   style.setAttribute('mod', file);
+  if (namespace) {
+    style.setAttribute('ns', namespace);
+  }
   headNode.appendChild(style);
   style.innerHTML = css;
 };
 
-})();
+})(Cube);

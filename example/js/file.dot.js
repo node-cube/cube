@@ -1,1 +1,0 @@
-console.log('this is a file with dot in filename');

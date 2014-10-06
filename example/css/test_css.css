@@ -1,0 +1,5 @@
+.test {
+  color: red\9;
+  *color: blue;
+  _color: green;
+}

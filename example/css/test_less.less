@@ -1,14 +1,16 @@
 @red: #ff3300;
-body {
-  width: 600px;
-  margin: auto;
-}
-h1 {
-  color: #red;
-  margin-top: 20px;
-}
-.box {
-  a {
-    color : @red;
+.test {
+  color: red\9;
+  *color: blue;
+  _color: green;
+
+  h1 {
+    color: #red;
+    margin-top: 20px;
+  }
+  .box {
+    a {
+      color : @red;
+    }
   }
 }

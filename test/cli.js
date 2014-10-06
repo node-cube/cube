@@ -1,11 +1,12 @@
 var exec = require('child_process').exec;
 var expect = require('expect.js');
 var path = require('path');
+var xfs = require('xfs');
 
 describe('cli', function () {
   it('bind should throw exception', function (done) {
     var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-    cmd += 'bin/cube build -i build_in_module example';
+    cmd += 'bin/cube build example';
 
     exec(cmd, function (err, stdout, stderr) {
       var res = stdout.toString().split('\n');
@@ -23,7 +24,8 @@ describe('cli', function () {
         }
       });
       expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-      expect(info[1]).match(/Error: 3/);
+      expect(info[1]).match(/Error: 1/);
+      xfs.sync().rmdir(path.join(__dirname, '../example.release'));
       done();
     });
   });

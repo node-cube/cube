@@ -1,1 +1,0 @@
-console.log('file with dash shoud be ok');

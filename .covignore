@@ -1,1 +1,5 @@
 /lib/sass.js
+cube-ejs/node_modules/
+cube-jade/node_modules/
+cube-less/node_modules/
+cube-stylus/node_modules/

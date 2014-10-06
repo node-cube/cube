@@ -1,3 +1,12 @@
+v0.1.0
+  * support custom processor now
+  * support `require('css', ns);`
+  * support multi cube instance
+  * build-in support only: html/css/js/coffee,
+  * processors: jade、ejs、less、stylus have been moved to independent modules
+  * ignore build-in-module(node_modules/xxx) not found error, let browser throw error
+
+
 v0.0.18
   * cube build support `-i` option, for set up build-in module ignore
   * fix css inject when namespace is undefined
