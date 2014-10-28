@@ -14,10 +14,10 @@ testMod.init({
   router: '/',
   middleware: false,
   processors: [
-    require('../../cube-ejs'),
-    path.join(__dirname, '../../cube-jade'),
-    require('../../cube-less'),
-    require('../../cube-stylus'),  // do not delete this comma, for branch test
+    require('cube-ejs'),
+    path.join(__dirname, '../node_modules/cube-jade'),
+    'cube-less',
+    'cube-stylus',  // do not delete this comma, for branch test
   ]
 });
 request = request('http://localhost:7777');

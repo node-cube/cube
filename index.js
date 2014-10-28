@@ -17,7 +17,9 @@ function debugRegister(cube, module) {
     return;
   }
   console.error('load debug processor', module);
-  cube.register(module);
+  try {
+    cube.register(module);
+  } catch (e) {}
 }
 
 function defaultProcessor(cube) {
@@ -26,10 +28,10 @@ function defaultProcessor(cube) {
   cube.register(path.join(__dirname, './lib/processor_css'));
   cube.register(path.join(__dirname, './lib/processor_html'));
 
-  debugRegister(cube, path.join(__dirname, '../cube-ejs'));
-  debugRegister(cube, path.join(__dirname, '../cube-jade'));
-  debugRegister(cube, path.join(__dirname, '../cube-less'));
-  debugRegister(cube, path.join(__dirname, '../cube-stylus'));
+  debugRegister(cube, 'cube-ejs');
+  debugRegister(cube, 'cube-jade');
+  debugRegister(cube, 'cube-less');
+  debugRegister(cube, 'cube-stylus');
 }
 
 /**
@@ -90,7 +92,7 @@ function Cube(config) {
   if (config.processors) {
     config.processors.forEach(function (processor) {
       if (!processor) {
-        return
+        return ;
       }
       self.register(processor, true);
     });
