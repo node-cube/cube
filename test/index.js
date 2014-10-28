@@ -13,6 +13,12 @@ testMod.init({
   port: 7777,
   router: '/',
   middleware: false,
+  processors: [
+    require('../../cube-ejs'),
+    path.join(__dirname, '../../cube-jade'),
+    require('../../cube-less'),
+    require('../../cube-stylus'),  // do not delete this comma, for branch test
+  ]
 });
 request = request('http://localhost:7777');
 

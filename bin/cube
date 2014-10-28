@@ -6,12 +6,12 @@ var fs = require('xfs');
 var path = require('path');
 var pkg = require(path.join(__dirname, '../package'));
 
-function getBase() {
+function getCwd() {
   return process.cwd();
 }
 /** find cube.js **/
 function findCube(cb) {
-  var base = getBase();
+  var base = getCwd();
   debug('find cube file: %s', base);
   var tar = [];
   fs.walk(base, function (err, file) {
@@ -35,10 +35,10 @@ function findCube(cb) {
 }
 
 function optmizeInfo() {
-  console.log('[INFO] you can custom cube.min.js file, i.e : delete jade_runtime, ejs_runtime, css_runtime');
+  console.log('[INFO] you can custom cube.min.js file, i.e : css_runtime');
 }
 function filePath(file) {
-  var base = getBase();
+  var base = getCwd();
   return path.join(base, file);
 }
 function checkFile(file) {
@@ -47,6 +47,20 @@ function checkFile(file) {
 function sourcePath(file) {
   var base = __dirname;
   return path.join(base, '../', file);
+}
+
+function buildOutput(err, info) {
+  console.log('==================');
+  console.log('Files:', info.total, 'Cost:', info.time + 's');
+  if (err.length) {
+    console.log('Error:', err.length);
+    err.forEach(function (e) {
+      console.log('\t*', e.code, e.message);
+    });
+  } else {
+    console.log('Build successfully');
+  }
+  console.log('==================');
 }
 
 cmd.version('v' + pkg.version);
@@ -77,24 +91,34 @@ cmd.command('start')
   .action(run);
 
 cmd.command('init')
+  .alias('install')
   .description('init project')
-  .option('--min', 'simple cube.js')
+  .option('--jade', 'with jade runtime')
+  .option('--ejs', 'with ejs runtime')
+  .option('--css', 'with dynamic css load support')
   .option('-f, --force', 'force update cube.min.js')
   .action(function (option) {
     // TODO init project
     // copy cube.js
     if (!checkFile('./cube.min.js') || option.force) {
-      var code_cube = '//cube.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
-      if (!option.min) {
-        console.log('enable jade');
-        code_cube += '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
-        console.log('enable ejs');
-        code_cube += '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
+      var code_cube = fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
+      if (option.css) {
         console.log('enable mcss');
         code_cube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
         optmizeInfo();
       }
       fs.sync().save(filePath('./cube.min.js'), code_cube);
+
+      if (option.jade) {
+        console.log('enable jade');
+        code_cube = '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
+        fs.sync().save(filePath('./node_modules/jade_runtime.js'), code_cube);
+      }
+      if (option.ejs) {
+        console.log('enable ejs');
+        code_cube = '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
+        fs.sync().save(filePath('./node_modules/ejs_runtime.js'), code_cube);
+      }
       console.log('inited cube.min.js');
     } else {
       console.log('file already exist: ./cube.min.js');
@@ -105,17 +129,11 @@ cmd.command('init')
     } else {
       console.log('file already exist: ./index.html');
     }
-    if (!checkFile('./.cubeignore')) {
-      fs.sync().save(filePath('./.cubeignore'), '/cube.min.js');
-      console.log('inited .cubeignore');
+    if (!checkFile('./cube.json')) {
+      fs.sync().save(filePath('./cube.json'), fs.readFileSync(sourcePath('./runtime/cube.json')));
+      console.log('inited cube.json');
     } else {
-      console.log('file already exist: ./.cubeignore');
-    }
-    if (!checkFile('./package.json')) {
-      fs.sync().save(filePath('./package.json'), fs.readFileSync(sourcePath('./runtime/package.json')));
-      console.log('inited package.json');
-    } else {
-      console.log('file already exist: ./package.json');
+      console.log('file already exist: ./cube.json');
     }
     if (!checkFile('./main.js')) {
       fs.sync().save(filePath('./main.js'),
@@ -135,7 +153,7 @@ cmd.command('init')
 cmd.command('install')
   .description('install dependences')
   .action(function () {
-    // install node_modules
+    this.parent.emit('init');
   });
 
 cmd.command('update')
@@ -162,63 +180,67 @@ cmd.command('update')
   });
 
 cmd.command('build')
-  .description('build the hole project, including: less->css->min, script->transfer->min')
+  .usage('-p processor1,processor2 your_code_dir')
+  .description('build the hole project, including: less->css->min, script->wraped->min')
   .option('-p, --processors [value]', 'build in modules, tell cube ignore them')
+  .option('-o, --output [value]', 'set the output path')
+  .option('-b, --base [value]', 'set the cube base')
+  .option('--with-source', 'create source file')
+  .option('--merge', 'if merged dependences into on file')
   .action(function (source, args) {
+    if (!args) {
+      this.help();
+      return;
+    }
+    if (args.processors) {
+      args.processors = args.processors.split(',');
+      args.processors.forEach(function (v, i, a) {
+        a[i] = v.trim();
+      });
+    }
 
-    args.processors && args.processors.split(',').forEach(function (v, i, a) {
-      a[i] = v.trim();
-    });
-
-    var base = getBase();
-    var sourceDir = path.join(base, source).replace(/\/$/, '');
-    var destDir = args[1] ? path.join(base, args[1]) : (sourceDir + '.release');
-    var cube = new Cube({
-      release: true,
-      root: sourceDir,
-      middleware: false,
-      processors: args.processors,
-    });
-    var tool = Cube.getTool();
-    tool.processDir(cube, sourceDir, destDir, true, function (err, info) {
-      console.log('==================');
-      console.log('Files:', info.total, 'Cost:', info.time + 's');
-      if (err.length) {
-        console.log('Error:', err.length);
-        err.forEach(function (e) {
-          console.log('\t*', e.code, e.message);
-        });
-      } else {
-        console.log('Build successfully');
-      }
-      console.log('==================');
-    });
+    var cwd = getCwd();
+    var fstat;
+    source = path.join(cwd, source);
+    console.log(source);
+    try {
+      fstat = fs.statSync(source);
+    } catch (e) {
+      console.log('source not fould', e);
+      this.help();
+      return;
+    }
+    var inputPath, outputPath, cube, tool, root;
+    if (fstat.isFile()) {
+      inputPath = source;
+      outputPath = args.output ? (args.output.indexOf('/') === 0 ? args.output : path.join(cwd, args.output)) : source.replace(/\.(\w+)$/, '.min.$1');
+      console.log('>>', outputPath);
+      root = args.base ? args.base : path.dirname(inputPath);
+      cube = new Cube({
+        release: true,
+        root: root,
+        middleware: false,
+        processors: args.processors,
+      });
+      tool = Cube.getTool();
+      tool.processFile(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);
+    } else if (fstat.isDirectory()) {
+      inputPath = source;
+      outputPath = args.output ? (args.output.indexOf('/') === 0 ? args.output : path.join(cwd, args.output)) : (source + '.release');
+      root = args.base ? args.base : inputPath;
+      cube = new Cube({
+        release: true,
+        root: root,
+        middleware: false,
+        processors: args.processors,
+      });
+      tool = Cube.getTool();
+      tool.processDir(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);
+    } else {
+      console.log('unknow type input source', source);
+    }
   });
 
-cmd.command('js')
-  .description('output a single js independent file')
-  .option('-o, --output [value]', 'output file')
-  .option('-b, --base [value]', 'base dir')
-  .action(function (file, args) {
-    var pwd = getBase();
-    var output = args.output;
-    var base = args.base;
-    if (!base) {
-      base = pwd;
-    }
-    if (!/^\//.test(base)) {
-      base = path.join(pwd, base);
-    }
-    if (!output) {
-      output = file.replace(/\.js$/, '.out.js');
-    }
-    file = path.join(pwd, file);
-    output = path.join(pwd, output);
-    console.log(base, file);
-    var code = Cube.buildJs(file.substr(base.length), base, true, true);
-    console.log(output);
-    fs.writeFileSync(output, code.min);
-  });
 cmd.command('help')
   .description('help')
   .action(function () {

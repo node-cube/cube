@@ -89,6 +89,9 @@ function Cube(config) {
   var self = this;
   if (config.processors) {
     config.processors.forEach(function (processor) {
+      if (!processor) {
+        return
+      }
       self.register(processor, true);
     });
   }
@@ -117,12 +120,21 @@ Cube.getTool = function () {
   return require('./tools');
 };
 
+/**
+ * register a processor for cube
+ * @param  {String|Object} mod   mod can be a string(module path) or an mod object
+ * @param  {Boolean} force       set force will override the origin register
+ */
 Cube.prototype.register = function (mod, force) {
   var processors = this.processors;
   var info, type, ext;
   var Processor;
   try {
-    Processor = require(mod);
+    if (typeof mod === 'string') {
+      Processor = require(mod);
+    } else {
+      Processor = mod;
+    }
   } catch (e) {
     console.error('[CUBE_ERRROR]load processor error', mod, e);
     return;

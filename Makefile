@@ -14,7 +14,10 @@ publish: release
 	@npm publish
 
 test:
-	@npm test
+	@npm run test
+
+test-cov:
+	@npm run testcov
 
 .PHONY: \
-	install release publish test
+	install release publish test test-cov
