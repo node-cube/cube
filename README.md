@@ -6,6 +6,9 @@ Cube
 像node.js一样编写浏览器端代码, 方便、简洁。 Cube自动转换你的代码，你只需要关心业务逻辑。
 Cube支持的格式包括 script(js/coffee), style(css/stylus/less) template(html/ejs/jade)
 
+[![Build Status](https://travis-ci.org/node-cube/cube.svg)](https://travis-ci.org/node-cube/cube)
+[![NPM version](https://badge.fury.io/js/node-cube.svg)](http://badge.fury.io/js/node-cube)
+
 ## Install
 
   npm install -g node-cube
