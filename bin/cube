@@ -4,6 +4,7 @@ var cmd = require('commander');
 var Cube = require('../index');
 var fs = require('xfs');
 var path = require('path');
+var JsProcessor = require('../lib/processor_js');
 var pkg = require(path.join(__dirname, '../package'));
 
 function getCwd() {
@@ -68,11 +69,16 @@ cmd.version('v' + pkg.version);
 function run() {
   var argv = Array.prototype.slice.call(arguments);
   var args = argv.pop();
-  var params = argv;
+  var dir = argv[0];
+  var processors;
+  if (args.processors) {
+    processors = args.processors.split(',');
+  }
   Cube.init({
-    root: path.join(process.cwd(), params[0] || ''),
+    root: path.join(process.cwd(), dir || ''),
     port: cmd.port ? cmd.port : 9999,
     router: args.vpath || '/',
+    processors: processors,
     middleware: false
   });
 }
@@ -80,13 +86,15 @@ function run() {
 cmd.command('run')
   .description('start server, @deprecate, using `cube start`')
   .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
-  .option('-p, --port [value]', 'server port')
+  .option('-p, --processors [value]', 'the external processors')
+  .option('--port [value]', 'server port')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 cmd.command('start')
   .description('start server')
   .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
-  .option('-p, --port [value]', 'server port')
+  .option('-p, --processors [value]', 'the external processors')
+  .option('--port [value]', 'server port')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 
@@ -202,7 +210,6 @@ cmd.command('build')
     var cwd = getCwd();
     var fstat;
     source = path.join(cwd, source);
-    console.log(source);
     try {
       fstat = fs.statSync(source);
     } catch (e) {
@@ -238,6 +245,64 @@ cmd.command('build')
       tool.processDir(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);
     } else {
       console.log('unknow type input source', source);
+    }
+  });
+
+cmd.command('dag')
+  .usage('your_code_dir')
+  .description('gen DAG graph')
+  .action(function (tar) {
+    var source = path.join(getCwd(), tar);
+    if (/(\/|\\)$/.test(source)) {
+      source = source.substr(0, source.length - 1);
+    }
+    var stat = fs.statSync(source);
+    var root;
+    var flagFile = false;
+    if (stat.isFile()) {
+      flagFile = true;
+      root = path.dirname(source);
+    } else {
+      root = source;
+    }
+    var cube = new Cube({
+      root: root
+    });
+    var processor = new JsProcessor(cube);
+
+    var stat = fs.statSync(source);
+    if (flagFile) {
+      source = path.basename(source);
+      processor.process(source, {root: root, moduleWrap: true}, function (err, data) {
+        end();
+      });
+    } else {
+      fs.walk(source, /\.(js|coffee)$/, function (err, file, done) {
+        if (err) {
+          console.log('make dag error', err);
+          process.exit(1);
+        }
+        file = file.substr(root.length);
+        processor.process(file, {root: root, moduleWrap: true}, function (err, data) {
+          done();
+        });
+      }, end);
+    }
+
+    function end() {
+      // done
+      var requires = JsProcessor.requires;
+      var res = [];
+      // {source: "Samsung", target: "Apple", type: "suit"}
+      for (var i in requires) {
+        requires[i].forEach(function (v) {
+          res.push({source: i, target: v, type: 'suit'});
+        });
+      }
+      var fstr = fs.readFileSync(path.join(__dirname, '../res/dag.html')).toString();
+      fstr = fstr.replace(/\$\$\$_\$\$\$/, JSON.stringify(res));
+      fs.sync().save(path.join(root, './dag_out.html'), fstr);
+      console.log('browser open: ' + root + '/dag_out.html');
     }
   });
 
