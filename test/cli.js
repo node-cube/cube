@@ -4,6 +4,20 @@ var path = require('path');
 var xfs = require('xfs');
 
 describe('cli', function () {
+  describe('init', function () {
+    it('should work fine', function (done) {
+      var cmd = 'cd ' + path.join(__dirname, '../') + '; test ! -d test_init && mkdir test_init; cd test_init;';
+      cmd += '../bin/cube init';
+      exec(cmd, function (err, stdout, stderr) {
+        var res = stdout.toString().split('\n');
+        stderr = stderr.toString();
+        expect(stderr).to.be('');
+        expect(res).match(/successfully/);
+        xfs.sync().rmdir(path.join(__dirname, '../test_init'));
+        done();
+      });
+    });
+  });
   describe('build', function () {
     it('should work fine', function (done) {
       var cmd = 'cd ' + path.join(__dirname, '../') + ';';

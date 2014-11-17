@@ -138,8 +138,8 @@ cmd.command('init')
       console.log('file already exist: ./index.html');
     }
     if (!checkFile('./cube.json')) {
-      fs.sync().save(filePath('./cube.json'), fs.readFileSync(sourcePath('./runtime/cube.json')));
-      console.log('inited cube.json');
+      fs.sync().save(filePath('./package.json'), fs.readFileSync(sourcePath('./runtime/package.json')));
+      console.log('inited package.json');
     } else {
       console.log('file already exist: ./cube.json');
     }
