@@ -147,5 +147,33 @@ describe('cli', function () {
         done();
       });
     });
+    it('should work fine when build with --http option', function (done) {
+      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
+      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus --http /resouce_path example/css/test_less_img.less -o example/css/custom';
+      exec(cmd, function (err, stdout, stderr) {
+        var res = stdout.toString().split('\n');
+        var info = [];
+        var flag = false;
+        res.forEach(function (v) {
+          if (/^=+$/.test(v)) {
+            if (!flag) {
+              flag = true;
+            } else {
+              flag = false;
+            }
+          } else if (flag) {
+            info.push(v);
+          }
+        });
+        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[1]).match(/successfully/);
+        var content = xfs.readFileSync(path.join(__dirname, '../example/css/custom')).toString();
+        expect(content).to.match(/\/resouce_path\/a/);
+        expect(xfs.existsSync(path.join(__dirname, '../example/css/custom.js'))).to.be(true);
+        xfs.sync().rm(path.join(__dirname, '../example/css/custom'));
+        xfs.sync().rm(path.join(__dirname, '../example/css/custom.js'));
+        done();
+      });
+    });
   });
 });

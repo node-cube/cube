@@ -77,20 +77,7 @@ exports.init = function(cube, config) {
         res.statusCode = 404;
         return res.end('file not found:' + qpath);
       }
-      /*
-      // lazy loading processing
-      if (typeof processor === 'string') {
-        try {
-          processor = new (require(processor))(cube);
-          cube.processors.types[type][ext] = processor;
-        } catch (e) {
-          e.message = 'loading cube processor error, type: ' + type + ', ext: ' + ext + ', msg: ' + e.message;
-          e.message += '. you need to `npm install` this processor module';
-          e.code = 'CUBE_LOADING_TRANSFORM_ERROR';
-          throw e;
-        }
-      }
-      */
+
       debug('query: %s target: %s type: %s %s', qpath, realPath, type, cube.mimeType[type]);
       options.qpath = qpath;
       processor.process(realPath, options, function (err, result) {
@@ -109,15 +96,6 @@ exports.init = function(cube, config) {
         var code;
         var mime;
         if (options.moduleWrap) {
-          /**
-          if(type === 'style') {
-            code = 'Cube("' + qpath + '", [], function(){return ' + JSON.stringify(code) + '});';
-            mime = cube.mimeType['script'];
-          } else if (type === 'template') {
-            code = result.wrap;
-            mime = cube.mimeType['script'];
-          }
-          */
           code = result.wraped !== undefined ? result.wraped : result.code;
           mime = cube.getMIMEType('script');
         } else {

@@ -79,6 +79,7 @@ function run() {
     port: cmd.port ? cmd.port : 9999,
     router: args.vpath || '/',
     processors: processors,
+    httpPath: args.http,
     middleware: false
   });
 }
@@ -88,6 +89,7 @@ cmd.command('run')
   .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-p, --processors [value]', 'the external processors')
   .option('--port [value]', 'server port')
+  .option('--http [value]', 'set the http base path for resource')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 cmd.command('start')
@@ -95,6 +97,7 @@ cmd.command('start')
   .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-p, --processors [value]', 'the external processors')
   .option('--port [value]', 'server port')
+  .option('--http [value]', 'set the http base path for resource')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 
@@ -137,7 +140,7 @@ cmd.command('init')
     } else {
       console.log('file already exist: ./index.html');
     }
-    if (!checkFile('./cube.json')) {
+    if (!checkFile('./package.json')) {
       fs.sync().save(filePath('./package.json'), fs.readFileSync(sourcePath('./runtime/package.json')));
       console.log('inited package.json');
     } else {
@@ -194,6 +197,7 @@ cmd.command('build')
   .option('-o, --output [value]', 'set the output path')
   .option('-b, --base [value]', 'set the cube base')
   .option('--with-source', 'create source file')
+  .option('--http [value]', 'the http base for resouce')
   .option('--merge', 'if merged dependences into on file')
   .action(function (source, args) {
     if (!args) {
@@ -228,6 +232,7 @@ cmd.command('build')
         root: root,
         middleware: false,
         processors: args.processors,
+        httpPath: args.http
       });
       tool = Cube.getTool();
       tool.processFile(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);
@@ -240,6 +245,7 @@ cmd.command('build')
         root: root,
         middleware: false,
         processors: args.processors,
+        httpPath: args.http
       });
       tool = Cube.getTool();
       tool.processDir(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);

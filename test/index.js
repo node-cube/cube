@@ -13,6 +13,7 @@ testMod.init({
   port: 7777,
   router: '/',
   middleware: false,
+  httpPath: '/resouce_path',
   processors: [
     require('cube-ejs'),
     path.join(__dirname, '../node_modules/cube-jade'),
@@ -145,6 +146,19 @@ describe('index.js', function () {
         })
         .end(done);
     });
+    it('should fixup image path in css', function (done) {
+      request.get('/css/test_css_img.css?c')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).match(/url\(\/resouce_path\/css\/a.png\)/);
+          expect(res.text).match(/url\(\/resouce_path\/css\/b.png\)/);
+          expect(res.text).match(/url\(\/resouce_path\/css\/c.png\)/);
+          expect(res.text).match(/url\(data:image\/gif;base64,AAAA\)/);
+          expect(res.text).match(/url\(http:\/\/www\.taobao\.com\)/);
+          expect(res.text).match(/url\(\/foo\)/);
+        })
+        .end(done);
+    });
     it('should return a wraped & comressed css file, actually a js module', function (done) {
       request.get('/css/test_css.css?m&c')
         .expect(200)
@@ -181,6 +195,19 @@ describe('index.js', function () {
           expect(res.text).match(/\.test \.box a\{/ig);
           expect(res.text).not.match(/\n/);
         })
+        .end(done);
+    });
+    it('should fixup image path in less', function (done) {
+      request.get('/css/test_less_img.css?c')
+        .expect(function (res) {
+          expect(res.text).match(/url\(\/resouce_path\/css\/a.png\)/);
+          expect(res.text).match(/url\(\/resouce_path\/css\/b.png\)/);
+          expect(res.text).match(/url\(\/resouce_path\/css\/c.png\)/);
+          expect(res.text).match(/url\(data:image\/gif;base64,AAAA\)/);
+          expect(res.text).match(/url\(http:\/\/www\.taobao\.com\)/);
+          expect(res.text).match(/url\(\/foo\)/);
+        })
+        //.expect(200)
         .end(done);
     });
     it('should return a transfered & compressed & wraped less file', function (done) {
@@ -220,6 +247,20 @@ describe('index.js', function () {
           expect(res.text).not.match(/\n/);
           expect(res.text).not.match(/^Cube/);
         })
+        .end(done);
+    });
+
+    it('should fixup image path in stylus', function (done) {
+      request.get('/css/test_styl_img.styl?c')
+        .expect(function (res) {
+          console.log(res.text);
+          expect(res.text).match(/url\(\/resouce_path\/css\/a.png\)/);
+          expect(res.text).match(/url\(\/resouce_path\/css\/b.png\)/);
+          expect(res.text).match(/url\(\/resouce_path\/css\/c.png\)/);
+          expect(res.text).match(/url\(http:\/\/www\.taobao\.com\)/);
+          expect(res.text).match(/url\(\/foo\)/);
+        })
+        //.expect(200)
         .end(done);
     });
   });

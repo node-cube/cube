@@ -41,7 +41,8 @@ function defaultProcessor(cube) {
  *        - port {String} [optional] server port
  *        - router {String} [optional] server router match
  *        - release {Boolean} if build project, set true
- *        - processors {Array} [optional]
+ *        - processors {Array} [optional] set the extenal processors
+ *        - httpPath {String} [optional] the http base for resource
  *
  */
 function Cube(config) {
@@ -179,6 +180,24 @@ Cube.prototype.wrapStyle = function (qpath, code) {
   var options = this.config;
   return 'Cube("' + utils.moduleName(qpath, 'style', options.release) + '", [], function(m){m.exports=' + JSON.stringify(code) + ';return m.exports});';
 };
+/** 修订css文件中的资源文件中的路径 **/
+Cube.prototype.fixupResPath= function (dir, code) {
+  var base = this.config.httpPath || '';
+  return code.replace(/url\( *([\'\"]*)([^\'\"\)]+)\1 *\)/ig, function (m0, m1, m2) {
+    if (!m2) {
+      return m0; // url() content is empty, do nothing
+    }
+    m2 = m2.trim();
+    if (m2.indexOf('data:') === 0) { // url() is a base64 coded resource, ignore
+      return m0;
+    }
+    if (m2.indexOf('/') === 0 || /https?:\/\//.test(m2)) {
+      return m0.replace(/\"|\'/g, ''); // url() is pointer to a abs path resource
+    }
+    return 'url(' + path.join(base, dir, m2) + ')';
+  });
+};
+
 Cube.prototype.wrapTemplate = function (qpath, code, require, literal) {
   var options = this.config;
   require = require ? require : [];
