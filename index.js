@@ -43,6 +43,7 @@ function defaultProcessor(cube) {
  *        - release {Boolean} if build project, set true
  *        - processors {Array} [optional] set the extenal processors
  *        - httpPath {String} [optional] the http base for resource
+ *        - scope {String} [optional] set the module
  *
  */
 function Cube(config) {

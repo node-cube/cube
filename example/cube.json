@@ -3,7 +3,9 @@
   "name": "ncube",
   "description": "a new way to write js in browser",
   "version": "0.0.1",
-  "dependencies": {},
+  "dependencies": {
+    "jquery": "2.1.1"
+  },
   ".cube": {
     "browser": {
       "ie": ">8",

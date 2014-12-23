@@ -122,6 +122,17 @@ cube start your_app_path
 ```
   ok, 访问你的调试环境  `http://localhost:port/static/xxx`, 静态资源+模块化支持
 
+  `Cube.init(Object)` `Object` 可以包含以下参数
+```
+  {
+    root:
+    port:
+    middleware:
+    base:
+    http:
+    scope:
+  }
+```
 ## 打包发布
 
 进入生产环境之前，模块都会被预编译、压缩成一个个小文件，然后发布到线上(cdn服务器、云存储 或 其他)

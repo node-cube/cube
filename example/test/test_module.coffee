@@ -10,8 +10,8 @@ describe 'test/test_module', () ->
   test = require('test')
   testLibA = require('test/lib/a')
   testLibB = require('test/lib/b.js')
-  testNs = require('ns_test')
-  testNsCoffee = require('ns_coffee')
+  testNs = require('@ali/ns_test')
+  testNsCoffee = require('@ali/ns_coffee')
 
   it 'expect require the test module according package.json::main', () ->
     expect(test.version).to.be('1.0.1');
