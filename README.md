@@ -125,12 +125,13 @@ cube start your_app_path
   `Cube.init(Object)` `Object` 可以包含以下参数
 ```
   {
-    root:
-    port:
-    middleware:
-    base:
-    http:
+    root: //静态资源路径
+    port: //需要监听的端口
+    middleware:  // 是否中间件模式
+    base:  //所有文件的前缀路径
+    http:  //css中图片路径的前缀路径 
     scope:
+    maxAge:  // 浏览器端文件缓存时间，最终会应用到http头：Cache-Control: public, maxAge=xxx
   }
 ```
 ## 打包发布
