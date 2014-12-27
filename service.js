@@ -27,13 +27,13 @@ exports.init = function(cube, config) {
   var serveStatic;
   var app;
 
+  config.maxAge = config.maxAge?config.maxAge:0;
   config.cached = config.cached ? config.cached : root + '.release';
 
   if (!xfs.existsSync(config.cached)) {
      config.cached = false;
   }
-
-  serveStatic = connectStatic(config.cached ? config.cached : config.root);
+  serveStatic = connectStatic(config.cached ? config.cached : config.root,{maxAge:config.maxAge});
 
   function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
