@@ -33,7 +33,11 @@ exports.init = function(cube, config) {
      config.cached = false;
   }
 
-  serveStatic = connectStatic(config.cached ? config.cached : config.root);
+  config.maxAge = config.maxAge && config.cached ? config.maxAge : 0;
+
+  serveStatic = connectStatic(config.cached ? config.cached : config.root, {
+    maxAge: config.maxAge 
+  });
 
   function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
