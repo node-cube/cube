@@ -129,7 +129,7 @@ cube start your_app_path
     port: //需要监听的端口
     middleware:  // 是否中间件模式
     base:  //所有文件的前缀路径
-    http:  //css中图片路径的前缀路径 
+    httpPath:  //css中图片路径的前缀路径
     scope:
     maxAge:  // 浏览器端文件缓存时间，最终会应用到http头：Cache-Control: public, maxAge=xxx
   }
