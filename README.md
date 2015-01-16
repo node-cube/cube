@@ -125,13 +125,13 @@ cube start your_app_path
   `Cube.init(Object)` `Object` 可以包含以下参数
 ```
   {
-    root: //静态资源路径
-    port: //需要监听的端口
+    root: // 静态资源路径
+    port: // 需要监听的端口
     middleware:  // 是否中间件模式
-    base:  //所有文件的前缀路径
-    httpPath:  //css中图片路径的前缀路径
-    scope:
-    maxAge:  // 浏览器端文件缓存时间，最终会应用到http头：Cache-Control: public, maxAge=xxx
+    base:  // 所有文件的前缀路径
+    resBase:  // css中图片等资源的前缀路径
+    scope:    // 模块的scope，like `@ali`, 暂未使用
+    maxAge:   // 浏览器端文件缓存时间，最终会应用到http头：Cache-Control: public, maxAge=xxx
   }
 ```
 ## 打包发布
@@ -144,6 +144,17 @@ cube build resource_path
 
 # set up build_in_module ignore
 cube build -i jquery,d3 resource_path
+```
+
+build参数:
+```
+  -h, --help                output usage information
+  -p, --processors [value]  build in modules, tell cube ignore them, 关插件
+  -o, --output [value]      set the output path  指定输出目录
+  -b, --base [value]        set the cube base 指定代码库base
+  --with-source             create source file 指定是否输出源文件
+  -r, --resbase [value]      the http base for resouce 指定css中的资源文件 http路径的base
+  --merge                   if merged dependences into on file 是否合并
 ```
 
 在静态资源目录下，编写 `.cubeignore`来排除不需要被处理的文件，格式和.gitignore一样

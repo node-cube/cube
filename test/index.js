@@ -13,7 +13,7 @@ testMod.init({
   port: 7777,
   router: '/',
   middleware: false,
-  httpPath: '/resouce_path',
+  resBase: '/resouce_path',
   processors: [
     require('cube-ejs'),
     path.join(__dirname, '../node_modules/cube-jade'),
@@ -124,6 +124,22 @@ describe('index.js', function () {
         .expect(200)
         .expect(function (res) {
           expect(res.text).to.match(/\["jquery"\]/);
+        })
+        .end(done);
+    });
+    it('should process require with vars', function (done) {
+      request.get('/test/test_require_with_var.js?m')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).to.match(/async\('\/test\/' \+ a \+ '\.js',/ig);
+          // auto ext added
+          expect(res.text).to.match(/async\('\/test\/' \+ a \+ '_require_var\.js',/ig);
+          // only left side
+          expect(res.text).to.match(/async\('\/test\/' \+ a,/ig);
+          // only right side, dev model will not change the ext
+          expect(res.text).to.match(/async\(a \+ '\.coffee',/ig);
+          // only var
+          expect(res.text).to.match(/async\(a,/ig);
         })
         .end(done);
     });
@@ -253,7 +269,6 @@ describe('index.js', function () {
     it('should fixup image path in stylus', function (done) {
       request.get('/css/test_styl_img.styl?c')
         .expect(function (res) {
-          console.log(res.text);
           expect(res.text).match(/url\(\/resouce_path\/css\/a.png\)/);
           expect(res.text).match(/url\(\/resouce_path\/css\/b.png\)/);
           expect(res.text).match(/url\(\/resouce_path\/css\/c.png\)/);
