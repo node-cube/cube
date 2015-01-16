@@ -42,8 +42,8 @@ function defaultProcessor(cube) {
  *        - router {String} [optional] server router match
  *        - release {Boolean} if build project, set true
  *        - processors {Array} [optional] set the extenal processors
- *        - httpPath {String} [optional] the http base for resource
- *        - scope {String} [optional] set the module
+ *        - resBase {String} [optional] the http base for resource
+ *        - scope {String} [optional] set the module scope, like '@ali'
  *
  */
 function Cube(config) {
@@ -183,7 +183,7 @@ Cube.prototype.wrapStyle = function (qpath, code) {
 };
 /** 修订css文件中的资源文件中的路径 **/
 Cube.prototype.fixupResPath= function (dir, code) {
-  var base = this.config.httpPath || '';
+  var base = this.config.resBase || '';
   return code.replace(/url\( *([\'\"]*)([^\'\"\)]+)\1 *\)/ig, function (m0, m1, m2) {
     if (!m2) {
       return m0; // url() content is empty, do nothing

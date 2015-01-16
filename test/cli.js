@@ -147,9 +147,42 @@ describe('cli', function () {
         done();
       });
     });
-    it('should work fine when build with --http option', function (done) {
+    it('should work fine when build single file with var', function (done) {
       var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus --http /resouce_path example/css/test_less_img.less -o example/css/custom';
+      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus test/test_require_with_var.coffee -b example -o example/test/test_require_with_var.release.js';
+      exec(cmd, function (err, stdout, stderr) {
+        var res = stdout.toString().split('\n');
+        var info = [];
+        var flag = false;
+        res.forEach(function (v) {
+          if (/^=+$/.test(v)) {
+            if (!flag) {
+              flag = true;
+            } else {
+              flag = false;
+            }
+          } else if (flag) {
+            info.push(v);
+          }
+        });
+        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[1]).match(/successfully/);
+        var target = path.join(__dirname, '../example/test/test_require_with_var.release.js');
+        var fileCnt = xfs.readFileSync(target).toString();
+        expect(fileCnt).to.match(/"\/test\/"\+\w\+"\.js",function/ig);
+        expect(fileCnt).to.match(/"\/test\/"\+\w\+"_require_var\.js",function/ig);
+        expect(fileCnt).to.match(/"\/test\/"\+\w\,function/ig);
+        expect(fileCnt).to.match(/\w\+"\.js",function/ig);
+        expect(fileCnt).to.match(/\w,function/ig);
+        //expect(xfs.existsSync(path.join(__dirname, '../example/css/custom'))).to.be(true);
+        //expect(xfs.existsSync(path.join(__dirname, '../example/css/custom.js'))).to.be(true);
+        xfs.sync().rm(target);
+        done();
+      });
+    });
+    it('should work fine when build with --resbase option', function (done) {
+      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
+      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus -r /resouce_path example/css/test_less_img.less -o example/css/custom';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         var info = [];

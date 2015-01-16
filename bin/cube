@@ -101,7 +101,7 @@ function run() {
     port: cmd.port ? cmd.port : 9999,
     router: args.vpath || '/',
     processors: processors,
-    httpPath: args.http,
+    resBase: args.resbase,
     middleware: false
   });
 }
@@ -112,7 +112,7 @@ cmd.command('run')
   .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-p, --processors [value]', 'the external processors')
   .option('--port [value]', 'server port')
-  .option('--http [value]', 'set the http base path for resource')
+  .option('-r --resbase [value]', 'set the http base path for resourcs')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 
@@ -223,13 +223,16 @@ cmd.command('update')
   });
 
 cmd.command('build')
+  /**
+   * source , -o,--output, -b, --base 是基于cwd路径, 互相之间没有依赖关系
+   */
   .usage('-p processor1,processor2 your_code_dir')
   .description('build the hole project, including: less->css->min, script->wraped->min')
   .option('-p, --processors [value]', 'build in modules, tell cube ignore them')
   .option('-o, --output [value]', 'set the output path')
   .option('-b, --base [value]', 'set the cube base')
   .option('--with-source', 'create source file')
-  .option('--http [value]', 'the http base for resouce')
+  .option('-r, --resbase [value]', 'the http base for resouce')
   .option('--merge', 'if merged dependences into on file')
   .action(function (source, args) {
     if (!args) {
@@ -245,7 +248,11 @@ cmd.command('build')
 
     var cwd = getCwd();
     var fstat;
-    source = path.join(cwd, source);
+    var inputPath, outputPath, cube, tool, root;
+    inputPath = source;
+    root = args.base ? args.base : '';
+    root = /^\//.test(root) ? root : path.join(cwd, root);
+    source = /^\//.test(source) ? source : path.join(root, source);
     try {
       fstat = fs.statSync(source);
     } catch (e) {
@@ -253,23 +260,21 @@ cmd.command('build')
       this.help();
       return;
     }
-    var inputPath, outputPath, cube, tool, root;
+
     if (fstat.isFile()) {
-      inputPath = source;
       outputPath = args.output ? (args.output.indexOf('/') === 0 ? args.output : path.join(cwd, args.output)) : source.replace(/\.(\w+)$/, '.min.$1');
       console.log('>>', outputPath);
-      root = args.base ? args.base : path.dirname(inputPath);
+      root = args.base ? root : path.dirname(source);
       cube = new Cube({
         release: true,
         root: root,
         middleware: false,
         processors: args.processors,
-        httpPath: args.http
+        resBase: args.resbase
       });
       tool = Cube.getTool();
-      tool.processFile(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);
+      tool.processFile(cube, source, outputPath, {withSource: args['with-source']}, buildOutput);
     } else if (fstat.isDirectory()) {
-      inputPath = source;
       outputPath = args.output ? (args.output.indexOf('/') === 0 ? args.output : path.join(cwd, args.output)) : (source + '.release');
       root = args.base ? args.base : inputPath;
       cube = new Cube({
@@ -277,7 +282,7 @@ cmd.command('build')
         root: root,
         middleware: false,
         processors: args.processors,
-        httpPath: args.http
+        resBase: args.resbase
       });
       tool = Cube.getTool();
       tool.processDir(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);

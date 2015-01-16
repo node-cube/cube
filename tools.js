@@ -85,7 +85,14 @@ function processDir(cube, source, dest, opts, cb) {
     });
   });
 }
-
+/**
+ * processFile
+ * @param  {Cube}   cube   cube instance
+ * @param  {Path}   source the abs source file
+ * @param  {Path}   dest   this abs target file
+ * @param  {Object}   opts
+ * @param  {Function} cb(err, res)
+ */
 function processFile(cube, source, dest, opts, cb) {
   if (!dest) {
     return console.log('[ERROR] param missing! dest');
