@@ -127,7 +127,7 @@ function processFile(cube, source, dest, opts, cb) {
   var options = {
     moduleWrap: true,
     sourceMap: false,
-    compress: true,
+    compress: cube.config.compress,
     release: cube.config.release,
     root: cube.config.root,
     qpath: relFile,

@@ -248,8 +248,7 @@
       }
     },
     /**
-     * [_loaded description]
-     * @return {[type]} [description]
+     * the module without require
      */
     _leafMod: function (cb) {
       var mod;
@@ -377,7 +376,7 @@
     }
   }
 
-  rename = rename ? rename : 'Cube';
+  rename = rename || 'Cube';
   if (HOST[rename]) {
     console.log('window.' + rename + ' already in using, replace the last "null" param in cube.js');
   } else {

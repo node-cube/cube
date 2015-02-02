@@ -73,6 +73,9 @@ function Cube(config) {
    *         }
    *       }
    */
+  if (this.config.compress === undefined) {
+    this.config.compress;
+  }
   this.processors = {
     map: {
       '.js': 'script',
@@ -124,6 +127,14 @@ Cube.getTool = function () {
   return require('./tools');
 };
 
+Cube.prototype.getType = function (fpath) {
+  var ext = fpath.match(/\.\w+$/);
+  if (!ext) {
+    return null;
+  }
+  ext = ext[0];
+  return this.processors.map[ext];
+};
 /**
  * register a processor for cube
  * @param  {String|Object} mod   mod can be a string(module path) or an mod object

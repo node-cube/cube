@@ -234,6 +234,7 @@ cmd.command('build')
   .option('--with-source', 'create source file')
   .option('-r, --resbase [value]', 'the http base for resouce')
   .option('--merge', 'if merged dependences into on file')
+  .option('--src', 'do not compress code, output the source with wrap')
   .action(function (source, args) {
     if (!args) {
       this.help();
@@ -249,6 +250,7 @@ cmd.command('build')
     var cwd = getCwd();
     var fstat;
     var inputPath, outputPath, cube, tool, root;
+    var compress = args['src'] !== undefined ? false : true;
     inputPath = source;
     root = args.base ? args.base : '';
     root = /^\//.test(root) ? root : path.join(cwd, root);
@@ -268,6 +270,7 @@ cmd.command('build')
       cube = new Cube({
         release: true,
         root: root,
+        compress: compress,
         middleware: false,
         processors: args.processors,
         resBase: args.resbase
@@ -280,6 +283,7 @@ cmd.command('build')
       cube = new Cube({
         release: true,
         root: root,
+        compress: compress,
         middleware: false,
         processors: args.processors,
         resBase: args.resbase

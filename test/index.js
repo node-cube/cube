@@ -55,6 +55,26 @@ describe('index.js', function () {
         })
         .end(done);
     });
+    it('should return transfered js file auto fix css namespace', function (done) {
+      request.get('/test/test_css_namespace.js?m')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(function (res) {
+          var body = res.text;
+          expect(body).to.match(/require\(\"\/css\/test_css\.css\",\"\"\);/);
+        })
+        .end(done);
+    });
+    it('should return transfered compressed js file auto fix css namespace', function (done) {
+      request.get('/test/test_css_namespace.js?m&c')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(function (res) {
+          var body = res.text;
+          expect(body).to.match(/\("\/css\/test_css\.css",""\)/);
+        })
+        .end(done);
+    });
     it('should return transfered coffee file', function (done) {
       request.get('/test/test_coffee.coffee?m')
         .expect(200)
