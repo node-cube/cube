@@ -231,10 +231,10 @@ cmd.command('build')
   .option('-p, --processors [value]', 'build in modules, tell cube ignore them')
   .option('-o, --output [value]', 'set the output path')
   .option('-b, --base [value]', 'set the cube base')
-  .option('--with-source', 'create source file')
   .option('-r, --resbase [value]', 'the http base for resouce')
   .option('--merge', 'if merged dependences into on file')
-  .option('--src', 'do not compress code, output the source with wrap')
+  .option('--with-source', 'create source file')
+  .option('--without-compress', 'do not compress code, output the source with wrap')
   .action(function (source, args) {
     if (!args) {
       this.help();
@@ -250,7 +250,8 @@ cmd.command('build')
     var cwd = getCwd();
     var fstat;
     var inputPath, outputPath, cube, tool, root;
-    var compress = args['src'] !== undefined ? false : true;
+    var compress = args.withoutCompress ? false : true;
+
     inputPath = source;
     root = args.base ? args.base : '';
     root = /^\//.test(root) ? root : path.join(cwd, root);
@@ -276,7 +277,7 @@ cmd.command('build')
         resBase: args.resbase
       });
       tool = Cube.getTool();
-      tool.processFile(cube, source, outputPath, {withSource: args['with-source']}, buildOutput);
+      tool.processFile(cube, source, outputPath, {withSource: args.withSource}, buildOutput);
     } else if (fstat.isDirectory()) {
       outputPath = args.output ? (args.output.indexOf('/') === 0 ? args.output : path.join(cwd, args.output)) : (source + '.release');
       root = args.base ? args.base : inputPath;
