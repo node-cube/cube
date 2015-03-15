@@ -39,6 +39,9 @@ describe('cli', function () {
         });
         expect(info[0]).match(/Files: \d+ Cost: \d+s/);
         expect(info[1]).match(/Error: 1/);
+        // check require('css')
+        var css_namespace_autofill = xfs.readFileSync(path.join(__dirname, '../example.release/test/test_css_namespace.js'));
+        expect(css_namespace_autofill.toString()).match(/"\/css\/test_css.css.js",""/);
         xfs.sync().rmdir(path.join(__dirname, '../example.release'));
         done();
       });
