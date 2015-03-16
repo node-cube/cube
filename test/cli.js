@@ -152,7 +152,7 @@ describe('cli', function () {
     });
     it('should work fine when build single file with var', function (done) {
       var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus test/test_require_with_var.coffee -b example -o example/test/test_require_with_var.release.js';
+      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var.release.js';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         var info = [];

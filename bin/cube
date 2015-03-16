@@ -236,7 +236,7 @@ cmd.command('build')
   .option('--with-source', 'create source file')
   .option('--without-compress', 'do not compress code, output the source with wrap')
   .action(function (source, args) {
-    if (!args) {
+    if (!args || !source) {
       this.help();
       return;
     }
@@ -252,10 +252,12 @@ cmd.command('build')
     var inputPath, outputPath, cube, tool, root;
     var compress = args.withoutCompress ? false : true;
 
-    inputPath = source;
     root = args.base ? args.base : '';
-    root = /^\//.test(root) ? root : path.join(cwd, root);
-    source = /^\//.test(source) ? source : path.join(root, source);
+    if (root) {
+      root = /^\//.test(root) ? root : path.join(cwd, root);
+    }
+    source = /^\//.test(source) ? source : path.join(cwd, source);
+    inputPath = source;
     try {
       fstat = fs.statSync(source);
     } catch (e) {
@@ -266,8 +268,7 @@ cmd.command('build')
 
     if (fstat.isFile()) {
       outputPath = args.output ? (args.output.indexOf('/') === 0 ? args.output : path.join(cwd, args.output)) : source.replace(/\.(\w+)$/, '.min.$1');
-      console.log('>>', outputPath);
-      root = args.base ? root : path.dirname(source);
+      root = (root ? root : path.dirname(source)).replace(/(\/|\\)$/, '');
       cube = new Cube({
         release: true,
         root: root,
@@ -280,7 +281,7 @@ cmd.command('build')
       tool.processFile(cube, source, outputPath, {withSource: args.withSource}, buildOutput);
     } else if (fstat.isDirectory()) {
       outputPath = args.output ? (args.output.indexOf('/') === 0 ? args.output : path.join(cwd, args.output)) : (source + '.release');
-      root = args.base ? args.base : inputPath;
+      root = (root ? root : source).replace(/(\/|\\)$/, '');
       cube = new Cube({
         release: true,
         root: root,
