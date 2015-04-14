@@ -13,8 +13,8 @@
     "cube": "./bin/cube"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha -r jscoverage --coverage 90,80,70 -R spec test",
-    "testcov": "node_modules/.bin/mocha -r jscoverage --coverage 90,80,70 -R spec --covout=html test"
+    "test": "node_modules/.bin/mocha -r jscoverage --timeout 5000 --coverage 90,80,70 -R spec test",
+    "testcov": "node_modules/.bin/mocha -r jscoverage --timeout 5000 --coverage 90,80,70 -R spec --covout=html test"
   },
   "engines": {
     "node": ">=0.8.0"

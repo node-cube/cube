@@ -1,2 +1,3 @@
-/node_modules/
-/example.release/
+node_modules
+example.release
+covreporter.html
