@@ -27,8 +27,7 @@
     "connect": "3.3.1",
     "xfs": "0.1.10",
     "serve-static": "1.7.1",
-    "debug": "2.1.0",
-    "coffee-react-transform": "3.0.1"
+    "debug": "2.1.0"
   },
   "devDependencies": {
     "jscoverage": "0.5.8",
