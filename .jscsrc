@@ -1,0 +1,7 @@
+{
+  "preset": "crockford",
+  "requireCurlyBraces": null,
+  "validateIndentation": 2,
+  "requireMultipleVarDecl": null,
+  "requireCamelCaseOrUpperCaseIdentifiers": "ignoreProperties"
+}

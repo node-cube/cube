@@ -280,7 +280,7 @@ cmd.command('build')
       tool = Cube.getTool();
       tool.processFile(cube, source, outputPath, {withSource: args.withSource}, buildOutput);
     } else if (fstat.isDirectory()) {
-      outputPath = args.output ? (args.output.indexOf('/') === 0 ? args.output : path.join(cwd, args.output)) : (source + '.release');
+      outputPath = args.output ? (args.output.indexOf('/') === 0 ? args.output : path.join(cwd, args.output)) : (source.replace(/(\/|\\)$/, '') + '.release');
       root = (root ? root : source).replace(/(\/|\\)$/, '');
       cube = new Cube({
         release: true,

@@ -151,6 +151,7 @@ describe('index.js', function () {
       request.get('/test/test_require_with_var.js?m')
         .expect(200)
         .expect(function (res) {
+          console.log(res.text);
           expect(res.text).to.match(/async\('\/test\/' \+ a \+ '\.js',/ig);
           // auto ext added
           expect(res.text).to.match(/async\('\/test\/' \+ a \+ '_require_var\.js',/ig);

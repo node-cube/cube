@@ -16,6 +16,9 @@ async './' + a, (test) ->
 async a + '.coffee', (test) ->
   expect(test()).to.be('success');
 
+async a + '.jade', (test) ->
+  expect(test()).to.be('success');
+
 # only variable
 async a, (test) ->
   expect(test()).to.be('success');

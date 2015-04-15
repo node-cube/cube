@@ -6,6 +6,7 @@
  */
 var utils = require('./lib/utils');
 var path = require('path');
+var JsProcessor = require('./lib/processor_js');
 var debug;
 
 try {
@@ -219,6 +220,10 @@ Cube.prototype.wrapTemplate = function (qpath, code, require, literal) {
   }
   return 'Cube("' + utils.moduleName(qpath, 'template', options.release) +
     '",' + JSON.stringify(require) + ',function(module,exports,require){' + code +'; return module.exports});';
+};
+
+Cube.prototype.processJsCode = function (filepath, code, options, callback) {
+  return JsProcessor.prototype.processCode.call(this, filepath, code, options, callback);
 };
 
 
