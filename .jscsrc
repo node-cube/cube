@@ -3,5 +3,6 @@
   "requireCurlyBraces": null,
   "validateIndentation": 2,
   "requireMultipleVarDecl": null,
-  "requireCamelCaseOrUpperCaseIdentifiers": "ignoreProperties"
+  "requireCamelCaseOrUpperCaseIdentifiers": "ignoreProperties",
+  "requireSemicolons": true
 }

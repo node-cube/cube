@@ -9,6 +9,18 @@ var path = require('path');
 var connect = require('connect');
 var connectStatic = require('serve-static');
 var utils = require('./lib/utils');
+var Event = require('events').EventEmitter;
+/**
+ * CACHE {
+ *   realPath: {
+ *     mtime:
+ *     mime:
+ *     code:
+ *   }
+ * }
+ * @type {Object}
+ */
+var CACHE = {};
 /**
  * init cube
  *
@@ -19,7 +31,7 @@ var utils = require('./lib/utils');
  *         - router     http path
  *         - middleware  boolean, default false
  */
-exports.init = function(cube, config) {
+exports.init = function (cube, config) {
   if (config.middleware === undefined) {
     config.middleware = false;
   }
@@ -30,19 +42,20 @@ exports.init = function(cube, config) {
   config.cached = config.cached ? config.cached : root + '.release';
 
   if (!xfs.existsSync(config.cached)) {
-     config.cached = false;
+    config.cached = false;
   }
 
   config.maxAge = config.maxAge && config.cached ? config.maxAge : 0;
 
   serveStatic = connectStatic(config.cached ? config.cached : config.root, {
-    maxAge: config.maxAge 
+    maxAge: config.maxAge
   });
 
   function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
     var qpath = q.pathname;
     var ext = path.extname(qpath);
+    var cachePath;
     if (qpath === '/') {
       req.url = '/index.html';
     }
@@ -52,8 +65,8 @@ exports.init = function(cube, config) {
       originalUrl = originalUrl ? originalUrl : req.url;
       var queryString = url.parse(originalUrl).query;
       req.query = qs.parse(queryString);
-      debug('parse request query object', req.query);
     }
+
     debug('query file', qpath);
 
     var type =  cube.processors.map[ext];
@@ -61,61 +74,104 @@ exports.init = function(cube, config) {
       debug('unknow file type, query will passed to connect.static handler');
       return serveStatic(req, res, next);
     }
+    var mime = cube.getMIMEType(type);
     var ps = cube.processors.types[type];
     var options = {
       root: root,
       moduleWrap: req.query.m === undefined ? false : true,
       sourceMap: false,
       compress: req.query.c === undefined ? false : true,
+      qpath: qpath
     };
+    cachePath = qpath + ':' + options.moduleWrap + ':' + options.compress;
     debug('recognize file type: %s', type);
+
+    var evt = new Event();
+    var origEtag = req.headers.etag;
+    var realPath;
+
+    evt.on('error', function (code, msg) {
+      res.statusCode = code || 500;
+      res.end(msg || 'server error');
+    });
+
+    evt.on('seekfile', function (rpath, processor) {
+      var tmp = CACHE[cachePath];
+      realPath = rpath;
+      xfs.lstat(path.join(options.root, rpath), function (err, stats) {
+        if (err) {
+          return evt.emit('error', 500, 'read file stats error:' + err.message);
+        }
+        var mtime = new Date(stats.mtime).getTime();
+        if (tmp) { // if cached, check cache
+          if (tmp.mtime === mtime) { // target the cache, just return
+            debug('hint cache', realPath);
+            evt.emit('end', tmp.mime, tmp.code);
+          } else {
+            evt.emit('process', rpath, processor, mtime);
+          }
+        } else {
+          evt.emit('process', rpath, processor, mtime);
+        }
+      });
+    });
+    evt.on('process', function (realPath, processor, mtime) {
+      processor.process(realPath, options, function (err, result) {
+        if (err) {
+          debug('[ERROR]: %s %s %s', err.code, err.message, err.stack);
+          if (options.moduleWrap) {
+            evt.emit('error', 200, 'console.error("[CUBE]",' + JSON.stringify(err.message) + ');');
+          } else {
+            evt.emit('error', 500, err.message);
+          }
+          return;
+        }
+        evt.emit('processEnd', result, mtime);
+      });
+    });
+    evt.on('processEnd', function (result, mtime) {
+      var code;
+      if (options.moduleWrap) {
+        code = result.wraped !== undefined ? result.wraped : result.code;
+        mime = cube.getMIMEType('script');
+      } else {
+        if (options.compress) {
+          code = result.code;
+        } else if (realPath === qpath) {
+          code = result.source;
+        } else {
+          code = result.code;
+        }
+      }
+      if (cube.config.devCache) {
+        debug('cache processed file: %s, %s' + realPath, mtime);
+        CACHE[cachePath] = {
+          mtime: mtime,
+          mime: mime,
+          code: code
+        };
+      }
+      evt.emit('end', mime, code);
+    });
+    evt.on('end', function (mime, code) {
+      res.statusCode = 200;
+      res.setHeader('content-type', mime); // fix #10
+      res.end(code);
+    });
     // seek for realpath
     utils.seekFile(cube, root, qpath, ps, function (err, realPath, ext, processor) {
       if (err) {
         debug('seek file error', err, options);
         if (type === 'script' && options.moduleWrap) {
-          res.statusCode = 200;
-          res.end('console.error("[CUBE]",' + JSON.stringify(err.stack) + ');');
-          return ;
-        }
-        res.statusCode = 404;
-        return res.end('file not found:' + qpath);
-      }
-
-      debug('query: %s target: %s type: %s %s', qpath, realPath, type, cube.mimeType[type]);
-      options.qpath = qpath;
-      processor.process(realPath, options, function (err, result) {
-        if (err) {
-          debug('[ERROR]: %s %s %s', err.code, err.message, err.stack);
-          if (options.moduleWrap) {
-            res.statusCode = 200;
-            res.end('console.error("[CUBE]",' + JSON.stringify(err.message) + ');');
-          } else {
-            res.statusCode = 500;
-            res.end(err.message);
-          }
-          return;
-        }
-        // resule {source, code, wraped}
-        var code;
-        var mime;
-        if (options.moduleWrap) {
-          code = result.wraped !== undefined ? result.wraped : result.code;
-          mime = cube.getMIMEType('script');
+          res.setHeader('content-type', mime);
+          evt.emit('error', 200, 'console.error("[CUBE]",' + JSON.stringify(err.stack) + ');');
         } else {
-          if (options.compress) {
-            code = result.code;
-          } else if (realPath === qpath) {
-            code = result.source;
-          } else {
-            code = result.code;
-          }
-          mime = cube.getMIMEType(type);
+          evt.emit('error', 404, 'file not found:' + qpath);
         }
-        res.statusCode = 200;
-        res.setHeader('content-type', mime); // fix #10
-        res.end(code);
-      });
+        return ;
+      }
+      debug('query: %s target: %s type: %s %s', qpath, realPath, type, cube.mimeType[type]);
+      evt.emit('seekfile', realPath, processor);
     });
   }
   // return middleware
@@ -129,9 +185,7 @@ exports.init = function(cube, config) {
     app.use(config.router, config.cached ? serveStatic : processQuery);
     cube.connect = app;
   }
-
   // other static files
-
   if (!config.middleware && config.port) {
     app.listen(config.port, function (err) {
       if (err) {

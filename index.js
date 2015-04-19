@@ -44,11 +44,16 @@ function defaultProcessor(cube) {
  *        - release {Boolean} if build project, set true
  *        - processors {Array} [optional] set the extenal processors
  *        - resBase {String} [optional] the http base for resource
- *        - scope {String} [optional] set the module scope, like '@ali'
+ *        - scope {String} [optional] set the module scope, like '@ali' [X]
+ *        - devCache {Boolean} default true
  *
  */
 function Cube(config) {
+  // remove the last slash(\|/) in config.root
   config.root = config.root.replace(/[\\\/]$/, '');
+  if (config.devCache === undefined) {
+    config.devCache = true;
+  }
   this.config = config;
   /**
    * processor mapping
@@ -112,7 +117,7 @@ function Cube(config) {
  *         - root       static root
  *         - router     http path
  *         - middleware  boolean, default false
- *         - processors {type, ext, processor, forceOverride}
+ *         - processors {Array} extenal processors
  */
 Cube.init = function (config) {
   var cube = new Cube(config);
@@ -139,6 +144,11 @@ Cube.prototype.getType = function (fpath) {
 /**
  * register a processor for cube
  * @param  {String|Object} mod   mod can be a string(module path) or an mod object
+ *     a module shoud contain {
+ *       ext: {String|Array}
+ *       type: {String}
+ *       process: {Function}
+ *     }
  * @param  {Boolean} force       set force will override the origin register
  */
 Cube.prototype.register = function (mod, force) {
@@ -155,29 +165,38 @@ Cube.prototype.register = function (mod, force) {
     console.error('[CUBE_ERRROR]load processor error', mod, e);
     return;
   }
-  info = Processor.info;
-  if (typeof info !== 'object') {
-    return console.error('[CUBE_ERRROR] processor formatter error, no info found', mod);
+  if (Processor.info) {
+    type = Processor.info.type;
+    ext = Processor.info.ext;
+  } else {
+    type = Processor.type;
+    ext = Processor.ext;
   }
-  type = info.type;
-  ext = info.ext;
-  if (!type || !ext) {
-    return console.error('[CUBE_ERRROR] formatter error, no info found', mod);
+  if (!type || !ext || !Processor.prototype.process) {
+    return console.error('[CUBE_ERRROR] processor error, en processor should contain properties `name`, `type`, `ext`, `process`');
   }
   var types = processors.types[type];
   if (!types) {
+    // register new type
     types = processors.types[type] = {};
   }
-  if (!processors.map[ext]) {
-    processors.map[ext] = type;
+  if (!Array.isArray(ext)) {
+    ext = [ext];
   }
-  var origin = types[ext];
-  if (origin && !force) {
-    var err = new Error('the ext `' + ext + '` is already binded, you should pass `force` param to override it!');
-    err.code = 'CUBE_BIND_TRANSFER_ERROR';
-    throw err;
-  }
-  types[ext] = new Processor(this);
+
+  var self = this;
+  ext.forEach(function (extName) {
+    if (!processors.map[extName]) {
+      processors.map[extName] = type;
+    }
+    var origin = types[extName];
+    if (origin && !force) {
+      var err = new Error('the ext `' + extName + '` is already binded, you should pass `force` param to override it!');
+      err.code = 'CUBE_BIND_TRANSFER_ERROR';
+      throw err;
+    }
+    types[extName] = new Processor(self);
+  });
 };
 
 Cube.prototype.getMIMEType = function (type) {
@@ -194,7 +213,7 @@ Cube.prototype.wrapStyle = function (qpath, code) {
   return 'Cube("' + utils.moduleName(qpath, 'style', options.release) + '", [], function(m){m.exports=' + JSON.stringify(code) + ';return m.exports});';
 };
 /** 修订css文件中的资源文件中的路径 **/
-Cube.prototype.fixupResPath= function (dir, code) {
+Cube.prototype.fixupResPath = function (dir, code) {
   var base = this.config.resBase || '';
   return code.replace(/url\( *([\'\"]*)([^\'\"\)]+)\1 *\)/ig, function (m0, m1, m2) {
     if (!m2) {
@@ -219,7 +238,7 @@ Cube.prototype.wrapTemplate = function (qpath, code, require, literal) {
     code = 'module.exports=function(){return ' + JSON.stringify(code) + '};';
   }
   return 'Cube("' + utils.moduleName(qpath, 'template', options.release) +
-    '",' + JSON.stringify(require) + ',function(module,exports,require){' + code +'; return module.exports});';
+    '",' + JSON.stringify(require) + ',function(module,exports,require){' + code + '; return module.exports});';
 };
 
 Cube.prototype.processJsCode = function (filepath, code, options, callback) {

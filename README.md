@@ -132,6 +132,8 @@ cube start your_app_path
     resBase:  // css中图片等资源的前缀路径
     scope:    // 模块的scope，like `@ali`, 暂未使用
     maxAge:   // 浏览器端文件缓存时间，最终会应用到http头：Cache-Control: public, maxAge=xxx
+    processors: ['cube-ejs', 'cube-jade'] // load extra processors, 确保你的依赖中有这些模块
+    devCache: // boolean 开发模式下是否开启缓存， 默认开启
   }
 ```
 ## 打包发布
@@ -153,7 +155,7 @@ build参数:
   -o, --output [value]      set the output path  指定输出目录
   -b, --base [value]        set the cube base 指定代码库base
   --with-source             create source file 指定是否输出源文件
-  -r, --resbase [value]      the http base for resouce 指定css中的资源文件 http路径的base
+  -r, --resbase [value]     the http base for resouce 指定css中的资源文件 http路径的base
   --merge                   if merged dependences into on file 是否合并
 ```
 
@@ -175,29 +177,5 @@ Cube服务端有两种形态，可以是一个独立的http服务，如上面的
 
 ## Customize Cube Processors
 
-...
-
-## why cube
-
-  每一个web应用都有一包静态资源
-  每一个web应用的静态资源，都应该被设计成可自由部署 (static.server/path, 虽然很多时候静态资源都在同域下)
-  每一个web应用都会包含这么一个目录叫静态资源, 比如:
-
-```sh
-  webapp -|
-          | - wwwroot | << 静态资源目录
-                      | - js
-                      | - css
-                      | - imgs
-```
-  在设计前端框架的时候，通常都会考虑到这点：前端资源需要可以被方便的部署到CDN等资源（动静态资源分离）
-  cube的运行模式就是遵循这一设计思路的
-
-  cube的初始化就从这个wwwroot开始，进入wwwroot目录，cube内建静态资源服务，启动服务:
-
-  根据命令行提示的地址访问, ok，你的前端资源可以像node.js一样编写了。
-
-  cube让前端开发模块化，更好的代码组织方式，让代码轻松复用。
-  cube集成各种工具，让coffee，styl，jade，ejs，less等等默认支持，选择你所熟悉的工具。
-  cube支持扩展，你可以动手集成插件进入其中。
+在上面
 
