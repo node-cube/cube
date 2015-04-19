@@ -3,8 +3,13 @@ Cube
 
 ![logo](https://raw.github.com/fishbar/cube/master/logo.png)
 
-像node.js一样编写浏览器端代码, 方便、简洁。 Cube自动转换你的代码，你只需要关心业务逻辑。
-Cube支持的格式包括 script(js/coffee), style(css/stylus/less) template(html/ejs/jade)
+模块化你的前端代码，像node.js一样编写模块, 发布npm变成共享模块。
+
+Cube支持三种类型:
+
+* script js/coffee
+* style css/stylus/less
+* template html/ejs/jade/...
 
 [![Build Status](https://travis-ci.org/node-cube/cube.svg)](https://travis-ci.org/node-cube/cube)
 [![NPM version](https://badge.fury.io/js/node-cube.svg)](http://badge.fury.io/js/node-cube)
@@ -13,6 +18,8 @@ Cube支持的格式包括 script(js/coffee), style(css/stylus/less) template(htm
 
   npm install -g node-cube
 
+  推荐全局安装，有cli命令支持
+  
 ## Getting Start
 
 初始化cube，通过cube命令，生成工程结构，包含 `cube.min.js`，`index.html`
@@ -21,9 +28,10 @@ Cube支持的格式包括 script(js/coffee), style(css/stylus/less) template(htm
 > cd your_project_dir
 > cube init
 ```
-
+### 初始化前端代码
 查看`index.html`, cube 客户端的部署大致如下
-```html
+
+```
 <script src='cube.min.js'></script>
 <script>
   Cube.init({
@@ -39,9 +47,9 @@ Cube支持的格式包括 script(js/coffee), style(css/stylus/less) template(htm
   });
 </script>
 ```
-启动cube服务
+### 启动cube服务
 ```sh
-> cube start
+> cube start your_project_dir
 ```
 好了，cube可以工作了， 修改`main.js`，开始编码。
 
@@ -51,7 +59,6 @@ Cube支持的格式包括 script(js/coffee), style(css/stylus/less) template(htm
 
 ```js
 // main.js
-
 var cookie = require('cookie');
 var tpl = require('./tset.html');
 
@@ -65,9 +72,7 @@ function  init() {
   }
   $('.node-nick').text(nick);
 }
-
 init();
-
 // 异步加载css
 async('../css/module.css', nameSpace); // namespace: prefix for css selector
 ```
@@ -83,6 +88,7 @@ Cube的模块加载是支持像node一样寻址node_modules目录的，在wwwroo
 
 注意node_modules，虽然和node.js的模块一模一样使用，但是它们安装在不同的地方。
 前端工程里使用到的模块，需要安装在静态资源目录下，例如：
+
 ```sh
 /project
         /assets
@@ -177,5 +183,32 @@ Cube服务端有两种形态，可以是一个独立的http服务，如上面的
 
 ## Customize Cube Processors
 
-在上面
+一个典型的插件代码
+
+```
+var path = require('path');
+
+function Processor(cube) {
+   /*
+    	cube: {
+    		
+    		config,
+    		fixupResPath
+    		wrapTemplate,
+    		processJsCode
+    	}
+    */
+	this.cube = cube;
+}
+Processor.type = 'style';
+Processor.ext = ['.sass'];
+Processor.prototype.process = function (relpath, options, callback) {
+	// get the source file abs path, so you can read the source
+	var fpath = path.join(options.root, relpath);
+	// do your processing  
+	return {
+		
+	}
+};
+```
 
