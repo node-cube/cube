@@ -16,7 +16,7 @@ function loadIgnore(path) {
     console.log(msg);
     return [];
   }
-  var _ignore = [];
+  var ignore = [];
   ignoreRules.forEach(function (v, i, a) {
     if (!v) {
       return;
@@ -24,15 +24,15 @@ function loadIgnore(path) {
     if (v.indexOf('/') === 0) {
       v = '^' + v;
     }
-    _ignore.push(new RegExp(v.replace(/\./g, '\\.').replace(/\*/g, '.*')));
+    ignore.push(new RegExp(v.replace(/\./g, '\\.').replace(/\*/g, '.*')));
   });
-  return _ignore;
+  return ignore;
 }
 
 function checkIgnore(file, ignores) {
   var flag = false;
   var rule;
-  for (var i = 0; i < ignores.length; i++){
+  for (var i = 0; i < ignores.length; i++) {
     rule = ignores[i];
     if (rule.test(file)) {
       flag = true;
@@ -62,7 +62,7 @@ function processDir(cube, source, dest, opts, cb) {
     if (err) {
       throw err;
     }
-    fileCount ++;
+    fileCount++;
 
     var relFile = sourceFile.substr(root.length);
     var destFile = path.join(dest, relFile);
@@ -130,7 +130,7 @@ function processFile(cube, source, dest, opts, cb) {
     compress: cube.config.compress,
     release: cube.config.release,
     root: cube.config.root,
-    qpath: relFile,
+    qpath: relFile
   };
   var st = new Date().getTime();
   processor.process(relFile, options, function (err, result) {
