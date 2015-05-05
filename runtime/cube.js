@@ -9,6 +9,7 @@
 (function (HOST, rename) {
 
   var BASE = '';
+  var REMOTE_BASE = '';
   var CHARSET = 'utf-8';
   var VERSION = new Date().getTime();
   var TIMEOUT = 10000; // default 10's
@@ -17,6 +18,24 @@
   var ENABLE_SOURCE = window.localStorage ? window.localStorage.getItem('__cube_debug__') : false;
 
   function dummy() {}
+
+  /**
+   * Determine if add remote base to mod.
+   * @param  {string} mod  Module name such as '/com/xxx.js'
+   */
+  function shouldAddRemoteBase(mod) {
+    return isRemote() && mod.indexOf('runtime') === -1 && mod.indexOf('http') === -1 && !Cube._cached[mod];
+  }
+  /**
+   * check if the current script is at remote side.
+   */
+  function isRemote() {
+    var urlParser = document.createElement('a');
+    urlParser.href = document.currentScript.getAttribute('src');
+    var currentScriptHost = urlParser.host;
+    return window.location.host !== currentScriptHost;
+  }
+
   /**
    * Class Cube
    *
@@ -30,11 +49,18 @@
    */
   function Cube (name, requires, callback) {
     if (arguments.length === 3) {
+      if (isRemote()) {
+        name = [REMOTE_BASE, name].join('');
+      }
+      requires = requires.map( function(name) {
+        return shouldAddRemoteBase(name)? [REMOTE_BASE, name].join('') : name;
+      });
       var ld = new Cube(name);
       ld.load(requires, callback);
     } else {
       this.name = name ? name : '_';
       this.base = BASE;
+      this.remoteBase = REMOTE_BASE;
       this.charset = CHARSET;
     }
   }
@@ -49,6 +75,9 @@
   Cube.init = function (config) {
     if (config.base && config.base !== '/') {
       BASE = config.base.replace(/\/$/, '');
+    }
+    if (config.remoteBase) {
+      REMOTE_BASE = config.remoteBase.replace(/\/$/, '');;
     }
     if (config.charset) {
       CHARSET = config.charset;
@@ -96,13 +125,14 @@
     if (!cb) {
       cb = dummy;
     }
-    /** fix #12 **/
-    if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
-      mod = mod.substr(1);
-    } else if (mod[0] !== '/') {    // be campatible with test.js
-      mod = '/' + mod;
+    if(mod.indexOf('http') === -1) {
+      /** fix #12 **/
+      if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
+        mod = mod.substr(1);
+      } else if (mod[0] !== '/') {    // be campatible with test.js
+        mod = '/' + mod;
+      }
     }
-
     var ll = new Cube();
     ll.load(mod, function (module, exports, require) {
       cb(require(mod));
@@ -156,6 +186,9 @@
    * @return {[type]}     [description]
    */
   function Require(mod, ns) {
+    if (shouldAddRemoteBase(mod)) {
+      mod = [REMOTE_BASE, mod].join('');
+    }
     if (ns !== undefined) {
       var css = Cube._cached[mod];
       Cube.css(css, ns, mod);
@@ -172,6 +205,9 @@
    * @param {Function}   param
    */
   function Async(mod, param1, param2) {
+    if (shouldAddRemoteBase(mod)) {
+      mod = [REMOTE_BASE, mod].join('');
+    }
     if (typeof param1 !== 'function') {
       if (!ENABLE_CSS) {
         console.warn('[Cube] dynamic loading css disabled!');
@@ -329,7 +365,6 @@
         ww[name].push(cb);
         return;
       }
-
       if (!ww[name]) {
         ww[name] = [];
       }
@@ -344,8 +379,8 @@
       if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
         name = name.replace(/\.js$/, '.source.js');
       }
-      var _src = [ this.base, name, '?m=1&', VERSION];
-      script.src = _src.join('');
+      var _src = name.startsWith('http') ? name : [ this.base, name, '?m=1&', VERSION].join('');
+      script.src = _src;
     }
   };
   /**
@@ -375,7 +410,6 @@
       }
     }
   }
-
   rename = rename || 'Cube';
   if (HOST[rename]) {
     console.log('window.' + rename + ' already in using, replace the last "null" param in cube.js');
