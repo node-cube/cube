@@ -107,17 +107,50 @@ describe('runtime/cube.js', function () {
     expect(requiresLoadedcCount).to.be(requires.length);
   });
 
-  it('should ok when Cube.use()', function (done) {
-    Cube.use('/stage/viewport/444.js', function () {
-      var scripts = document.getElementsByTagName('script');
-      for(var i = 0; i < scripts.length; ++i) {
-        console.log('---scripts');
-        // expect(requiresLoadedcCount).to.be(requires.length);
-      }
-      done();
+  it('should ok when call remote require', function () {
+    currentScript = document.createElement('script');
+    currentScript.src = options.remoteBase;
+    document.currentScript = currentScript;
+    Cube._cached[options.remoteBase + '/444.js'] = function(){};
+    Cube("/test.js", [], function(mod, exports, require, async) {
+      expect(typeof require('/444.js')).to.be('function');
     });
 
   });
+
+  it('should ok when call remote async', function () {
+    currentScript = document.createElement('script');
+    currentScript.src = options.remoteBase;
+    document.currentScript = currentScript;
+
+    Cube("/com/user/user.js", [], function(mod, exports, require, async) {
+      async('/com/user/user.css');
+      expect(typeof async).to.be('function');
+    });
+
+  });
+
+  // it('should ok when Cube.use(/stage/viewport/444.js)', function (done) {
+  //   var originalLoadfn = Cube.prototype.load;
+  //   Cube.prototype.load = function(req, cb) {
+  //     console.log('load req', req);
+  //     console.log('load cb', cb);
+  //     // cb();
+  //   };
+
+  //   Cube.use('/stage/viewport/444.js', function xx () {
+  //     // var scripts = document.getElementsByTagName('script');
+  //     // for(var i = 0; i < scripts.length; ++i) {
+  //     //   console.log('---scripts');
+  //     //   // expect(requiresLoadedcCount).to.be(requires.length);
+  //     // }
+  //     console.log('--use CB')
+  //     done();
+  //   });
+
+  //   Cube.prototype.load = originalLoadfn;
+
+  // });
 
 
   // it('should ok when remote load with cb', function () {
