@@ -4,8 +4,7 @@ var doc = '<html><head></head><body></body></html>';
 document = jsdom.jsdom(doc, jsdom.level(2, 'core'));
 window = document.parentWindow;
 window.location.host = 'localhost'
-require('../runtime/cube');
-Cube = window.Cube;
+Cube = null;
 
 String.prototype.startsWith = function (str){
   return this.indexOf(str) === 0;
@@ -37,10 +36,20 @@ function removeAllScript() {
   }
 }
 describe('runtime/cube.js', function () {
+
+  before(function() {
+
+    Cube = {};
+    require('../runtime/cube');
+    Cube = window.Cube;
+
+  });
+
   afterEach(function() {
     removeAllScript();
   });
   it('should ok when init', function () {
+    console.log('----Cube',Cube);
     Cube.init(options);
   });
   it('should ok when local load with requires', function () {
