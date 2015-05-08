@@ -1,10 +1,7 @@
 var jsdom = require('jsdom');
 var expect = require('expect.js');
-Cube = {};
+Cube = null;
 var doc = '<html><head></head><body></body></html>';
-document = jsdom.jsdom(doc, jsdom.level(2, 'core'));
-window = document.parentWindow;
-require('../runtime/cube_css');
 
 function findNode(mod) {
   var nodes = document.getElementsByTagName('STYLE');
@@ -19,6 +16,15 @@ function findNode(mod) {
 }
 
 describe('runtime/cube_css.js', function () {
+
+
+  before(function(){
+    Cube = {};
+    document = jsdom.jsdom(doc, jsdom.level(2, 'core'));
+    window = document.parentWindow;
+    require('../runtime/cube_css');
+  });
+
   it('should ok when parse normal css', function () {
     var css = '.test div > p, a.select:active {font-weight:bolder;}';
     Cube.css(css, '.name', 'test1.css');
