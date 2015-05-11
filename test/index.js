@@ -7,7 +7,7 @@
 var expect = require('expect.js');
 var testMod = require('../index');
 var path = require('path');
-var request = require('supertest');
+var Request = require('supertest');
 testMod.init({
   root: path.join(__dirname, '../example'),
   port: 7777,
@@ -21,9 +21,56 @@ testMod.init({
     'cube-stylus'  // do not delete this comma, for branch test
   ]
 });
-request = request('http://localhost:7777');
+
+testMod.init({
+  root: path.join(__dirname, '../example'),
+  port: 7778,
+  router: '/',
+  middleware: false,
+  remote: 'REMOTE',
+  resBase: '/resouce_path',
+  processors: [
+    require('cube-ejs'),
+    path.join(__dirname, '../node_modules/cube-jade'),
+    'cube-less',
+    'cube-stylus'  // do not delete this comma, for branch test
+  ]
+});
+
+var request = Request('http://localhost:7777');
+var requestRemote = Request('http://localhost:7778');
 
 describe('index.js', function () {
+
+  describe('remote request', function () {
+    it('should return a module', function (done) {
+      requestRemote.get('/main.js?m')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(/Cube\("REMOTE:\/main\.js"/)
+        .expect(/require\(['"]REMOTE:\/tests\.js/)
+        .expect(/exports\.run/)
+        .expect(/Cube/, done);
+
+    });
+    it('should process require with vars ok', function (done) {
+      requestRemote.get('/test/test_require_with_var.js?m')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).to.match(/async\('REMOTE:\/test\/' \+ a \+ '\.js',/ig);
+          // auto ext added
+          expect(res.text).to.match(/async\('REMOTE:\/test\/' \+ a \+ '_require_var\.js',/ig);
+          // only left side
+          expect(res.text).to.match(/async\('REMOTE:\/test\/' \+ a,/ig);
+          // only right side, dev model will not change the ext
+          expect(res.text).to.match(/async\(a \+ '\.coffee',/ig);
+          // only var
+          expect(res.text).to.match(/async\(a,/ig);
+        })
+        .end(done);
+    });
+  });
+
   describe('query js files', function () {
     it('should return regular js file', function (done) {
       request.get('/main.js')

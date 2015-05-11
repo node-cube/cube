@@ -211,5 +211,40 @@ describe('cli', function () {
         done();
       });
     });
+
+    it.only('should work fine with --remote option', function (done) {
+      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
+      cmd += 'bin/cube build --remote TEST -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var.release.js';
+      exec(cmd, function (err, stdout, stderr) {
+        var res = stdout.toString().split('\n');
+        var info = [];
+        var flag = false;
+        res.forEach(function (v) {
+          if (/^=+$/.test(v)) {
+            if (!flag) {
+              flag = true;
+            } else {
+              flag = false;
+            }
+          } else if (flag) {
+            info.push(v);
+          }
+        });
+        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[1]).match(/successfully/);
+        var target = path.join(__dirname, '../example/test/test_require_with_var.release.js');
+        var fileCnt = xfs.readFileSync(target).toString();
+        expect(fileCnt).to.match(/Cube\("TEST:\/test\/test_require_with_var\.js"/);
+        expect(fileCnt).to.match(/"TEST:\/test\/"\+\w\+"\.js",function/ig);
+        expect(fileCnt).to.match(/"TEST:\/test\/"\+\w\+"_require_var\.js",function/ig);
+        expect(fileCnt).to.match(/"TEST:\/test\/"\+\w\,function/ig);
+        expect(fileCnt).to.match(/\w\+"\.js",function/ig);
+        expect(fileCnt).to.match(/\w,function/ig);
+        //expect(xfs.existsSync(path.join(__dirname, '../example/css/custom'))).to.be(true);
+        //expect(xfs.existsSync(path.join(__dirname, '../example/css/custom.js'))).to.be(true);
+        xfs.sync().rm(target);
+        done();
+      });
+    });
   });
 });
