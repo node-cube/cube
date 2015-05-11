@@ -15,6 +15,7 @@
   var DEBUG = false;
   var ENABLE_CSS = false;
   var ENABLE_SOURCE = window.localStorage ? window.localStorage.getItem('__cube_debug__') : false;
+  var HEAD = document.getElementsByTagName('head')[0];
 
   function dummy() {}
   /**
@@ -28,7 +29,7 @@
    * @public
    * @param
    */
-  function Cube (name, requires, callback) {
+  function Cube(name, requires, callback) {
     if (arguments.length === 3) {
       var ld = new Cube(name);
       ld.load(requires, callback);
@@ -39,7 +40,9 @@
     }
   }
   /** version **/
-  Cube.toString = function () {return 'Cube:v$$version$$';};
+  Cube.toString = function () {
+    return 'Cube:v$$version$$';
+  };
   /**
    * init global setting for Cube
    * @static
@@ -297,7 +300,7 @@
         var flag = self._load_stack;
         var ok = false;
         if (Cube._cached[mm]) {
-          flag.count ++;
+          flag.count++;
           ok = self.name;
         }
         // check if all require is done;
@@ -335,7 +338,7 @@
       }
       ww[name].push(cb);
       Cube._cached[name] = false;
-      var script = document.getElementsByTagName('head')[0].appendChild(document.createElement('script'));
+      var script = HEAD.appendChild(document.createElement('script'));
       script.type = 'text/javascript';
       script.async = 'true';
       script.charset = this.charset;
@@ -344,8 +347,8 @@
       if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
         name = name.replace(/\.js$/, '.source.js');
       }
-      var _src = [ this.base, name, '?m=1&', VERSION];
-      script.src = _src.join('');
+      var srcPath = [this.base, name, '?m=1&', VERSION];
+      script.src = srcPath.join('');
     }
   };
   /**
@@ -356,7 +359,7 @@
     var wts = Cube._flag, ww, flag, res = {};
     ww = wts[name];
     if (ww) {
-      for (var n = ww.length - 1; n >= 0; n --) {
+      for (var n = ww.length - 1; n >= 0; n--) {
         flag = ww[n](name);
         if (flag !== false) { // module relative ok
           ww.splice(n, 1);
