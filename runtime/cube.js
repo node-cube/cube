@@ -9,6 +9,8 @@
 (function (HOST, rename) {
 
   var BASE = '';
+  var REMOTE_BASE = {};
+  var REMOTE_SEPERATOR = ':';
   var CHARSET = 'utf-8';
   var VERSION = new Date().getTime();
   var TIMEOUT = 10000; // default 10's
@@ -18,6 +20,18 @@
   var HEAD = document.getElementsByTagName('head')[0];
 
   function dummy() {}
+
+  /**
+   * If mod is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
+   */
+  function adjustBase(mod) {
+    if(mod.indexOf(REMOTE_SEPERATOR) !== -1 && mod.indexOf('http') === -1) {
+      pathes = mod.split(REMOTE_SEPERATOR);
+      return REMOTE_BASE[pathes[0]] + pathes[1];
+    }
+    return mod;
+  }
+
   /**
    * Class Cube
    *
@@ -29,13 +43,18 @@
    * @public
    * @param
    */
-  function Cube(name, requires, callback) {
-    if (arguments.length === 3) {
+  function Cube (name, requires, callback) {
+    if (arguments.length >= 3) {
+      name = adjustBase(name);
+      requires = requires.map( function(name) {
+        return adjustBase(name);
+      });
       var ld = new Cube(name);
       ld.load(requires, callback);
     } else {
       this.name = name ? name : '_';
       this.base = BASE;
+      this.remoteBase = REMOTE_BASE;
       this.charset = CHARSET;
     }
   }
@@ -52,6 +71,11 @@
   Cube.init = function (config) {
     if (config.base && config.base !== '/') {
       BASE = config.base.replace(/\/$/, '');
+    }
+    if (config.remoteBase) {
+      for(var key in config.remoteBase)
+        config.remoteBase[key] = config.remoteBase[key].replace(/\/$/, '');
+      REMOTE_BASE = config.remoteBase;
     }
     if (config.charset) {
       CHARSET = config.charset;
@@ -99,13 +123,14 @@
     if (!cb) {
       cb = dummy;
     }
-    /** fix #12 **/
-    if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
-      mod = mod.substr(1);
-    } else if (mod[0] !== '/') {    // be campatible with test.js
-      mod = '/' + mod;
+    if(mod.indexOf(REMOTE_SEPERATOR) === -1) {
+      /** fix #12 **/
+      if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
+        mod = mod.substr(1);
+      } else if (mod[0] !== '/') {    // be campatible with test.js
+        mod = '/' + mod;
+      }
     }
-
     var ll = new Cube();
     ll.load(mod, function (module, exports, require) {
       cb(require(mod));
@@ -159,6 +184,7 @@
    * @return {[type]}     [description]
    */
   function Require(mod, ns) {
+    mod = adjustBase(mod);
     if (ns !== undefined) {
       var css = Cube._cached[mod];
       Cube.css(css, ns, mod);
@@ -175,6 +201,7 @@
    * @param {Function}   param
    */
   function Async(mod, param1, param2) {
+    mod = adjustBase(mod);
     if (typeof param1 !== 'function') {
       if (!ENABLE_CSS) {
         console.warn('[Cube] dynamic loading css disabled!');
@@ -332,7 +359,6 @@
         ww[name].push(cb);
         return;
       }
-
       if (!ww[name]) {
         ww[name] = [];
       }
@@ -347,8 +373,8 @@
       if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
         name = name.replace(/\.js$/, '.source.js');
       }
-      var srcPath = [this.base, name, '?m=1&', VERSION];
-      script.src = srcPath.join('');
+      var _src = name.indexOf(REMOTE_SEPERATOR) !== -1 ? adjustBase(name) : [ this.base, name, '?m=1&', VERSION].join('');
+      script.src = _src;
     }
   };
   /**
@@ -378,7 +404,6 @@
       }
     }
   }
-
   rename = rename || 'Cube';
   if (HOST[rename]) {
     console.log('window.' + rename + ' already in using, replace the last "null" param in cube.js');
