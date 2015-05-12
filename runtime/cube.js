@@ -44,11 +44,7 @@
    * @param
    */
   function Cube (name, requires, callback) {
-    if (arguments.length >= 3) {
-      name = adjustBase(name);
-      requires = requires.map( function(name) {
-        return adjustBase(name);
-      });
+    if (arguments.length === 3) {
       var ld = new Cube(name);
       ld.load(requires, callback);
     } else {
@@ -184,7 +180,6 @@
    * @return {[type]}     [description]
    */
   function Require(mod, ns) {
-    mod = adjustBase(mod);
     if (ns !== undefined) {
       var css = Cube._cached[mod];
       Cube.css(css, ns, mod);
@@ -201,7 +196,6 @@
    * @param {Function}   param
    */
   function Async(mod, param1, param2) {
-    mod = adjustBase(mod);
     if (typeof param1 !== 'function') {
       if (!ENABLE_CSS) {
         console.warn('[Cube] dynamic loading css disabled!');
