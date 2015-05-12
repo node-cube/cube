@@ -24,14 +24,13 @@
   /**
    * If mod is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
    */
-  function adjustBase(mod) {
-    var pathes = mod.split(REMOTE_SEPERATOR);
-    var url = REMOTE_BASE[pathes[0]];
-    for (var i = 1; i < pathes.length; i++) {
-      url += pathes[i] + REMOTE_SEPERATOR;
+  function reBase(mod) {
+    var offset = mod.indexOf(REMOTE_SEPERATOR);
+    if (offset > 0) {
+      return REMOTE_BASE[mod.substr(0, offset)] + mod.substr(offset + 1);
+    } else {
+      return null;
     }
-    url = url.substr(0, url.length-1);
-    return url;
   }
 
   /**
@@ -368,8 +367,8 @@
       if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
         name = name.replace(/\.js$/, '.source.js');
       }
-      var _src = name.indexOf(REMOTE_SEPERATOR) !== -1 ? adjustBase(name) : [ this.base, name, '?m=1&', VERSION].join('');
-      script.src = _src;
+      var srcPath = [reBase(name) || (this.base + name), '?m=1&', VERSION].join('');
+      script.src = srcPath;
     }
   };
   /**

@@ -29,7 +29,10 @@
       enableCss: true,
       version: 12345,
       timeout: 2000,
-      enableCss: true
+      enableCss: true,
+      remoteBase: {
+        TEST: 'http://localhost:9999'
+      }
     });
     Cube.use(appConfig.main, function (App) {
       mocha.run();

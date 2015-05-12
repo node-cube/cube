@@ -96,7 +96,6 @@ describe.only('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
-          console.log(body, a.url);
           expect(body).to.match(/require\('\/tests\.js'\)/);
           expect(body).to.match(/Cube\("\/main\.js"/);
         })

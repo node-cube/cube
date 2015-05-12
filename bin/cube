@@ -102,6 +102,7 @@ function run() {
     router: args.vpath || '/',
     processors: processors,
     resBase: args.resbase,
+    remote: args.remote,
     middleware: false
   });
 }
@@ -113,6 +114,7 @@ cmd.command('run')
   .option('-p, --processors [value]', 'the external processors')
   .option('--port [value]', 'server port')
   .option('-r --resbase [value]', 'set the http base path for resourcs')
+  .option('--remote [value]', 'set remote option')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 
