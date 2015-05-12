@@ -9,6 +9,8 @@
 (function (HOST, rename) {
 
   var BASE = '';
+  var REMOTE_BASE = {};
+  var REMOTE_SEPERATOR = ':';
   var CHARSET = 'utf-8';
   var VERSION = new Date().getTime();
   var TIMEOUT = 10000; // default 10's
@@ -18,6 +20,20 @@
   var HEAD = document.getElementsByTagName('head')[0];
 
   function dummy() {}
+
+  /**
+   * If mod is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
+   */
+  function adjustBase(mod) {
+    var pathes = mod.split(REMOTE_SEPERATOR);
+    var url = REMOTE_BASE[pathes[0]];
+    for (var i = 1; i < pathes.length; i++) {
+      url += pathes[i] + REMOTE_SEPERATOR;
+    }
+    url = url.substr(0, url.length-1);
+    return url;
+  }
+
   /**
    * Class Cube
    *
@@ -29,7 +45,7 @@
    * @public
    * @param
    */
-  function Cube(name, requires, callback) {
+  function Cube (name, requires, callback) {
     if (arguments.length === 3) {
       var ld = new Cube(name);
       ld.load(requires, callback);
@@ -52,6 +68,11 @@
   Cube.init = function (config) {
     if (config.base && config.base !== '/') {
       BASE = config.base.replace(/\/$/, '');
+    }
+    if (config.remoteBase) {
+      for (var key in config.remoteBase) {
+        REMOTE_BASE[key] = config.remoteBase[key].replace(/\/$/, '');
+      }
     }
     if (config.charset) {
       CHARSET = config.charset;
@@ -99,13 +120,14 @@
     if (!cb) {
       cb = dummy;
     }
-    /** fix #12 **/
-    if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
-      mod = mod.substr(1);
-    } else if (mod[0] !== '/') {    // be campatible with test.js
-      mod = '/' + mod;
+    if(mod.indexOf(REMOTE_SEPERATOR) === -1) {
+      /** fix #12 **/
+      if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
+        mod = mod.substr(1);
+      } else if (mod[0] !== '/') {    // be campatible with test.js
+        mod = '/' + mod;
+      }
     }
-
     var ll = new Cube();
     ll.load(mod, function (module, exports, require) {
       cb(require(mod));
@@ -332,7 +354,6 @@
         ww[name].push(cb);
         return;
       }
-
       if (!ww[name]) {
         ww[name] = [];
       }
@@ -347,8 +368,8 @@
       if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
         name = name.replace(/\.js$/, '.source.js');
       }
-      var srcPath = [this.base, name, '?m=1&', VERSION];
-      script.src = srcPath.join('');
+      var _src = name.indexOf(REMOTE_SEPERATOR) !== -1 ? adjustBase(name) : [ this.base, name, '?m=1&', VERSION].join('');
+      script.src = _src;
     }
   };
   /**
@@ -378,7 +399,6 @@
       }
     }
   }
-
   rename = rename || 'Cube';
   if (HOST[rename]) {
     console.log('window.' + rename + ' already in using, replace the last "null" param in cube.js');

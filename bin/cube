@@ -232,6 +232,7 @@ cmd.command('build')
   .option('-o, --output [value]', 'set the output path')
   .option('-b, --base [value]', 'set the cube base')
   .option('-r, --resbase [value]', 'the http base for resouce')
+  .option('--remote [value]', 'set the namespace for remote call')
   .option('--merge', 'if merged dependences into on file')
   .option('--with-source', 'create source file')
   .option('--without-compress', 'do not compress code, output the source with wrap')
@@ -275,7 +276,8 @@ cmd.command('build')
         compress: compress,
         middleware: false,
         processors: args.processors,
-        resBase: args.resbase
+        resBase: args.resbase,
+        remote: args.remote
       });
       tool = Cube.getTool();
       tool.processFile(cube, source, outputPath, {withSource: args.withSource}, buildOutput);
@@ -288,7 +290,8 @@ cmd.command('build')
         compress: compress,
         middleware: false,
         processors: args.processors,
-        resBase: args.resbase
+        resBase: args.resbase,
+        remote: args.remote
       });
       tool = Cube.getTool();
       tool.processDir(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);
