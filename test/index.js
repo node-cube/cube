@@ -24,7 +24,7 @@ testMod.init({
 
 testMod.init({
   root: path.join(__dirname, '../example'),
-  port: 7778,
+  port: 8888,
   router: '/',
   middleware: false,
   remote: 'REMOTE',
@@ -38,13 +38,12 @@ testMod.init({
 });
 
 var request = Request('http://localhost:7777');
-var requestRemote = Request('http://localhost:7778');
+var remoteRequest = Request('http://localhost:8888');
 
-describe('index.js', function () {
-
+describe.only('index.js', function () {
   describe('remote request', function () {
-    it('should return a module', function (done) {
-      requestRemote.get('/main.js?m')
+    it('should return a module with remote info', function (done) {
+      remoteRequest.get('/main.js?m')
         .expect(200)
         .expect('content-type', 'application/javascript')
         .expect(/Cube\("REMOTE:\/main\.js"/)
@@ -53,8 +52,8 @@ describe('index.js', function () {
         .expect(/Cube/, done);
 
     });
-    it('should process require with vars ok', function (done) {
-      requestRemote.get('/test/test_require_with_var.js?m')
+    it('should process require with vars ok with remote info', function (done) {
+      remoteRequest.get('/test/test_require_with_var.js?m')
         .expect(200)
         .expect(function (res) {
           expect(res.text).to.match(/async\('REMOTE:\/test\/' \+ a \+ '\.js',/ig);
@@ -92,11 +91,12 @@ describe('index.js', function () {
         .expect(/^Cube\(/, done);
     });
     it('should return transfered js file', function (done) {
-      request.get('/main.js?m')
+      var a = request.get('/main.js?m')
         .expect(200)
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
+          console.log(body, a.url);
           expect(body).to.match(/require\('\/tests\.js'\)/);
           expect(body).to.match(/Cube\("\/main\.js"/);
         })
@@ -182,6 +182,14 @@ describe('index.js', function () {
         .expect(function (res) {
           expect(res.text).to.match(/\/node_modules\/test\/lib\/a\.js/);
           expect(res.text).to.match(/\/node_modules\/test\/lib\/b\.js/);
+          expect(res.text).to.match(/\/node_modules\/test\/a\.js/);
+        })
+        .end(done);
+    });
+    it('should return ok when file require node_modules/test', function (done) {
+      request.get('/node_modules/@ali/ns_coffee/index.js?m')
+        .expect(200)
+        .expect(function (res) {
           expect(res.text).to.match(/\/node_modules\/test\/a\.js/);
         })
         .end(done);

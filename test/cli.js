@@ -23,6 +23,7 @@ describe('cli', function () {
       var cmd = 'cd ' + path.join(__dirname, '../') + ';';
       cmd += 'bin/cube build example';
       exec(cmd, function (err, stdout, stderr) {
+        // console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
         var info = [];
         var flag = false;
@@ -212,7 +213,7 @@ describe('cli', function () {
       });
     });
 
-    it.only('should work fine with --remote option', function (done) {
+    it('should work fine with --remote option', function (done) {
       var cmd = 'cd ' + path.join(__dirname, '../') + ';';
       cmd += 'bin/cube build --remote TEST -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var.release.js';
       exec(cmd, function (err, stdout, stderr) {

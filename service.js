@@ -83,11 +83,10 @@ exports.init = function (cube, config) {
       compress: req.query.c === undefined ? false : true,
       qpath: qpath
     };
-    cachePath = qpath + ':' + options.moduleWrap + ':' + options.compress;
+    cachePath = qpath + ':' + options.moduleWrap + ':' + options.compress + ':' + cube.config.remote;
     debug('recognize file type: %s', type);
 
     var evt = new Event();
-    var origEtag = req.headers.etag;
     var realPath;
 
     evt.on('error', function (code, msg) {

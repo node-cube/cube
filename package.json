@@ -33,7 +33,7 @@
     "jscoverage": "0.5.8",
     "mocha": "1.20.1",
     "expect.js": "0.3.1",
-    "supertest": "0.13.0",
+    "supertest": "0.15.0",
     "jsdom": "1.0.3",
     "cube-less": "*",
     "cube-jade": "*",
