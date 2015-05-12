@@ -25,8 +25,13 @@
    * If mod is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
    */
   function adjustBase(mod) {
-    pathes = mod.split(REMOTE_SEPERATOR);
-    return REMOTE_BASE[pathes[0]] + pathes[1];
+    var pathes = mod.split(REMOTE_SEPERATOR);
+    var url = REMOTE_BASE[pathes[0]];
+    for (var i = 1; i < pathes.length; i++) {
+      url += pathes[i] + REMOTE_SEPERATOR;
+    }
+    url = url.substr(0, url.length-1);
+    return url;
   }
 
   /**
@@ -66,9 +71,8 @@
     }
     if (config.remoteBase) {
       for (var key in config.remoteBase) {
-        config.remoteBase[key] = config.remoteBase[key].replace(/\/$/, '');
+        REMOTE_BASE[key] = config.remoteBase[key].replace(/\/$/, '');
       }
-      REMOTE_BASE = config.remoteBase;
     }
     if (config.charset) {
       CHARSET = config.charset;
