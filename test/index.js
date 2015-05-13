@@ -40,9 +40,9 @@ testMod.init({
 var request = Request('http://localhost:7777');
 var remoteRequest = Request('http://localhost:8888');
 
-describe.only('index.js', function () {
+describe('index.js', function () {
   describe('remote request', function () {
-    it('should return a module with remote info', function (done) {
+    it('should return a js module with remote info', function (done) {
       remoteRequest.get('/main.js?m')
         .expect(200)
         .expect('content-type', 'application/javascript')
@@ -51,6 +51,19 @@ describe.only('index.js', function () {
         .expect(/exports\.run/)
         .expect(/Cube/, done);
 
+    });
+    it('should return a style module with remote info', function (done) {
+      remoteRequest.get('/css/test_css.css?m&c')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(/Cube\("REMOTE:\/css\/test_css\.css"/, done)
+
+    });
+    it('should return a template module with remote info', function (done) {
+      remoteRequest.get('/tpl/test.ejs?m&c')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(/Cube\("REMOTE:\/tpl\/test\.ejs"/, done)
     });
     it('should process require with vars ok with remote info', function (done) {
       remoteRequest.get('/test/test_require_with_var.js?m')

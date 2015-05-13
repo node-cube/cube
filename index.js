@@ -210,7 +210,7 @@ Cube.prototype.wrapScript = function (qpath, code, require) {
 
 Cube.prototype.wrapStyle = function (qpath, code) {
   var options = this.config;
-  return 'Cube("' + utils.moduleName(qpath, 'style', options.release) + '", [], function(m){m.exports=' + JSON.stringify(code) + ';return m.exports});';
+  return 'Cube("' + utils.moduleName(qpath, 'style', options.release, options.remote) + '", [], function(m){m.exports=' + JSON.stringify(code) + ';return m.exports});';
 };
 /** 修订css文件中的资源文件中的路径 **/
 Cube.prototype.fixupResPath = function (dir, code) {
@@ -237,7 +237,7 @@ Cube.prototype.wrapTemplate = function (qpath, code, require, literal) {
   if (literal) {
     code = 'module.exports=function(){return ' + JSON.stringify(code) + '};';
   }
-  return 'Cube("' + utils.moduleName(qpath, 'template', options.release) +
+  return 'Cube("' + utils.moduleName(qpath, 'template', options.release, options.remote) +
     '",' + JSON.stringify(require) + ',function(module,exports,require){' + code + '; return module.exports});';
 };
 
