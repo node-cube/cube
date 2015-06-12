@@ -98,7 +98,7 @@ function run() {
   }
   Cube.init({
     root: path.join(process.cwd(), dir || ''),
-    port: cmd.port ? cmd.port : 9999,
+    port: args.port ? args.port : 9999,
     router: args.vpath || '/',
     processors: processors,
     resBase: args.resbase,
@@ -112,9 +112,9 @@ cmd.command('run')
   .description('start server, @deprecate, using `cube start`')
   .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-p, --processors [value]', 'the external processors')
-  .option('--port [value]', 'server port')
-  .option('-r --resbase [value]', 'set the http base path for resourcs')
-  .option('--remote [value]', 'set remote option')
+  .option('-P, --port [value]', 'server port')
+  .option('-r, --resbase [value]', 'set the http base path for resourcs')
+  .option('-R, --remote [value]', 'set remote option')
   .option('-o, --output [value]', 'output dir')
   .action(run);
 
@@ -128,23 +128,23 @@ cmd.command('init')
     // TODO init project
     // copy cube.js
     if (!checkFile('./cube.min.js') || option.force) {
-      var code_cube = fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
+      var codeCube = fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
       if (option.css) {
         console.log('enable mcss');
-        code_cube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
+        codeCube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
         optmizeInfo();
       }
-      fs.sync().save(filePath('./cube.min.js'), code_cube);
+      fs.sync().save(filePath('./cube.min.js'), codeCube);
 
       if (option.jade) {
         console.log('enable jade');
-        code_cube = '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
-        fs.sync().save(filePath('./node_modules/jade_runtime.js'), code_cube);
+        codeCube = '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
+        fs.sync().save(filePath('./node_modules/jade_runtime.js'), codeCube);
       }
       if (option.ejs) {
         console.log('enable ejs');
-        code_cube = '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
-        fs.sync().save(filePath('./node_modules/ejs_runtime.js'), code_cube);
+        codeCube = '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
+        fs.sync().save(filePath('./node_modules/ejs_runtime.js'), codeCube);
       }
       console.log('inited cube.min.js');
     } else {
@@ -204,22 +204,22 @@ cmd.command('install')
 cmd.command('update')
   .description('update cube.min.js')
   .option('--min', 'simple cube.min.js, no other run_time inculde')
-  .action(function(option) {
-    findCube(function(cubeFile) {
+  .action(function (option) {
+    findCube(function (cubeFile) {
       if (!cubeFile) {
         return;
       }
-      var code_cube = '//cube.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
+      var codeCube = '//cube.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
       if (!option.min) {
         console.log('enabled jade');
-        code_cube += '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
+        codeCube += '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
         console.log('enabled ejs');
-        code_cube += '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
+        codeCube += '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
         console.log('enabled mcss');
-        code_cube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
+        codeCube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
         optmizeInfo();
       }
-      fs.sync().save(cubeFile, code_cube);
+      fs.sync().save(cubeFile, codeCube);
       console.log(cubeFile, 'updated');
     });
   });
@@ -324,7 +324,7 @@ cmd.command('dag')
     });
     var processor = new JsProcessor(cube);
 
-    var stat = fs.statSync(source);
+    // var stat = fs.statSync(source);
     if (flagFile) {
       source = path.basename(source);
       processor.process(source, {root: root, moduleWrap: true}, function (err, data) {
