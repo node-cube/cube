@@ -242,7 +242,8 @@ Cube.prototype.wrapTemplate = function (qpath, code, require, literal) {
 };
 
 Cube.prototype.processJsCode = function (filepath, code, options, callback) {
-  return JsProcessor.prototype.processCode.call(this, filepath, code, options, callback);
+  var jsp = this.processors.types.script['.js'];
+  jsp.processCode(filepath, code, options, callback);
 };
 
 

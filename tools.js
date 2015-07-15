@@ -105,14 +105,14 @@ function processFile(cube, source, dest, opts, cb) {
     cb = function () {};
   }
   var st = new Date().getTime();
-  var fileCount = 0;
+  // var fileCount = 0;
   var errors = [];
   var root = cube.config.root;
 
   var relFile = source.substr(root.length);
   var destFile = dest;
   // var destMapFile = path.join(dest, relFile.replace(/\.(\w+)$/, '.map'));
-  var fileName = path.basename(relFile);
+  // var fileName = path.basename(relFile);
   var ext = path.extname(relFile);
 
   var type =  cube.processors.map[ext];
@@ -132,7 +132,7 @@ function processFile(cube, source, dest, opts, cb) {
     root: cube.config.root,
     qpath: relFile
   };
-  var st = new Date().getTime();
+  // var st = new Date().getTime();
   processor.process(relFile, options, function (err, result) {
     if (err) {
       console.log('[ERROR]', err.message);

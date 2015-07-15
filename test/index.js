@@ -7,8 +7,9 @@
 var expect = require('expect.js');
 var testMod = require('../index');
 var path = require('path');
+var fs = require('fs');
 var Request = require('supertest');
-testMod.init({
+var cubeInst = testMod.init({
   root: path.join(__dirname, '../example'),
   port: 7777,
   router: '/',
@@ -403,6 +404,26 @@ describe('index.js', function () {
           var code = res.text;
           expect(code).match(/^Cube\(/);
         }).end(done);
+    });
+  });
+
+  describe('test processCode', function () {
+    it('should work fine', function (done) {
+      var code = fs.readFileSync(path.join(__dirname, '../example/main.js')).toString();
+      cubeInst.processJsCode(
+        '/main.js',
+        code,
+        {
+          qpath: '/main.js',
+          root: path.join(__dirname, '../example'),
+          release: false
+        },
+        function (err, result) {
+          expect(err).to.be(null);
+          expect(result.code).to.match(/Cube\("\/main\.js",/);
+          done();
+        }
+      );
     });
   });
 });
