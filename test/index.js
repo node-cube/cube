@@ -222,6 +222,7 @@ describe('index.js', function () {
           expect(res.text).to.match(/async\('\/test\/' \+ a \+ '\.js',/ig);
           // auto ext added
           expect(res.text).to.match(/async\('\/test\/' \+ a \+ '_require_var\.js',/ig);
+          expect(res.text).to.match(/async\('\/test\/cycle\/' \+ a \+ '_require_var\.js',/ig);
           // only left side
           expect(res.text).to.match(/async\('\/test\/' \+ a,/ig);
           // only right side, dev model will not change the ext

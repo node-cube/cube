@@ -8,6 +8,9 @@ b = 'file_for'
 async './' + a  + '_require_var', (test) ->
   expect(test()).to.be('success');
 
+async './cycle/' + a  + '_require_var', (test) ->
+
+
 # only left
 async './' + a, (test) ->
   expect(test()).to.be('success');
