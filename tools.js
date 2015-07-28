@@ -1,6 +1,18 @@
 var xfs = require('xfs');
 var path = require('path');
 var ug = require('uglify-js');
+var requires = require('requires');
+
+
+function Done(total, done) {
+  var count = 0;
+  return function () {
+    count++;
+    if (total === count) {
+      done();
+    }
+  };
+}
 
 function loadIgnore(path) {
   var ignoreRules;
@@ -42,6 +54,117 @@ function checkIgnore(file, ignores) {
   return flag;
 }
 
+function analyseNoduleModules(fpath, map, done) {
+  var modules = xfs.readdirSync(fpath);
+  var count = modules.length;
+  var c = 0;
+  var mlist = [];
+
+  modules.forEach(function (mname) {
+    if (mname === '.bin') {
+      return;
+    }
+    mlist.push(mname);
+  });
+  var d = Done(mlist.length, done);
+  mlist.forEach(function (mname) {
+    var mpath = path.join(fpath, mname);
+    analyseModule(mpath, map, function () {
+      c++;
+      d();
+    });
+  });
+}
+
+function analyseModule(mpath, map, done) {
+  //console.log(mpath);
+  var stat = xfs.statSync(mpath);
+  if (!stat.isDirectory()) {
+    return done();
+  }
+  var pkgInfo;
+  var d;
+  try {
+    pkgInfo = JSON.parse(xfs.readFileSync(path.join(mpath, 'package.json')));
+  } catch (e) {
+    return analyseNoduleModules(mpath, map, done);
+  }
+  if (!pkgInfo.main) {
+    if (xfs.existsSync(path.join(mpath, 'index.js'))) {
+      pkgInfo.main = 'index.js';
+    }
+  }
+  if (!pkgInfo.main) {
+    if (xfs.existsSync(path.join(mpath, 'node_modules'))) {
+      d = Done(2, done);
+      analyseNoduleModules(path.join(mpath, 'node_modules'), map, d);
+    } else {
+      d = Done(1, done);
+    }
+    // console.log('package.main not found');
+    xfs.walk(mpath, function (fpath) {
+      if (/node_modules\/?$/.test(fpath)) {
+        return false;
+      } else if (/(\.md|\/\.\w+)$/ig.test(fpath)) {
+        return false;
+      }
+      return true;
+    }, function (err, file) {
+      map[file] = true;
+    }, function () {
+      d();
+    });
+  } else {
+    d = Done(2, done);
+    var mainScript = require.resolve(path.join(mpath, pkgInfo.main));
+    analyseRequires(mainScript, map, d);
+    // add the rest file
+    xfs.walk(mpath, function (fpath) {
+      if (/node_modules\/?$/.test(fpath)) {
+        return false;
+      } else if (!/\.(png|jpg|gif|json|svg)$/ig.test(fpath)) {
+        return false;
+      }
+      return true;
+    }, function (err, file) {
+      map[file] = true;
+    }, d);
+  }
+}
+
+function analyseRequires(script, map, done) {
+  map[script] = true;
+  var fstr = xfs.readFileSync(script).toString();
+  var list = requires(fstr);
+  var list1 = [];
+  var list2 = [];
+  list.forEach(function (n) {
+    var p = n.path;
+    if (!/^[\/\.]/.test(p)) {
+      p = 'node_modules/' + p;
+      p = path.join(path.dirname(script), p);
+      if (xfs.existsSync(p)) {
+        list2.push(p);
+      }
+      return;
+    }
+    var realp = require.resolve(path.join(path.dirname(script), p));
+    map[realp] = true;
+    list1.push(realp);
+  });
+  var totalLen = list1.length + list2.length;
+  if (totalLen === 0) {
+    return done();
+  }
+  var d = Done(totalLen, done);
+  list1.forEach(function (p) {
+    analyseRequires(p, map, d);
+  });
+  list2.forEach(function (p) {
+    analyseModule(p, map, d);
+  });
+}
+
 function processDir(cube, source, dest, opts, cb) {
   if (!dest) {
     return console.log('[ERROR] param missing! dest');
@@ -58,6 +181,10 @@ function processDir(cube, source, dest, opts, cb) {
   var ignores = loadIgnore(path.join(source, '.cubeignore'));
   var errors = [];
   var root = cube.config.root;
+
+  var nodeModulesMap = {};
+
+  // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
   xfs.walk(source, function (err, sourceFile) {
     if (err) {
       throw err;
@@ -72,11 +199,20 @@ function processDir(cube, source, dest, opts, cb) {
       console.log('[copy file]:', relFile.substr(1));
       return;
     }
-    processFile(cube, sourceFile, destFile, opts, function (err, info) {
-      if (err && err.length) {
-        errors.push(err[0]);
+    try {
+      processFile(cube, sourceFile, destFile, opts, function (err, info) {
+        if (err && err.length) {
+          errors.push(err[0]);
+        }
+      });
+    } catch (e) {
+      if (/node_modules/.test(sourceFile)) {
+        // ignore the error
+        errors.push(e);
+      } else {
+        throw e;
       }
-    });
+    }
   }, function () {
     var end = new Date().getTime();
     cb(errors, {
@@ -84,6 +220,7 @@ function processDir(cube, source, dest, opts, cb) {
       time: Math.ceil((end - st) / 1000)
     });
   });
+  // });
 }
 /**
  * processFile
