@@ -143,7 +143,7 @@ exports.init = function (cube, config) {
         }
       }
       if (cube.config.devCache) {
-        debug('cache processed file: %s, %s' + realPath, mtime);
+        debug('cache processed file: %s, %s', realPath, mtime);
         CACHE[cachePath] = {
           mtime: mtime,
           mime: mime,
