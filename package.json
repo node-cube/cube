@@ -13,29 +13,32 @@
     "cube": "./bin/cube"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha -r jscoverage --timeout 5000 --coverage 90,80,70 -R spec test",
-    "testcov": "node_modules/.bin/mocha -r jscoverage --timeout 5000 --coverage 90,80,70 -R spec --covout=html test"
+    "test": "node_modules/.bin/mocha --recursive --timeout 5000 -R spec test",
+    "testcov": "node_modules/.bin/mocha --recursive -r jscoverage --timeout 5000 --coverage 90,80,70 -R spec --covout=html test"
   },
   "engines": {
     "node": ">=0.8.0"
   },
   "dependencies": {
-    "uglify-js": "2.4.15",
-    "coffee-script": "1.9.1",
     "clean-css": "2.2.16",
+    "coffee-script": "1.9.3",
     "commander": "^2.6.0",
     "connect": "3.3.1",
-    "xfs": "0.2.0",
-    "serve-static": "1.7.1",
     "debug": "2.1.0",
-    "requires": "1.0.2"
+    "escodegen": "^1.6.1",
+    "esprima": "^2.5.0",
+    "esprima-walk": "^0.1.0",
+    "requires": "1.0.2",
+    "serve-static": "1.7.1",
+    "uglify-js": "2.4.15",
+    "xfs": "0.2.0"
   },
   "devDependencies": {
-    "jscoverage": "0.5.8",
-    "mocha": "1.20.1",
+    "jscoverage": "0.6.0",
+    "mocha": "2.2.5",
     "expect.js": "0.3.1",
-    "supertest": "0.15.0",
-    "jsdom": "1.0.3",
+    "supertest": "1.1.0",
+    "jsdom": "6.2.0",
     "cube-less": "*",
     "cube-jade": "*",
     "cube-ejs": "*",

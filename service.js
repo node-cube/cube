@@ -169,6 +169,9 @@ exports.init = function (cube, config) {
         }
         return ;
       }
+      if (!processor) {
+        return evt.emit('error', 500, 'unsupported file type');
+      }
       debug('query: %s target: %s type: %s %s', qpath, realPath, type, cube.mimeType[type]);
       evt.emit('seekfile', realPath, processor);
     });

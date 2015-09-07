@@ -24,7 +24,7 @@ function debugRegister(cube, module) {
 }
 
 function defaultProcessor(cube) {
-  cube.register(path.join(__dirname, './lib/processor_js'));
+  cube.register(path.join(__dirname, './lib/processor_js2'));
   cube.register(path.join(__dirname, './lib/processor_coffee'));
   cube.register(path.join(__dirname, './lib/processor_css'));
   cube.register(path.join(__dirname, './lib/processor_html'));

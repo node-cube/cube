@@ -131,7 +131,7 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
-          expect(body).to.match(/\("\/css\/test_css\.css",""\)/);
+          expect(body).to.match(/\('\/css\/test_css\.css',''\)/);
         })
         .end(done);
     });
@@ -164,7 +164,7 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
-          expect(body).to.match(/Cube\("\/test\/test_main\.js/);
+          expect(body).to.match(/Cube\('\/test\/test_main\.js/);
           expect(body).not.match(/\/\*\!/);
         })
         .end(done);
