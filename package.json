@@ -29,7 +29,6 @@
     "escope": "^3.2.0",
     "esmangle": "^1.0.1",
     "esprima": "^2.5.0",
-    "esprima-walk": "^0.1.0",
     "estraverse": "^4.1.0",
     "requires": "1.0.2",
     "serve-static": "1.7.1",
