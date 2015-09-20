@@ -4,7 +4,7 @@
 
 function require(p){
     var path = require.resolve(p)
-      , mod = require.modules[path];
+      , mod = require.modules[path]
     if (!mod) throw new Error('failed to require "' + p + '"');
     if (!mod.exports) {
       mod.exports = {};

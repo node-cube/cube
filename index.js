@@ -226,7 +226,8 @@ Cube.prototype.fixupResPath = function (dir, code) {
     if (m2.indexOf('/') === 0 || /https?:\/\//.test(m2)) {
       return m0.replace(/\"|\'/g, ''); // url() is pointer to a abs path resource
     }
-    return 'url(' + path.join(base, dir, m2) + ')';
+    var tmp = path.join(base, dir, m2);
+    return 'url(' + tmp.replace(/\\/g, '/') + ')';
   });
 };
 

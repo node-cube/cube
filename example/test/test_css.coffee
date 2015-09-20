@@ -10,11 +10,14 @@ describe 'test/test_css', ()->
 
   it 'expect inject css fine', (done) ->
     async '../css/test_css.css', '.namespace', (css) ->
-      expect($('style[mod="/css/test_css.css"]').html()).to.match(/\.namespace\s+\.test/)
+      res = $('style[mod="/css/test_css.css"]').html() || $('style[mod="/css/test_css.css.js"]').html()
+      expect(res).to.match(/\.namespace\s+\.test/)
       done()
 
   it 'expect inject css fine with require(css, namespace)', () ->
     require('../css/test_require_css.css', '');
     node = $('style[mod="/css/test_require_css.css"]');
+    if !node.length
+      node = $('style[mod="/css/test_require_css.css.js"]');
     expect(node.length).to.be(1);
     expect(node.html()).to.match(/\.test_require/)

@@ -191,7 +191,7 @@ function processDir(cube, source, dest, opts, cb) {
     }
     fileCount++;
 
-    var relFile = sourceFile.substr(root.length);
+    var relFile = fixWinPath(sourceFile.substr(root.length));
     var destFile = path.join(dest, relFile);
 
     if (/\.min\.(css|js)$/.test(sourceFile) || checkIgnore(relFile, ignores)) {
@@ -246,7 +246,7 @@ function processFile(cube, source, dest, opts, cb) {
   var errors = [];
   var root = cube.config.root;
 
-  var relFile = source.substr(root.length);
+  var relFile = fixWinPath(source.substr(root.length));
   var destFile = dest;
   // var destMapFile = path.join(dest, relFile.replace(/\.(\w+)$/, '.map'));
   // var fileName = path.basename(relFile);
@@ -303,5 +303,10 @@ function processFile(cube, source, dest, opts, cb) {
     });
   });
 }
+
+function fixWinPath(fpath) {
+  return fpath.replace(/\\/g, '/');
+}
+
 exports.processFile = processFile;
 exports.processDir = processDir;

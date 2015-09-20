@@ -119,7 +119,7 @@ exports.init = function (cube, config) {
         if (err) {
           debug('[ERROR]: %s %s %s', err.code, err.message, err.stack);
           if (options.moduleWrap) {
-            evt.emit('error', 200, 'console.error("[CUBE]",' + JSON.stringify(err.message) + ');');
+            evt.emit('error', 200, 'console.error("[CUBE]","' + err.code + '", ' + JSON.stringify(err.message) + ');');
           } else {
             evt.emit('error', 500, err.message);
           }

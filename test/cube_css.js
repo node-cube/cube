@@ -2,7 +2,7 @@ var jsdom = require('jsdom');
 var expect = require('expect.js');
 Cube = {};
 var doc = '<html><head></head><body></body></html>';
-document = jsdom.jsdom(doc, jsdom.level(2, 'core'));
+document = jsdom.jsdom(doc);
 window = document.parentWindow;
 require('../runtime/cube_css');
 

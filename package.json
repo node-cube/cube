@@ -13,7 +13,7 @@
     "cube": "./bin/cube"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha --recursive --timeout 5000 -R spec test",
+    "test": "node_modules/.bin/mocha --recursive --timeout 50000 -R spec test",
     "testcov": "node_modules/.bin/mocha --recursive -r jscoverage --timeout 5000 --coverage 90,80,70 -R spec --covout=html test"
   },
   "engines": {
@@ -26,8 +26,11 @@
     "connect": "3.3.1",
     "debug": "2.1.0",
     "escodegen": "^1.6.1",
+    "escope": "^3.2.0",
+    "esmangle": "^1.0.1",
     "esprima": "^2.5.0",
     "esprima-walk": "^0.1.0",
+    "estraverse": "^4.1.0",
     "requires": "1.0.2",
     "serve-static": "1.7.1",
     "uglify-js": "2.4.15",

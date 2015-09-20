@@ -5,25 +5,30 @@ var xfs = require('xfs');
 
 describe('cli', function () {
   describe('init', function () {
+    if (/win/.test(process.platform)){
+      return ;
+    }
+    afterEach(function (){
+      process.chdir(path.join(__dirname, '../'));
+    });
     it('should work fine', function (done) {
-      var cmd = 'cd ' + path.join(__dirname, '../') + '; test ! -d test_init && mkdir test_init; cd test_init;';
-      cmd += '../bin/cube init';
-      exec(cmd, function (err, stdout, stderr) {
-        var res = stdout.toString().split('\n');
-        stderr = stderr.toString();
-        expect(stderr).to.be('');
-        expect(res).match(/successfully/);
-        xfs.sync().rmdir(path.join(__dirname, '../test_init'));
-        done();
+      exec('mkdir -p test_init', function () {
+          exec('cd ./test_init; ./bin/cube init', function (err, stdout, stderr) {
+            var res = stdout.toString().split('\n');
+            stderr = stderr.toString();
+            expect(stderr).to.be('');
+            expect(res).match(/successfully/);
+            xfs.sync().rmdir(path.join(__dirname, '../test_init'));
+            done();
+          });
       });
     });
   });
   describe('build', function () {
     it('should work fine', function (done) {
-      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build example';
+      var cmd= 'node bin/cube build example';
       exec(cmd, function (err, stdout, stderr) {
-        // console.log(stdout.toString(), stderr.toString());
+        console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
         var info = [];
         var flag = false;
@@ -48,8 +53,7 @@ describe('cli', function () {
       });
     });
     it('should work fine with -o relative path', function (done) {
-      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus example -o example.out';
+      var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus example -o example.out';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         var info = [];
@@ -73,8 +77,7 @@ describe('cli', function () {
       });
     });
     it('should work fine with -o abs path', function (done) {
-      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus example -o ' + path.join(__dirname, '../example.abs');
+      var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus example -o ' + path.join(__dirname, '../example.abs');
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         var info = [];
@@ -93,13 +96,13 @@ describe('cli', function () {
         expect(info[0]).match(/Files: \d+ Cost: \d+s/);
         expect(info[1]).match(/Error: 1/);
         expect(xfs.existsSync(path.join(__dirname, '../example.abs'))).to.be(true);
+        expect(xfs.readFileSync(path.join(__dirname, '../example.abs/main.js')).toString()).to.match(/Cube\('\/main\.js/);
         xfs.sync().rmdir(path.join(__dirname, '../example.abs'));
         done();
       });
     });
     it('should work fine when build single file', function (done) {
-      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus example/css/test_less.less';
+      var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus example/css/test_less.less';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         var info = [];
@@ -125,8 +128,7 @@ describe('cli', function () {
       });
     });
     it('should work fine when build single file', function (done) {
-      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus example/css/test_less.less -o example/css/custom';
+      var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus example/css/test_less.less -o example/css/custom';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         var info = [];
@@ -152,8 +154,7 @@ describe('cli', function () {
       });
     });
     it('should work fine when build single file with var', function (done) {
-      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var.release.js';
+      var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var.release.js';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         var info = [];
@@ -185,8 +186,7 @@ describe('cli', function () {
       });
     });
     it('should work fine when build with --resbase option', function (done) {
-      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build -p cube-less,cube-ejs,cube-stylus -r /resouce_path example/css/test_less_img.less -o example/css/custom';
+      var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus -r /resouce_path example/css/test_less_img.less -o example/css/custom';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         var info = [];
@@ -214,8 +214,7 @@ describe('cli', function () {
     });
 
     it('should work fine with --remote option', function (done) {
-      var cmd = 'cd ' + path.join(__dirname, '../') + ';';
-      cmd += 'bin/cube build --remote TEST -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var.release.js';
+      var cmd = 'node bin/cube build --remote TEST -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var.release.js';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         var info = [];
