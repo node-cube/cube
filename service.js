@@ -117,9 +117,9 @@ exports.init = function (cube, config) {
     evt.on('process', function (realPath, processor, mtime) {
       processor.process(realPath, options, function (err, result) {
         if (err) {
-          debug('[ERROR]: %s %s %s', err.code, err.message, err.stack);
+          console.log('[' + err.code + ']', err.message);
           if (options.moduleWrap) {
-            evt.emit('error', 200, 'console.error("[CUBE]","' + err.code + '", ' + JSON.stringify(err.message) + ');');
+            evt.emit('error', 200, 'console.error("[CUBE]","[' + err.code + ']", ' + JSON.stringify(err.message) + ');');
           } else {
             evt.emit('error', 500, err.message);
           }

@@ -5,3 +5,8 @@
  * CopyRight 2014 (c) Fish And Other Contributors
  */
 var a = require('./a');
+
+exports.test = function () {
+  expect(a.name).to.be('a');
+  console.log('a.name:"' + a.name + '" should equal "a"');
+};

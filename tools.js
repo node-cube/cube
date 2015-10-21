@@ -1,6 +1,5 @@
 var xfs = require('xfs');
 var path = require('path');
-var ug = require('uglify-js');
 var requires = require('requires');
 
 

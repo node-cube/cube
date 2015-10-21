@@ -26,9 +26,9 @@ describe('cli', function () {
   });
   describe('build', function () {
     it('should work fine', function (done) {
-      var cmd= 'node bin/cube build example';
+      var cmd = 'node bin/cube build example';
       exec(cmd, function (err, stdout, stderr) {
-        console.log(stdout.toString(), stderr.toString());
+        // console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
         var info = [];
         var flag = false;
@@ -44,7 +44,7 @@ describe('cli', function () {
           }
         });
         expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/Error: 1/);
+        expect(info[1]).match(/Error: 2/);
         // check require('css')
         var css_namespace_autofill = xfs.readFileSync(path.join(__dirname, '../example.release/test/test_css_namespace.js'));
         expect(css_namespace_autofill.toString()).match(/'\/css\/test_css.css.js',''/);
@@ -70,7 +70,7 @@ describe('cli', function () {
           }
         });
         expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/Error: 1/);
+        expect(info[1]).match(/Error: 2/);
         expect(xfs.existsSync(path.join(__dirname, '../example.out'))).to.be(true);
         xfs.sync().rmdir(path.join(__dirname, '../example.out'));
         done();
@@ -94,7 +94,7 @@ describe('cli', function () {
           }
         });
         expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/Error: 1/);
+        expect(info[1]).match(/Error: 2/);
         expect(xfs.existsSync(path.join(__dirname, '../example.abs'))).to.be(true);
         expect(xfs.readFileSync(path.join(__dirname, '../example.abs/main.js')).toString()).to.match(/Cube\('\/main\.js/);
         xfs.sync().rmdir(path.join(__dirname, '../example.abs'));

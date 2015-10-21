@@ -156,8 +156,8 @@ cmd.command('init')
     } else {
       console.log('file already exist: ./start.html');
     }
-    if (!checkFile('./cube.json')) {
-      fs.sync().save(filePath('./cube.json'), fs.readFileSync(sourcePath('./runtime/cube.json')));
+    if (!checkFile('./package.json')) {
+      fs.sync().save(filePath('./package.json'), fs.readFileSync(sourcePath('./runtime/cube.json')));
       console.log('inited cube.json');
     } else {
       console.log('file already exist: ./cube.json');

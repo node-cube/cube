@@ -1,4 +1,4 @@
-describe 'test/test_less', ()->
+describe.only 'test/test_less', ()->
 
   it 'expect inject less fine', (done) ->
     async '../css/test_less.less', '.namespace', (css) ->

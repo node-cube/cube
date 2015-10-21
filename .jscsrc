@@ -2,6 +2,8 @@
   "preset": "crockford",
   "requireCurlyBraces": null,
   "validateIndentation": 2,
+  "requireVarDeclFirst": false,
+  "disallowDanglingUnderscores": null,
   "requireMultipleVarDecl": null,
   "requireCamelCaseOrUpperCaseIdentifiers": "ignoreProperties",
   "requireSemicolons": true

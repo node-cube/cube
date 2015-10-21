@@ -185,7 +185,7 @@ describe('index.js', function () {
       request.get('/test/test_error.js?m')
         .expect(200)
         .expect(function (res) {
-          expect(res.text).match(/JS_Parser_Error/ig);
+          expect(res.text).match(/Js_Parse_Error/ig);
         })
         .end(done);
     });

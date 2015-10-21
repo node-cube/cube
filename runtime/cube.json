@@ -4,12 +4,9 @@
   "description": "a new way to write js in browser",
   "version": "0.0.1",
   "dependencies": {
-    "tnpm:@ali/jquery": "2.1.1"
+    "jquery": "2.1.1"
   },
-  "deps": {}, // deps for short
-  "ignore": [
-
-  ],
+  "ignore": [],
   "browser": {
     "ie": ">8"
   },

@@ -7,17 +7,23 @@
  * run in browser
  */
 (function (HOST, rename) {
-
   var BASE = '';
   var REMOTE_BASE = {};
   var REMOTE_SEPERATOR = ':';
   var CHARSET = 'utf-8';
   var VERSION = new Date().getTime();
   var TIMEOUT = 10000; // default 10's
-  var DEBUG = false;
+  // var DEBUG = false;
   var ENABLE_CSS = false;
-  var ENABLE_SOURCE = window.localStorage ? window.localStorage.getItem('__cube_debug__') : false;
+  // var ENABLE_SOURCE = window.localStorage ? window.localStorage.getItem('__cube_debug__') : false;
   var HEAD = document.getElementsByTagName('head')[0];
+
+  var MOD_LOADING = 1;
+  var MOD_LOADED = 0;
+  var CACHED = {};
+  var FLAG = {};
+  var TREE = {}; // parent -> child
+  var RTREE = {}; // child -> parent
 
   function dummy() {}
 
@@ -44,7 +50,7 @@
    * @public
    * @param
    */
-  function Cube (name, requires, callback) {
+  function Cube(name, requires, callback) {
     if (arguments.length === 3) {
       var ld = new Cube(name);
       ld.load(requires, callback);
@@ -52,6 +58,8 @@
       this.name = name ? name : '_';
       this.base = BASE;
       this.charset = CHARSET;
+      // FLAG[this.name] = [];
+      // FLAG[this.name].module = {exports: {}};
     }
   }
   /** version **/
@@ -79,9 +87,9 @@
     if (config.version) {
       VERSION = config.version;
     }
-    if (config.debug) {
-      DEBUG = config.debug;
-    }
+    // if (config.debug) {
+    //   DEBUG = config.debug;
+    // }
     if (config.timeout) {
       TIMEOUT = config.timeout;
     }
@@ -95,6 +103,7 @@
    * it's useful in pre env for debug, much better then sourcemap
    * @public
    */
+  /*
   Cube.debug = function () {
     if (window.localStorage) {
       var item = localStorage.getItem('__cube_debug__');
@@ -105,6 +114,7 @@
       }
     }
   };
+  */
   /**
    * loading module async, this function only support abs path
    * @public
@@ -119,7 +129,7 @@
     if (!cb) {
       cb = dummy;
     }
-    if(mod.indexOf(REMOTE_SEPERATOR) === -1) {
+    if (mod.indexOf(REMOTE_SEPERATOR) === -1) {
       /** fix #12 **/
       if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
         mod = mod.substr(1);
@@ -128,6 +138,8 @@
       }
     }
     var ll = new Cube();
+    FLAG[ll.name] = [];
+    FLAG[ll.name].module = {exports: {}};
     ll.load(mod, function (module, exports, require) {
       cb(require(mod));
     });
@@ -149,7 +161,7 @@
    * @return {Object}   Cube
    */
   Cube.remove = function (name) {
-    //
+    delete CACHED[name];
   };
   /**
    * register module in to cache
@@ -158,22 +170,23 @@
    * @return {[type]}         [description]
    */
   Cube.register = function (name, exports) {
-    var cached = this._cached[name];
+    var cached = CACHED[name];
     if (cached) {
       console.error('module already registered:', name);
     } else {
-      this._cached[name] = exports;
+      CACHED[name] = exports;
     }
   };
   /**
    * module already loaded
    */
-  Cube._cached = {};
+  Cube._cached = CACHED;
   /**
    * module loaded broadcast
    */
-  Cube._flag = {};
-  Cube._tree = {};
+  Cube._flag = FLAG;
+  Cube._rtree = RTREE;
+  Cube._tree = TREE;
   /**
    * global require function
    * @param  {[type]} mod [description]
@@ -181,10 +194,10 @@
    */
   function Require(mod, ns) {
     if (ns !== undefined) {
-      var css = Cube._cached[mod];
+      var css = CACHED[mod];
       Cube.css(css, ns, mod);
     }
-    return Cube._cached[mod];
+    return CACHED[mod];
   }
   /**
    * async loading resource
@@ -214,7 +227,7 @@
    get module by name
    **/
   Cube.module = function (name) {
-    return this._cached[name];
+    return this.CACHED[name];
   };
   Cube.prototype = {
     /**
@@ -222,14 +235,12 @@
      * @param {string|array} require
      * @param {function} cb callback
      */
-    load: function (req, cb) {
-      var mName = this.name;
-      var require = req;
+    load: function (require, cb) {
       if (typeof require === 'string') {
         // setup file timeout
         setTimeout(function () {
-          if (Cube._flag[req]) {
-            console.error('load script timeout:', req);
+          if (FLAG[require]) {
+            console.error('load script timeout:', require);
           }
         }, TIMEOUT);
       }
@@ -241,33 +252,18 @@
       }
       //if(!cb) cb = function(){};
       var len = require.length;
-      var _stack = [];
-      var ifCycle = false;
-      this._load_stack = {
-        req: _stack,
+      this.loadStack = {
         total: len,
         cb: cb,
         count: 0
       };
       if (len) {
-        for (var i = 0, tmp; i < len ; i++) {
-          tmp = require[i];
-          if (DEBUG) {
-            if (!Cube._tree[tmp]) {
-              Cube._tree[tmp] = {};
-            }
-            Cube._tree[tmp][mName] = true;
-            ifCycle = this._checkCycle(tmp);
-          }
-          if (!ifCycle) {
-            _stack.push(tmp);
-            this._loadScript(tmp);
-          }
-        }
-        if (!_stack.length) {
-          this._leafMod(cb);
+        // module with requires;
+        for (var i = 0; i < len ; i++) {
+          this._loadScript(require[i]);
         }
       } else {
+        // module without requires
         this._leafMod(cb);
       }
     },
@@ -276,23 +272,33 @@
      */
     _leafMod: function (cb) {
       var mod;
-      var module = {exports : {}};
+      var name = this.name;
+      var module = FLAG[name].module;
       if (cb) {
         mod = cb.apply(HOST, [module, module.exports, Require, Async, '', '']);
       }
       if (!mod) {
         mod = true;
-      } else {
-        mod.__filename = this.name;
       }
-      Cube._cached[this.name] = mod;
-      fireMod(this.name);
+      CACHED[name] = mod;
+      FLAG[name].status = MOD_LOADED;
+      fireMod(name);
     },
+    /**
+     * check if cycle require
+     *
+     * RTREE {
+     *   // 每个模块的 parent
+     *   mod_required: {
+     *     mod:true
+     *   }
+     * }
+     */
     _checkCycle: function (name, parents) {
       if (!parents) {
         parents = [name];
       }
-      var tmp = Cube._tree[name];
+      var tmp = RTREE[name];
       var tmpParent;
       var flag;
       if (!tmp) {
@@ -313,60 +319,92 @@
       }
       return false;
     },
-    _loadScript: function (name, bool) {
-      var mod = Cube._cached[name];
+    _loadScript: function (name) {
+      // get mod from cache;
+      var mod = CACHED[name];
+      var flag = FLAG[name];
       var self = this;
-      var ww = Cube._flag;
-      function cb(mm) {
-        var flag = self._load_stack;
-        var ok = false;
-        if (Cube._cached[mm]) {
-          flag.count++;
-          ok = self.name;
+      var module = {exports : {}};
+      var parent;
+      var sFilename = this.name;
+      var sDirname = sFilename.replace(/[^\/]*$/, '');
+      // callback: check if mod all deps loaded
+      // 检查依赖模块是否都已加载完毕
+      function cb(mName, forceLoaded) {
+        var stack = self.loadStack;
+        var parentMod = null;
+        var mod;
+        var flag = FLAG[mName];
+        if (!flag || !flag.status || forceLoaded) {
+          parentMod = sFilename;
+          stack.count++;
         }
-        // check if all require is done;
-        if (flag.total <= flag.count) {
-          var module = {exports : {}};
-          var s_filename = self.name;
-          var s_dirname = s_filename.replace(/[^\/]*$/, '');
-          var mod;
-          if (flag.cb) {
-            mod = flag.cb.apply(HOST, [module, module.exports, Require, Async, s_filename, s_dirname]);
+        // if all deps loaded
+        if (stack.total === stack.count) {
+          var module = FLAG[sFilename].module;
+
+          if (stack.cb) {
+            mod = stack.cb.apply(HOST, [module, module.exports, Require, Async, sFilename, sDirname]);
           }
           if (!mod) {
             mod = true;
-          } else {
-            mod.__filename = self.name;
           }
-          Cube._cached[self.name] = mod;
+          // module downloaded
+          CACHED[sFilename] = mod;
+          // set module flag
+          if (FLAG[sFilename]) {
+            FLAG[sFilename].status = MOD_LOADED;
+          }
         }
-        return ok;
+        return parentMod;
       }
-
-      if (mod) {
-        ww = cb(name);
-        if (ww !== false) {
-          fireMod(ww);
+      if (!RTREE[name]) {
+        RTREE[name] = {};
+      }
+      RTREE[name][this.name] = true;
+      // mod not exists
+      if (!mod) {
+        FLAG[name] = flag = [];
+        flag.status = MOD_LOADING;
+        flag.module = module;
+        flag.push(cb);
+        CACHED[name] = module.exports;
+        this._genScriptTag(name);
+      } else if (flag && flag.status) {
+        if (this._checkCycle(name)) {
+          // if cycle require, cut off the cycle
+          parent = cb(name, true);
+          if (parent) {
+            fireMod(parent);
+          }
+        } else {
+          self.loadStack.deps.push(name);
+          flag.push(cb);
         }
-        return;
-      } else if (mod === false) {
-        ww[name].push(cb);
-        return;
+      } else { // if deps mod already exists
+        console.log('>>> module already ready', name);
+        // check if `mod` all deps ok
+        parent = cb(name);
+        if (parent) {
+          // `this` mod downloaded, fire event
+          fireMod(parent);
+        }
       }
-      if (!ww[name]) {
-        ww[name] = [];
+    },
+    _genScriptTag: function (name) {
+      // module in node_modules, but can not find both in browser or server
+      if (name[0] !== '/') {
+        return console.error('[CUBE] module not found:', name, ', should install module in server side, or register(mod) in client side');
       }
-      ww[name].push(cb);
-      Cube._cached[name] = false;
       var script = HEAD.appendChild(document.createElement('script'));
       script.type = 'text/javascript';
       script.async = 'true';
       script.charset = this.charset;
       // because here can not detect css file or js file
       // so ignore js source file like:  jquery.scroll.js
-      if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
-        name = name.replace(/\.js$/, '.source.js');
-      }
+      // if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
+      //   name = name.replace(/\.js$/, '.source.js');
+      // }
       var srcPath = [reBase(name) || (this.base + name), '?m=1&', VERSION].join('');
       script.src = srcPath;
     }
@@ -376,24 +414,28 @@
    * @param  {String} name modulename
    */
   function fireMod(name) {
-    var wts = Cube._flag, ww, flag, res = {};
-    ww = wts[name];
-    if (ww) {
-      for (var n = ww.length - 1; n >= 0; n--) {
-        flag = ww[n](name);
-        if (flag !== false) { // module relative ok
-          ww.splice(n, 1);
-          n = ww.length;
-          if (flag) {
-            res[flag] = true;
-          }
+    var parent, res = {};
+    var modFlag = FLAG[name];
+    if (modFlag) {
+      for (var n = modFlag.length - 1; n >= 0; n--) {
+        parent = modFlag[n](name);
+        if (parent) {
+          // module relative ok
+          modFlag.splice(n, 1);
+          // should notify the parent mod
+          res[parent] = true;
+          // reset cursor n
+          n = modFlag.length;
         }
       }
-      if (!ww.length) {
-        delete  wts[name];
+
+      if (!modFlag.length) {
+        // all deps done
+        delete FLAG[name];
       }
+
       for (n in res) {
-        // one module self is loaded ,so fire it
+        // one module self is loaded, so fire it
         fireMod(n);
       }
     }

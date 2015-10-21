@@ -5,3 +5,6 @@
  * CopyRight 2014 (c) Fish And Other Contributors
  */
 var b = require('./b');
+
+exports.name = 'a';
+b.test();

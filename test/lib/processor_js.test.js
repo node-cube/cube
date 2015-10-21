@@ -11,7 +11,7 @@ describe('lib/processor_js', function () {
       var jsp = new JsProcessor(cube);
       var code = 'require("./process" + a + ".js");';
       jsp.processCode('/test.js', code, {root: __dirname}, function (err, data) {
-        console.log(err, data);
+        // console.log(err, data);
         done();
       });
 
@@ -21,7 +21,7 @@ describe('lib/processor_js', function () {
       var jsp = new JsProcessor(cube);
       var code = 'require("./process" + a + ".js");';
       jsp.processCode('/test.js', code, {root: __dirname, compress: true}, function (err, data) {
-        console.log(err, data);
+        // console.log(err, data);
         done();
       });
     });

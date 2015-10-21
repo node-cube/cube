@@ -5,3 +5,7 @@
  * CopyRight 2014 (c) Fish And Other Contributors
  */
 var c = require('./c');
+
+exports.test = function () {
+  c.test();
+};
