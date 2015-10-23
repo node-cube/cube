@@ -35,7 +35,7 @@
     if (offset > 0) {
       return REMOTE_BASE[mod.substr(0, offset)] + mod.substr(offset + 1);
     } else {
-      return null;
+      return '';
     }
   }
 
@@ -392,10 +392,6 @@
       }
     },
     _genScriptTag: function (name) {
-      // module in node_modules, but can not find both in browser or server
-      if (name[0] !== '/') {
-        return console.error('[CUBE] module not found:', name, ', should install module in server side, or register(mod) in client side');
-      }
       var script = HEAD.appendChild(document.createElement('script'));
       script.type = 'text/javascript';
       script.async = 'true';
@@ -405,7 +401,12 @@
       // if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
       //   name = name.replace(/\.js$/, '.source.js');
       // }
-      var srcPath = [reBase(name) || (this.base + name), '?m=1&', VERSION].join('');
+      var rebaseName = reBase(name);
+      // module in node_modules, but can not find both in browser or server
+      if (rebaseName.indexOf('/') !== 0) {
+        return console.error('[CUBE] module not found:', name, ', should install module in server side, or register(mod) in client side');
+      }
+      var srcPath = [rebaseName || (this.base + name), '?m=1&', VERSION].join('');
       script.src = srcPath;
     }
   };
