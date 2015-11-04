@@ -378,7 +378,7 @@
             fireMod(parent);
           }
         } else {
-          self.loadStack.deps.push(name);
+          // self.loadStack.deps.push(name);
           flag.push(cb);
         }
       } else { // if deps mod already exists
@@ -403,9 +403,9 @@
       // }
       var rebaseName = reBase(name);
       // module in node_modules, but can not find both in browser or server
-      if (rebaseName.indexOf('/') !== 0) {
-        return console.error('[CUBE] module not found:', name, ', should install module in server side, or register(mod) in client side');
-      }
+      // if (rebaseName.indexOf('/') !== 0) {
+      //  return console.error('[CUBE] module not found:', name, ', should install module in server side, or register(mod) in client side');
+      // }
       var srcPath = [rebaseName || (this.base + name), '?m=1&', VERSION].join('');
       script.src = srcPath;
     }

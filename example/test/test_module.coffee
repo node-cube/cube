@@ -10,6 +10,7 @@ describe 'test/test_module', () ->
   test = require('test')
   testLibA = require('test/lib/a')
   testLibB = require('test/lib/b.js')
+  testModuleWithDot = require('module_with_dot.js');
   testNs = require('@ali/ns_test')
   testNsCoffee = require('@ali/ns_coffee')
 
@@ -25,3 +26,8 @@ describe 'test/test_module', () ->
 
   it 'expect require the module with ns, default index.js', () ->
     expect(testNsCoffee.name).to.be('index coffee');
+
+  it 'expect require the module with dot success', () ->
+    expect(testModuleWithDot).to.be('success');
+
+

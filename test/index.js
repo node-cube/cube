@@ -57,14 +57,14 @@ describe('index.js', function () {
       remoteRequest.get('/css/test_css.css?m&c')
         .expect(200)
         .expect('content-type', 'application/javascript')
-        .expect(/Cube\("REMOTE:\/css\/test_css\.css"/, done)
+        .expect(/Cube\("REMOTE:\/css\/test_css\.css"/, done);
 
     });
     it('should return a template module with remote info', function (done) {
       remoteRequest.get('/tpl/test.ejs?m&c')
         .expect(200)
         .expect('content-type', 'application/javascript')
-        .expect(/Cube\("REMOTE:\/tpl\/test\.ejs"/, done)
+        .expect(/Cube\("REMOTE:\/tpl\/test\.ejs"/, done);
     });
     it('should process require with vars ok with remote info', function (done) {
       remoteRequest.get('/test/test_require_with_var.js?m')
@@ -105,7 +105,7 @@ describe('index.js', function () {
         .expect(/^Cube\(/, done);
     });
     it('should return transfered js file', function (done) {
-      var a = request.get('/main.js?m')
+      request.get('/main.js?m')
         .expect(200)
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
@@ -429,6 +429,7 @@ describe('index.js', function () {
   });
 });
 
+/*
 function wrapCode(code) {
   var header = '\
     var M = {}; \
@@ -441,3 +442,4 @@ function wrapCode(code) {
   var fn = new Function(header + code + footer);
   return fn;
 }
+*/

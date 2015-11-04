@@ -6,12 +6,13 @@
  */
 var utils = require('./lib/utils');
 var path = require('path');
-var JsProcessor = require('./lib/processor_js');
 var debug;
 
 try {
   debug = require('./debug.json');
-} catch (e) {}
+} catch (e) {
+  // ignore error
+}
 
 function debugRegister(cube, module) {
   if (!debug) {
@@ -20,7 +21,9 @@ function debugRegister(cube, module) {
   console.error('load debug processor', module);
   try {
     cube.register(module);
-  } catch (e) {}
+  } catch (e) {
+    // do nothing
+  }
 }
 
 function defaultProcessor(cube) {
@@ -154,7 +157,7 @@ Cube.prototype.getType = function (fpath) {
  */
 Cube.prototype.register = function (mod, force) {
   var processors = this.processors;
-  var info, type, ext;
+  var type, ext;
   var Processor;
   try {
     if (typeof mod === 'string') {
@@ -205,9 +208,11 @@ Cube.prototype.getMIMEType = function (type) {
   return this.mimeType[type] || defaultMime;
 };
 
-Cube.prototype.wrapScript = function (qpath, code, require) {
+/*
+Cube.prototype.wrapScript = function (qpath, code) {
 
 };
+*/
 
 Cube.prototype.wrapStyle = function (qpath, code) {
   var options = this.config;

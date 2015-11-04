@@ -28,7 +28,7 @@ function loadIgnore(path) {
     return [];
   }
   var ignore = [];
-  ignoreRules.forEach(function (v, i, a) {
+  ignoreRules.forEach(function (v) {
     if (!v) {
       return;
     }
@@ -55,7 +55,6 @@ function checkIgnore(file, ignores) {
 
 function analyseNoduleModules(fpath, map, done) {
   var modules = xfs.readdirSync(fpath);
-  var count = modules.length;
   var c = 0;
   var mlist = [];
 
@@ -181,8 +180,6 @@ function processDir(cube, source, dest, opts, cb) {
   var errors = [];
   var root = cube.config.root;
 
-  var nodeModulesMap = {};
-
   // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
   xfs.walk(source, function (err, sourceFile) {
     if (err) {
@@ -199,7 +196,7 @@ function processDir(cube, source, dest, opts, cb) {
       return;
     }
     try {
-      processFile(cube, sourceFile, destFile, opts, function (err, info) {
+      processFile(cube, sourceFile, destFile, opts, function (err) {
         if (err && err.length) {
           errors.push(err[0]);
         }
@@ -274,7 +271,7 @@ function processFile(cube, source, dest, opts, cb) {
       console.log('[ERROR]', err.message);
       errors.push(err);
     } else {
-      var finalFile, wrapDestFile, modName;
+      var finalFile, wrapDestFile;
       if (type === 'script') {
         destFile = destFile.replace(/\.\w+$/, '.js');
         var destSourceFile = destFile.replace(/\.js/, '.source.js');
@@ -284,7 +281,6 @@ function processFile(cube, source, dest, opts, cb) {
       } else if (type === 'style') {
         finalFile = destFile.replace(/\.\w+$/, '.css');
         wrapDestFile = destFile + '.js';
-        modName = relFile + '.js';
         xfs.sync().save(wrapDestFile, result.wraped);
         xfs.sync().save(finalFile, result.code);
         console.log('[transfer style]:', relFile.substr(1));
