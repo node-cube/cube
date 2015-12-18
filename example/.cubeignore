@@ -1,1 +1,5 @@
+[skip]
 /lib/
+
+[ignore]
+/test/test_ignore.js

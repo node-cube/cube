@@ -16,6 +16,7 @@ describe('cli', function () {
         exec('cd ./test_init; ./bin/cube init', function (err, stdout, stderr) {
           var res = stdout.toString().split('\n');
           stderr = stderr.toString();
+          console.log(res, stderr);
           expect(stderr).to.be('');
           expect(res).match(/successfully/);
           xfs.sync().rmdir(path.join(__dirname, '../test_init'));
@@ -31,23 +32,20 @@ describe('cli', function () {
         // console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
         var info = [];
-        var flag = false;
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
-            if (!flag) {
-              flag = true;
-            } else {
-              flag = false;
-            }
-          } else if (flag) {
+            return;
+          }
+          if (v) {
             info.push(v);
           }
         });
-        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/Error: 2/);
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Total Errors: 2/);
         // check require('css')
         var cssNamespaceAutofill = xfs.readFileSync(path.join(__dirname, '../example.release/test/test_css_namespace.js'));
         expect(cssNamespaceAutofill.toString()).match(/'\/css\/test_css.css.js',''/);
+        expect(xfs.existsSync(path.join(__dirname, '../example.release/test/test_ignore.js'))).to.be(false);
         xfs.sync().rmdir(path.join(__dirname, '../example.release'));
         done();
       });
@@ -57,20 +55,16 @@ describe('cli', function () {
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
         var info = [];
-        var flag = false;
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
-            if (!flag) {
-              flag = true;
-            } else {
-              flag = false;
-            }
-          } else if (flag) {
+            return;
+          }
+          if (v) {
             info.push(v);
           }
         });
-        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/Error: 2/);
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Total Errors: 2/);
         expect(xfs.existsSync(path.join(__dirname, '../example.out'))).to.be(true);
         xfs.sync().rmdir(path.join(__dirname, '../example.out'));
         done();
@@ -81,20 +75,16 @@ describe('cli', function () {
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
         var info = [];
-        var flag = false;
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
-            if (!flag) {
-              flag = true;
-            } else {
-              flag = false;
-            }
-          } else if (flag) {
+            return;
+          }
+          if (v) {
             info.push(v);
           }
         });
-        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/Error: 2/);
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Total Errors: 2/);
         expect(xfs.existsSync(path.join(__dirname, '../example.abs'))).to.be(true);
         expect(xfs.readFileSync(path.join(__dirname, '../example.abs/main.js')).toString()).to.match(/Cube\('\/main\.js/);
         xfs.sync().rmdir(path.join(__dirname, '../example.abs'));
@@ -106,20 +96,16 @@ describe('cli', function () {
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
         var info = [];
-        var flag = false;
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
-            if (!flag) {
-              flag = true;
-            } else {
-              flag = false;
-            }
-          } else if (flag) {
+            return;
+          }
+          if (v) {
             info.push(v);
           }
         });
-        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/successfully/);
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Successfully/);
         expect(xfs.existsSync(path.join(__dirname, '../example/css/test_less.min.css'))).to.be(true);
         expect(xfs.existsSync(path.join(__dirname, '../example/css/test_less.min.less.js'))).to.be(true);
         xfs.sync().rm(path.join(__dirname, '../example/css/test_less.min.css'));
@@ -132,20 +118,16 @@ describe('cli', function () {
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
         var info = [];
-        var flag = false;
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
-            if (!flag) {
-              flag = true;
-            } else {
-              flag = false;
-            }
-          } else if (flag) {
+            return;
+          }
+          if (v) {
             info.push(v);
           }
         });
-        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/successfully/);
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Successfully/);
         expect(xfs.existsSync(path.join(__dirname, '../example/css/custom'))).to.be(true);
         expect(xfs.existsSync(path.join(__dirname, '../example/css/custom.js'))).to.be(true);
         xfs.sync().rm(path.join(__dirname, '../example/css/custom'));
@@ -158,20 +140,16 @@ describe('cli', function () {
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
         var info = [];
-        var flag = false;
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
-            if (!flag) {
-              flag = true;
-            } else {
-              flag = false;
-            }
-          } else if (flag) {
+            return;
+          }
+          if (v) {
             info.push(v);
           }
         });
-        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/successfully/);
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Successfully/);
         var target = path.join(__dirname, '../example/test/test_require_with_var.release.js');
         var fileCnt = xfs.readFileSync(target).toString();
         expect(fileCnt).to.match(/'\/test\/'\+\w\+'\.js',function/ig);
@@ -190,20 +168,16 @@ describe('cli', function () {
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
         var info = [];
-        var flag = false;
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
-            if (!flag) {
-              flag = true;
-            } else {
-              flag = false;
-            }
-          } else if (flag) {
+            return;
+          }
+          if (v) {
             info.push(v);
           }
         });
-        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/successfully/);
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Successfully/);
         var content = xfs.readFileSync(path.join(__dirname, '../example/css/custom')).toString();
         expect(content).to.match(/\/resouce_path\/a/);
         expect(xfs.existsSync(path.join(__dirname, '../example/css/custom.js'))).to.be(true);
@@ -218,20 +192,16 @@ describe('cli', function () {
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
         var info = [];
-        var flag = false;
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
-            if (!flag) {
-              flag = true;
-            } else {
-              flag = false;
-            }
-          } else if (flag) {
+            return;
+          }
+          if (v) {
             info.push(v);
           }
         });
-        expect(info[0]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[1]).match(/successfully/);
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Successfully/);
         var target = path.join(__dirname, '../example/test/test_require_with_var.release.js');
         var fileCnt = xfs.readFileSync(target).toString();
         expect(fileCnt).to.match(/Cube\('TEST:\/test\/test_require_with_var\.js'/);

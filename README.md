@@ -19,7 +19,7 @@ Cube支持三种类型:
   npm install -g node-cube
 
   推荐全局安装，有cli命令支持
-  
+
 ## Getting Start
 
 初始化cube，通过cube命令，生成工程结构，包含 `cube.min.js`，`index.html`
@@ -165,7 +165,24 @@ build参数:
   --merge                   if merged dependences into on file 是否合并
 ```
 
-在静态资源目录下，编写 `.cubeignore`来排除不需要被处理的文件，格式和.gitignore一样
+在静态资源目录下，编写 `.cubeignore`来排除不需要被处理的文件，格式和.gitignore类似：
+
+```
+[skip]
+/node_modules/jquery/jquery.min.js
+[ignore]
+/node_modules/.bin
+```
+- 匹配`skip`段的文件，将跳过编译，直接copy到目标目录
+- 匹配`ignore`段的文件，将直接忽略，build之后不会出现在目标目录中
+
+不添加标记的时候，默认都为skip, 例如：
+```
+/test/
+```
+cube 在build的时候将直接copy文件，而不会build代码
+
+.cubeignore 文件的寻址 会从build目录开始逐级往上寻找，直到找到为止
 
 ## Cube的结构：客户端、服务端。
 
@@ -191,7 +208,7 @@ var path = require('path');
 function Processor(cube) {
    /*
     	cube: {
-    		
+
     		config,
     		fixupResPath
     		wrapTemplate,
@@ -205,9 +222,9 @@ Processor.ext = ['.sass'];
 Processor.prototype.process = function (relpath, options, callback) {
 	// get the source file abs path, so you can read the source
 	var fpath = path.join(options.root, relpath);
-	// do your processing  
+	// do your processing
 	return {
-		
+
 	}
 };
 ```

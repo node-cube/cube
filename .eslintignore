@@ -1,1 +1,7 @@
-**.min.js
+**/*.min.js
+example/**
+test/**
+node_modules/**
+runtime/cube_css.strict.js
+runtime/jade_runtime.js
+runtime/ejs_runtime.js

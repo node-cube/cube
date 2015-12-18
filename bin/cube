@@ -60,13 +60,12 @@ function findCube(cb) {
 function optmizeInfo() {
   console.log('[INFO] you can custom cube.min.js file, i.e : css_runtime');
 }
+
 function filePath(file) {
   var base = getCwd();
   return path.join(base, file);
 }
-function checkFile(file) {
-  return fs.existsSync(filePath(file));
-}
+
 function sourcePath(file) {
   var base = __dirname;
   return path.join(base, '../', file);
@@ -74,15 +73,16 @@ function sourcePath(file) {
 
 function buildOutput(err, info) {
   console.log('==================');
-  console.log('Files:', info.total, 'Cost:', info.time + 's');
   if (err.length) {
-    console.log('Error:', err.length);
     err.forEach(function (e) {
       console.log('\t*', e.code, e.message);
     });
   } else {
     console.log('Build successfully');
   }
+  console.log('==================');
+  console.log(err.length ? 'Build Finished, Total Errors: ' + err.length :  ' Build Successfully');
+  console.log('Files:', info.total, 'Cost:', info.time + 's');
   console.log('==================');
 }
 
@@ -124,58 +124,7 @@ cmd.command('init')
   .option('--ejs', 'with ejs runtime')
   .option('--css', 'with dynamic css load support')
   .option('-f, --force', 'force update cube.min.js')
-  .action(function (option) {
-    // TODO init project
-    // copy cube.js
-    if (!checkFile('./cube.min.js') || option.force) {
-      var codeCube = fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
-      if (option.css) {
-        console.log('enable mcss');
-        codeCube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
-        optmizeInfo();
-      }
-      fs.sync().save(filePath('./cube.min.js'), codeCube);
-
-      if (option.jade) {
-        console.log('enable jade');
-        codeCube = '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
-        fs.sync().save(filePath('./node_modules/jade_runtime.js'), codeCube);
-      }
-      if (option.ejs) {
-        console.log('enable ejs');
-        codeCube = '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
-        fs.sync().save(filePath('./node_modules/ejs_runtime.js'), codeCube);
-      }
-      console.log('inited cube.min.js');
-    } else {
-      console.log('file already exist: ./cube.min.js');
-    }
-    if (!checkFile('./start.html')) {
-      fs.sync().save(filePath('./start.html'), fs.readFileSync(sourcePath('./runtime/start.html')));
-      console.log('inited start.html');
-    } else {
-      console.log('file already exist: ./start.html');
-    }
-    if (!checkFile('./package.json')) {
-      fs.sync().save(filePath('./package.json'), fs.readFileSync(sourcePath('./runtime/cube.json')));
-      console.log('inited cube.json');
-    } else {
-      console.log('file already exist: ./cube.json');
-    }
-    if (!checkFile('./main.js')) {
-      fs.sync().save(filePath('./main.js'),
-        'document.getElementById("msg").innerHTML = "hello, Cube";\n' +
-        'document.getElementById("show").value = document.getElementById("initscript").innerHTML;\n' +
-        'exports.run = function () {console.log("app started!")};'
-      );
-      console.log('inited main.js');
-    } else {
-      console.log('file already exist: ./main.js');
-    }
-    fs.sync().mkdir('test');
-
-    console.log('successfully inited');
-  });
+  .action();
 
 cmd.command('install')
   .description('install dependences')
@@ -231,13 +180,14 @@ function isAbsPath(p) {
     return /^\//.test(p);
   }
 }
+
 cmd.command('build')
   /**
    * source , -o,--output, -b, --base 是基于cwd路径, 互相之间没有依赖关系
    */
   .usage('-p processor1,processor2 your_code_dir')
   .description('build the hole project, including: less->css->min, script->wraped->min')
-  .option('-p, --processors [value]', 'build in modules, tell cube ignore them')
+  .option('-p, --processors [value]', 'loading plugin processors, like `cube-coffee,cube-jsx`')
   .option('-o, --output [value]', 'set the output path')
   .option('-b, --base [value]', 'set the cube base')
   .option('-r, --resbase [value]', 'the http base for resouce')
@@ -249,6 +199,87 @@ cmd.command('build')
     if (!args || !source) {
       this.help();
       return;
+    }
+    if (args.processors) {
+      args.processors = args.processors.split(',');
+      args.processors.forEach(function (v, i, a) {
+        a[i] = v.trim();
+      });
+    }
+
+    var cwd = getCwd();
+    var fstat;
+    var inputPath, outputPath, cube, tool, root;
+    var compress = args.withoutCompress ? false : true;
+
+    root = args.base ? args.base : '';
+    if (root) {
+      root = isAbsPath(root) ? root : path.join(cwd, root);
+    }
+    source = isAbsPath(source) ? source : path.join(cwd, source);
+    inputPath = source;
+    try {
+      fstat = fs.statSync(source);
+    } catch (e) {
+      console.log('source not fould', e);
+      this.help();
+      return;
+    }
+
+    if (fstat.isFile()) {
+      outputPath = args.output ? (isAbsPath(args.output) ? args.output : path.join(cwd, args.output)) : source.replace(/\.(\w+)$/, '.min.$1');
+      root = (root ? root : path.dirname(source)).replace(/(\/|\\)$/, '');
+      cube = new Cube({
+        release: true,
+        root: root,
+        compress: compress,
+        middleware: false,
+        processors: args.processors,
+        resBase: args.resbase,
+        remote: args.remote
+      });
+      tool = Cube.getTool();
+      tool.processFile(cube, source, outputPath, {withSource: args.withSource}, buildOutput);
+    } else if (fstat.isDirectory()) {
+      outputPath = args.output ? (isAbsPath(args.output) ? args.output : path.join(cwd, args.output)) : (source.replace(/(\/|\\)$/, '') + '.release');
+      root = (root ? root : source).replace(/(\/|\\)$/, '');
+      cube = new Cube({
+        release: true,
+        root: root,
+        compress: compress,
+        middleware: false,
+        processors: args.processors,
+        resBase: args.resbase,
+        remote: args.remote
+      });
+      tool = Cube.getTool();
+      tool.processDir(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);
+    } else {
+      console.log('unknow type input source', source);
+    }
+  });
+
+/**
+ * build工程目录，并进行自动合并优化
+ * node_modules目录将进行选择性build
+ *
+ */
+cmd.command('smart-build')
+  /**
+   * source , -o,--output, -b, --base 是基于cwd路径, 互相之间没有依赖关系
+   */
+  .usage('-p processor1,processor2 your_code_dir')
+  .description('single build the hole project, including: less->css->min, script->wraped->min')
+  .option('-p, --processors [value]', 'loading plugin processors, like `cube-coffee,cube-jsx`')
+  .option('-o, --output [value]', 'set the output path')
+  .option('-b, --base [value]', 'set the cube base')
+  .option('-r, --resbase [value]', 'the http base for resouce')
+  .option('--remote [value]', 'set the namespace for remote call')
+  .option('--auto-merge', 'if switch on auto-merge deps')
+  .option('--without-compress', 'do not compress code, output the source with wrap')
+  .action(function (source, args) {
+    if (!args || !source) {
+      return this.help();
     }
     if (args.processors) {
       args.processors = args.processors.split(',');
@@ -334,17 +365,17 @@ cmd.command('dag')
     // var stat = fs.statSync(source);
     if (flagFile) {
       source = path.basename(source);
-      processor.process(source, {root: root, moduleWrap: true}, function (err, data) {
+      processor.process(source, {root: root, moduleWrap: true}, function () {
         end();
       });
     } else {
-      fs.walk(source, /\.(js|coffee)$/, function (err, file, done) {
+      fs.walk(source, /\.(js|coffee|jsx)$/, function (err, file, done) {
         if (err) {
           console.log('make dag error', err);
           process.exit(1);
         }
         file = file.substr(root.length);
-        processor.process(file, {root: root, moduleWrap: true}, function (err, data) {
+        processor.process(file, {root: root, moduleWrap: true}, function () {
           done();
         });
       }, end);
@@ -378,6 +409,3 @@ cmd.parse(process.argv);
 if (!cmd.args.length) {
   cmd.help();
 }
-
-
-
