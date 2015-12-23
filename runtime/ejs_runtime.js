@@ -6,7 +6,7 @@
  */
 
 /**
- * esj filter
+ * ejs filter
  * the following code from ejs package
  */
 Cube.register('ejs_runtime', (function () {

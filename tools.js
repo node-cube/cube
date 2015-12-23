@@ -1,6 +1,7 @@
 var xfs = require('xfs');
 var path = require('path');
 var requires = require('requires');
+var utils = require('./lib/utils');
 
 
 function Done(total, done) {
@@ -11,73 +12,6 @@ function Done(total, done) {
       done();
     }
   };
-}
-
-function loadIgnore(curPath) {
-  var ignoreRules;
-  if (!/^(\w:|\/)/.test(curPath)) {
-    curPath = path.join(process.cwd(), curPath);
-  }
-  var ignore = {skip: [], ignore: []};
-  var ending = process.platform.match(/win/) ? /^\w:$/ : /^\/$/;
-  while (!ending.test(curPath)) {
-    try {
-      ignoreRules = xfs.readFileSync(path.join(curPath, '.cubeignore')).toString().split(/\r?\n/g);
-      console.log('.cubeignore found: ', path.join(curPath, '.cubeignore'));
-      break;
-    } catch (e) {
-      if (e.code === 'ENOENT') {
-        curPath = path.dirname(curPath);
-      } else {
-        e.message = '[CUBE] loading .cubeignore error, ' + e.message;
-        console.log(e.message);
-        return ignore;
-      }
-    }
-  }
-
-  var cate = 'skip';
-  ignoreRules.forEach(function (v) {
-    if (v === '[skip]') {
-      cate = 'skip';
-      return;
-    } else if (v === '[ignore]') {
-      cate = 'ignore';
-      return;
-    }
-    if (!v) {
-      return;
-    }
-    if (v.indexOf('/') === 0) {
-      v = '^' + v;
-    }
-    ignore[cate].push(new RegExp(v.replace(/\./g, '\\.').replace(/\*/g, '.*')));
-  });
-  return ignore;
-}
-
-/**
- * 检查是否忽略
- * @param  {String} file    文件名
- * @param  {Object} ignores 配置信息
- * @return {Number} 1: skip, 2: ignore
- */
-function checkIgnore(file, ignores) {
-  var flag = {};
-  var rule;
-  ['skip', 'ignore'].forEach(function (cate) {
-    var tmp = ignores[cate];
-    var len = tmp.length;
-    for (var i = 0; i < len; i++) {
-      rule = tmp[i];
-      if (rule.test(file)) {
-        flag[cate] = true;
-        break;
-      }
-    }
-  });
-
-  return flag;
 }
 
 function analyseNoduleModules(fpath, map, done) {
@@ -203,7 +137,7 @@ function processDir(cube, source, dest, opts, cb) {
   }
   var st = new Date().getTime();
   var fileCount = 0;
-  var ignores = loadIgnore(source);
+  var ignores = utils.loadIgnore(source);
   var errors = [];
   var root = cube.config.root;
 
@@ -216,7 +150,7 @@ function processDir(cube, source, dest, opts, cb) {
 
     var relFile = fixWinPath(sourceFile.substr(root.length));
     var destFile = path.join(dest, relFile);
-    var checked = checkIgnore(relFile, ignores);
+    var checked = utils.checkIgnore(relFile, ignores);
     /*
     if (/\.min\.(css|js)$/.test(sourceFile)) {
       xfs.sync().save(destFile, xfs.readFileSync(sourceFile));

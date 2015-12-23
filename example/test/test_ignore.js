@@ -1,1 +1,1 @@
-test_ignore
+var ignore = require('ignores');

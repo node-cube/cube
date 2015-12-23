@@ -5,10 +5,10 @@ Cube
 
 模块化你的前端代码，像node.js一样编写模块, 发布npm变成共享模块。
 
-Cube支持三种类型:
+Cube管理着前端三种类型的资源:
 
-* script js/coffee
-* style css/stylus/less
+* script js/coffee/jsx/...
+* style css/stylus/less/...
 * template html/ejs/jade/...
 
 [![Build Status](https://travis-ci.org/node-cube/cube.svg)](https://travis-ci.org/node-cube/cube)
@@ -36,11 +36,11 @@ Cube支持三种类型:
 <script>
   Cube.init({
     charset: 'utf-8',
-    base: '/',  // virtual path, base can be a http path: http://domain.com/project/static
-    debug: true,               // online module ,you should turn off this switch
-    enableCss: true,           // enable dynamic loading css resource
-    version: 12345,            // the code version, used for flushing client side script
-    timeout: 15000              // loading script timeout setup
+    base: '/',                // virtual path, base can be a http path,
+                              // like: http://domain.com/project/static
+    debug: true,              // online module ,you should turn off this switch
+    version: 12345,           // the code version, used for flushing client side script
+    timeout: 15000            // loading script timeout setup
   });
   Cube.use('/main.js', function (App) {
     console.log(App.run(appConfig));

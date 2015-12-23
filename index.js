@@ -37,8 +37,8 @@ function defaultProcessor(cube) {
   debugRegister(cube, 'cube-less');
   debugRegister(cube, 'cube-stylus');
   debugRegister(cube, 'cube-coffee');
+  debugRegister(cube, 'cube-jsx');
 }
-
 /**
  * [Cube description]
  * @param {Object} config
@@ -112,6 +112,9 @@ function Cube(config) {
       self.register(processor, true);
     });
   }
+
+  // load ignore
+  this.ignoresRules = utils.loadIgnore(config.root);
 }
 /**
  *
@@ -145,6 +148,14 @@ Cube.prototype.getType = function (fpath) {
   ext = ext[0];
   return this.processors.map[ext];
 };
+
+Cube.prototype.checkIgnore = function (absPath) {
+  // console.log(absPath.substr(this.config.root.length), this.ignoresRules);
+  var res = utils.checkIgnore(absPath.substr(this.config.root.length), this.ignoresRules);
+  // console.log(res);
+  return res.ignore;
+};
+
 /**
  * register a processor for cube
  * @param  {String|Object} mod   mod can be a string(module path) or an mod object

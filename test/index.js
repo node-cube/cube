@@ -51,7 +51,6 @@ describe('index.js', function () {
         .expect(/require\(['"]REMOTE:\/tests\.js/)
         .expect(/exports\.run/)
         .expect(/Cube/, done);
-
     });
     it('should return a style module with remote info', function (done) {
       remoteRequest.get('/css/test_css.css?m&c')
@@ -91,6 +90,13 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(/exports\.run/)
         .expect(/^(?!Cube\()/, done);
+    });
+    it('should ignore file parse when file in .cubeignore list', function (done) {
+      request.get('/test/test_ignore.js?m')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(/Cube\("\/test\/test_ignore\.js"/)
+        .expect(/require\('ignores'\)/, done);
     });
     it('should return regular js file which name with dot', function (done) {
       request.get('/test/test_file.with.dot.js')

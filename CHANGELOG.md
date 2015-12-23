@@ -1,3 +1,6 @@
+v1.0.1
+  * .cubeignre support ignore patten in dev model
+
 v0.1.0
   * support custom processor now
   * support `require('css', ns);`

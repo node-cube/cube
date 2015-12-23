@@ -14,7 +14,7 @@
   var VERSION = new Date().getTime();
   var TIMEOUT = 10000; // default 10's
   // var DEBUG = false;
-  var ENABLE_CSS = false;
+  // var ENABLE_CSS = false;
   // var ENABLE_SOURCE = window.localStorage ? window.localStorage.getItem('__cube_debug__') : false;
   var HEAD = document.getElementsByTagName('head')[0];
 
@@ -93,9 +93,11 @@
     if (config.timeout) {
       TIMEOUT = config.timeout;
     }
+    /*
     if (config.enableCss) {
       ENABLE_CSS = config.enableCss;
     }
+    */
     return this;
   };
   /**
@@ -210,10 +212,12 @@
    */
   function Async(mod, param1, param2) {
     if (typeof param1 !== 'function') {
+      /**
       if (!ENABLE_CSS) {
         console.warn('[Cube] dynamic loading css disabled!');
         return;
       }
+      **/
       // mod cb -> namespace
       Cube.use(mod, function (css) {
         Cube.css(css, param1, mod);
