@@ -177,7 +177,9 @@ describe('index.js', function () {
     });
     it('should return err message when file not found when moduleWrap is on', function (done) {
       request.get('/test/module-not-found.js?m')
-        .expect(200)
+        .expect(function (res) {
+          console.log(res.text);
+        })
         .expect(/console\.error/)
         .expect(/file not found/)
         .expect(/module-not-found/, done);

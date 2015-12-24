@@ -1,0 +1,1 @@
+var css = require('./undefined.css');
