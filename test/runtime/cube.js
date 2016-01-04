@@ -23,7 +23,7 @@ describe('runtime/cube.js', function () {
             '/a',
             '/b',
             '/c',
-            '_'
+            '_0'
           ]);
           done();
         }, 1);

@@ -11,6 +11,6 @@ describe 'test/test_cycle_require', ()->
     cache = []
 
   it 'expect console.warn info', (done)->
-    async './cycle/a', ()->
+    load './cycle/a', ()->
       expect(cache[0]).to.match /cycle/
       done()

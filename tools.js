@@ -199,9 +199,11 @@ function processDir(cube, source, dest, opts, cb) {
  * @param  {Function} cb(err, res)
  */
 function processFile(cube, source, dest, opts, cb) {
+  /*
   if (!dest) {
     return console.log('[ERROR] param missing! dest');
   }
+  */
   if (cb === undefined) {
     cb = opts;
     opts = {};
@@ -243,7 +245,7 @@ function processFile(cube, source, dest, opts, cb) {
     if (err) {
       console.log('[ERROR]', err.message);
       errors.push(err);
-    } else {
+    } else if (dest) {
       var finalFile, wrapDestFile;
       if (type === 'script') {
         destFile = destFile.replace(/\.\w+$/, '.js');
@@ -262,10 +264,14 @@ function processFile(cube, source, dest, opts, cb) {
       }
     }
     var end = new Date().getTime();
+    if (result) {
+      result.file = relFile;
+      result.type = type;
+    }
     cb(errors, {
       total: 1,
-      requires: result ? result.requires : [],
-      time: Math.ceil((end - st) / 1000)
+      time: Math.ceil((end - st) / 1000),
+      result: result
     });
   });
 }

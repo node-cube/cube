@@ -4,30 +4,8 @@ var cmd = require('commander');
 var Cube = require('../index');
 var fs = require('xfs');
 var path = require('path');
-var JsProcessor = require('../lib/processor_js2');
 var pkg = require(path.join(__dirname, '../package'));
-var spawn = require('child_process').spawn;
-
-function exec(cmd, cb) {
-  var args = cmd.split(/\s/);
-  cmd = spawn(args[0], args.slice(1), process.env);
-  cmd.stdout.on('data', function (data) {
-    console.log(data.toString());
-  });
-  cmd.stdout.on('error', function (data) {
-    console.log(data.toString());
-  });
-
-  cmd.stderr.on('data', function (data) {
-    console.log(data.toString());
-  });
-  cmd.stderr.on('error', function (data) {
-    console.log(data.toString());
-  });
-
-  cmd.on('close', cb);
-}
-
+var childProcess = require('child_process');
 
 function getCwd() {
   return process.cwd();
@@ -130,42 +108,30 @@ cmd.command('install')
   .description('install dependences')
   .action(function (option, dir) {
     dir = dir ? filePath(dir) : getCwd();
-    var cubeCfg;
-    try {
-      cubeCfg = require(path.join(dir, 'cube.json'));
-    } catch (e) {
-      console.log('nothing need to install');
-      return;
+    var out = childProcess.execSync('npm3 -v').toString().trim();
+    var m = out.match(/(\d+)\.(\d+)\.(\d+)/);
+    if (!m) {
+      console.log('[Error] npm3 not installed');
+      console.log('using this cmd:  npm install -g npm3');
+      process.exit(1);
     }
-    var deps = cubeCfg.deps || cubeCfg.dependencies;
-    if (!deps) {
-      return;
-    }
-    var pkgList = [];
-    Object.keys(deps).forEach(function (v) {
-      pkgList.push(v + '@' + deps[v]);
-    });
-    exec('npm install ' + pkgList.join(' '), function (code) {
-      console.log('install ended', code);
-    });
+    childProcess.execSync('npm3 install');
   });
 
 cmd.command('update')
   .description('update cube.min.js')
-  .option('--min', 'simple cube.min.js, no other run_time inculde')
+  .option('-a, --all', 'simple cube.min.js, no other run_time inculde')
   .action(function (option) {
     findCube(function (cubeFile) {
       if (!cubeFile) {
         return;
       }
       var codeCube = '//cube.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube.min.js')).toString();
-      if (!option.min) {
+      if (option.all) {
         console.log('enabled jade');
         codeCube += '\n//jade_runtime\n' + fs.readFileSync(sourcePath('./runtime/jade_runtime.min.js'));
         console.log('enabled ejs');
         codeCube += '\n//ejs_runtime\n' + fs.readFileSync(sourcePath('./runtime/ejs_runtime.min.js'));
-        console.log('enabled mcss');
-        codeCube += '\n//cube_css.min.js\n' + fs.readFileSync(sourcePath('./runtime/cube_css.min.js'));
         optmizeInfo();
       }
       fs.sync().save(cubeFile, codeCube);
@@ -260,9 +226,125 @@ cmd.command('build')
   });
 
 /**
+ * build into single file
+ */
+cmd.command('all-in-one')
+  .usage('-p processor1,processor2 your_file')
+  .option('-o, --output [value]', 'output file')
+  .option('-b, --base [value]', 'set dir base')
+  .option('-r, --resbase [value]', 'resource base')
+  .action(function (source, args) {
+    if (!args || !source) {
+      return this.help();
+    }
+    if (args.processors) {
+      args.processors = args.processors.split(',');
+      args.processors.forEach(function (v, i, a) {
+        a[i] = v.trim();
+      });
+    }
+
+    var cwd = getCwd();
+    var outputPath, cube, tool, root;
+    var compress = true;
+    var fstat;
+    root = args.base ? args.base : '';
+    if (root) {
+      root = isAbsPath(root) ? root : path.join(cwd, root);
+    }
+    source = isAbsPath(source) ? source : path.join(cwd, source);
+    try {
+      fstat = fs.statSync(source);
+    } catch (e) {
+      console.log('source not fould', e);
+      this.help();
+      return;
+    }
+    if (fstat.isDirectory()) {
+      console.log('proess file only');
+      return ;
+    }
+    outputPath = args.output ? (isAbsPath(args.output) ? args.output : path.join(cwd, args.output)) : source.replace(/\.(\w+)$/, '.release');
+    root = (root ? root : path.dirname(source)).replace(/(\/|\\)$/, '');
+    cube = new Cube({
+      release: true,
+      root: root,
+      compress: compress,
+      middleware: false,
+      processors: args.processors,
+      resBase: args.resbase,
+      remote: args.remote
+    });
+    tool = Cube.getTool();
+    var codes = [];
+    var styles = [];
+    var infos = [];
+    var codesMap = {};
+    var indent = 0;
+    function _cb(err, res, i) {
+      if (err.length) {
+        err.forEach(function () {
+
+        });
+        return ;
+      }
+      var result = res.result;
+      if (codesMap[result.file]) {
+        return;
+      }
+      codesMap[result.file] = true;
+      if (result.type === 'style') {
+        styles.push(result.code);
+      } else {
+        codes.unshift(result.type !== 'script' ? result.wraped : result.code);
+      }
+      infos.push(fmtInfo(i, result.file));
+      if (result.originalRequires) {
+        var n = i + 1;
+        result.originalRequires.forEach(function (m) {
+          if (!fs.existsSync(path.join(root, m))) {
+            return console.error('[error] missing require:', m);
+          }
+          if (codesMap[m]) {
+            return;
+          }
+
+          tool.processFile(cube, path.join(root, m), null, {}, function (err, data) {
+            _cb(err, data, n);
+          });
+        });
+      }
+    }
+    tool.processFile(cube, source, null, {}, function (err, data) {
+      _cb(err, data, indent);
+    });
+    codes.unshift('var Cube = g.Cube;');
+    codes.unshift(fs.readFileSync(path.join(__dirname, '../runtime/cube.min.js')).toString().replace('window,null', 'g,null'));
+    codes.unshift('!(function(host, propName){\nvar g = {};');
+    codes.push('Cube.use("' + infos[0] + '", function(mod) { host[propName] = mod;});');
+    codes.push('})(host, "cubeExports")');
+    fs.sync().save(path.join(outputPath, '/script.js'), codes.join('\n'));
+    fs.sync().save(path.join(outputPath, '/style.css'), styles.join('\n'));
+    console.log('===== deps =====');
+    console.log(infos.join('\n'));
+    console.log('======');
+    console.log('output dir:', outputPath);
+    console.log('======');
+  });
+
+function fmtInfo(indent) {
+  var args = [].slice.call(arguments, 1);
+  var str = [];
+  for (var i = 0 ; i < indent ; i ++) {
+    str.push('    ');
+  }
+  args.unshift(str.join(''));
+  return args.join('');
+}
+
+/**
  * build工程目录，并进行自动合并优化
  * node_modules目录将进行选择性build
- *
  */
 cmd.command('smart-build')
   /**
@@ -340,6 +422,7 @@ cmd.command('smart-build')
     }
   });
 
+/*
 cmd.command('dag')
   .usage('your_code_dir')
   .description('gen DAG graph')
@@ -397,6 +480,7 @@ cmd.command('dag')
       console.log('browser open: ' + root + '/dag_out.html');
     }
   });
+*/
 
 cmd.command('help')
   .description('help')

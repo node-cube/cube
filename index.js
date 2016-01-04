@@ -37,7 +37,7 @@ function defaultProcessor(cube) {
   debugRegister(cube, 'cube-less');
   debugRegister(cube, 'cube-stylus');
   debugRegister(cube, 'cube-coffee');
-  debugRegister(cube, 'cube-jsx');
+  debugRegister(cube, '../cube-jsx');
 }
 /**
  * [Cube description]
@@ -50,6 +50,7 @@ function defaultProcessor(cube) {
  *        - resBase {String} [optional] the http base for resource
  *        - scope {String} [optional] set the module scope, like '@ali' [X]
  *        - devCache {Boolean} default true
+ *        - noDist {Boolean} switch if search module dist dir
  *
  */
 function Cube(config) {
@@ -115,6 +116,11 @@ function Cube(config) {
 
   // load ignore
   this.ignoresRules = utils.loadIgnore(config.root);
+
+  this.globalInfo = {
+    requires: [],
+    resources: []
+  };
 }
 /**
  *

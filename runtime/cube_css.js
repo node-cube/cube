@@ -6,7 +6,7 @@ Cube.css = function (css, namespace, file) {
   }
   if (namespace) {
     css = '}' + css;
-    css = css.replace(parseCssRe, function (match, p1, offset, string) {
+    css = css.replace(parseCssRe, function (match, p1) {
       var selectors = p1.split(',').map(function (selector) {
         return namespace + ' ' + selector.trim();
       });

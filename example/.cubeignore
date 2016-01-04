@@ -1,6 +1,6 @@
 [skip]
 /lib/
-
+/cube.min.js
 [ignore]
 /test/test_ignore.js
 /node_modules/ignore/

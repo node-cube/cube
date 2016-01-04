@@ -44,7 +44,7 @@ describe('test/test_main', function () {
   });
 
   it('async should work fine', function (done) {
-    async('./test_async', function (mod) {
+    load('./test_async', function (mod) {
       expect(mod.run()).to.match(/this is async loaded module/);
       done();
     });

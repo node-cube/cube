@@ -69,15 +69,15 @@ describe('index.js', function () {
       remoteRequest.get('/test/test_require_with_var.js?m')
         .expect(200)
         .expect(function (res) {
-          expect(res.text).to.match(/async\('REMOTE:\/test\/' \+ a \+ '\.js',/ig);
+          expect(res.text).to.match(/load\('REMOTE:\/test\/' \+ a \+ '\.js',/ig);
           // auto ext added
-          expect(res.text).to.match(/async\('REMOTE:\/test\/' \+ a \+ '_require_var\.js',/ig);
+          expect(res.text).to.match(/load\('REMOTE:\/test\/' \+ a \+ '_require_var\.js',/ig);
           // only left side
-          expect(res.text).to.match(/async\('REMOTE:\/test\/' \+ a,/ig);
+          expect(res.text).to.match(/load\('REMOTE:\/test\/' \+ a,/ig);
           // only right side, dev model will not change the ext
-          expect(res.text).to.match(/async\(a \+ '\.coffee',/ig);
+          expect(res.text).to.match(/load\(a \+ '\.coffee',/ig);
           // only var
-          expect(res.text).to.match(/async\(a,/ig);
+          expect(res.text).to.match(/load\(a,/ig);
         })
         .end(done);
     });
@@ -227,16 +227,16 @@ describe('index.js', function () {
       request.get('/test/test_require_with_var.js?m')
         .expect(200)
         .expect(function (res) {
-          expect(res.text).to.match(/async\('\/test\/' \+ a \+ '\.js',/ig);
+          expect(res.text).to.match(/load\('\/test\/' \+ a \+ '\.js',/ig);
           // auto ext added
-          expect(res.text).to.match(/async\('\/test\/' \+ a \+ '_require_var\.js',/ig);
-          expect(res.text).to.match(/async\('\/test\/cycle\/' \+ a \+ '_require_var\.js',/ig);
+          expect(res.text).to.match(/load\('\/test\/' \+ a \+ '_require_var\.js',/ig);
+          expect(res.text).to.match(/load\('\/test\/cycle\/' \+ a \+ '_require_var\.js',/ig);
           // only left side
-          expect(res.text).to.match(/async\('\/test\/' \+ a,/ig);
+          expect(res.text).to.match(/load\('\/test\/' \+ a,/ig);
           // only right side, dev model will not change the ext
-          expect(res.text).to.match(/async\(a \+ '\.coffee',/ig);
+          expect(res.text).to.match(/load\(a \+ '\.coffee',/ig);
           // only var
-          expect(res.text).to.match(/async\(a,/ig);
+          expect(res.text).to.match(/load\(a,/ig);
         })
         .end(done);
     });

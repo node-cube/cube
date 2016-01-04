@@ -24,6 +24,7 @@
   var FLAG = {};
   var TREE = {}; // parent -> child
   var RTREE = {}; // child -> parent
+  var count = 0;
 
   function dummy() {}
 
@@ -55,7 +56,7 @@
       var ld = new Cube(name);
       ld.load(requires, callback);
     } else {
-      this.name = name ? name : '_';
+      this.name = name ? name : '_' + (count++);
       this.base = BASE;
       this.charset = CHARSET;
       // FLAG[this.name] = [];
@@ -154,7 +155,32 @@
    * @param  {String} name module name
    * @param  {CssCode} css  css code
    */
-  Cube.css = function (mod, namespace) {};
+  var parseCssRe = /\}\n?([\s\S]*?)\{/g;
+  Cube.css = function (css, namespace, file) {
+    if (!css) {
+      return;
+    }
+    if (namespace) {
+      css = '}' + css;
+      css = css.replace(parseCssRe, function (match, p1) {
+        var selectors = p1.split(',').map(function (selector) {
+          return namespace + ' ' + selector.trim();
+        });
+        selectors = selectors.join(',');
+
+        return '}\n' + selectors + '{';
+      });
+      css = css.slice(1);
+    }
+    var style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('mod', file);
+    if (namespace) {
+      style.setAttribute('ns', namespace);
+    }
+    HEAD.appendChild(style);
+    style.innerHTML = css;
+  };
   /**
    * remove module from mem cache
    * css remove should override this function to delete style node
@@ -194,12 +220,24 @@
    * @param  {[type]} mod [description]
    * @return {[type]}     [description]
    */
-  function Require(mod, ns) {
-    if (ns !== undefined) {
-      var css = CACHED[mod];
-      Cube.css(css, ns, mod);
+  function Require(mod, ns, cb) {
+    var len = arguments.length;
+    if (len > 1) {
+      if (typeof ns === 'function') {
+        Cube.use(mod, ns);
+      } else {
+        if (cb && typeof cb === 'function') {
+          Cube.use(mod, function (css) {
+            Cube.css(css, ns, mod);
+            cb && cb(css);
+          });
+        } else {
+          Cube.css(CACHED[mod], ns, mod);
+        }
+      }
+    } else {
+      return CACHED[mod];
     }
-    return CACHED[mod];
   }
   /**
    * async loading resource
@@ -210,14 +248,9 @@
    * @param {Function|String} cb    [description]
    * @param {Function}   param
    */
+  /*
   function Async(mod, param1, param2) {
     if (typeof param1 !== 'function') {
-      /**
-      if (!ENABLE_CSS) {
-        console.warn('[Cube] dynamic loading css disabled!');
-        return;
-      }
-      **/
       // mod cb -> namespace
       Cube.use(mod, function (css) {
         Cube.css(css, param1, mod);
@@ -227,6 +260,7 @@
       Cube.use(mod, param1);
     }
   }
+  */
   /**
    get module by name
    **/
@@ -279,7 +313,8 @@
       var name = this.name;
       var module = FLAG[name].module;
       if (cb) {
-        mod = cb.apply(HOST, [module, module.exports, Require, Async, '', '']);
+        // mod = cb.apply(HOST, [module, module.exports, Require, Async, '', '']);
+        mod = cb.apply(HOST, [module, module.exports, Require, Require, '', '']);
       }
       if (!mod) {
         mod = true;
@@ -348,7 +383,8 @@
           var module = FLAG[sFilename].module;
 
           if (stack.cb) {
-            mod = stack.cb.apply(HOST, [module, module.exports, Require, Async, sFilename, sDirname]);
+            // mod = stack.cb.apply(HOST, [module, module.exports, Require, Async, sFilename, sDirname]);
+            mod = stack.cb.apply(HOST, [module, module.exports, Require, Require, sFilename, sDirname]);
           }
           if (!mod) {
             mod = true;
@@ -386,7 +422,7 @@
           flag.push(cb);
         }
       } else { // if deps mod already exists
-        console.log('>>> module already ready', name);
+        // console.log('>>> module already ready', name);
         // check if `mod` all deps ok
         parent = cb(name);
         if (parent) {
