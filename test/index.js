@@ -248,6 +248,7 @@ describe('index.js', function () {
         .expect(200)
         .expect(function (res) {
           expect(res.text).match(/\.test \{/ig);
+          expect(res.text).match(/\@import url\(\'\.\/test_require_css\.css\'\);/);
         })
         .end(done);
     });
@@ -280,6 +281,7 @@ describe('index.js', function () {
           expect(res.text).match(/\.test\{/ig);
           expect(res.text).match(/^Cube\("\/css\/test_css\.css", *\[\]/);
           expect(res.text).match(/\.test\{color:/);
+          expect(res.text).match(/@import url\(\/resouce_path\/css\/test_require_css\.css\)/);
         })
         .end(done);
     });
