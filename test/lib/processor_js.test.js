@@ -1,4 +1,4 @@
-var JsProcessor = require('../../lib/processor_js2');
+var JsProcessor = require('../../lib/processor_js');
 var Cube = require('../../index');
 var expect = require('expect.js');
 describe('lib/processor_js', function () {

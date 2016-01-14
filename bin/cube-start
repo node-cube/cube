@@ -1,0 +1,79 @@
+#!/usr/bin/env node
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const cmd = require('commander');
+const Cube = require('../index');
+
+
+function fixProcessorPath(processors) {
+  let isWin = process.platform.indexOf('win') === 0;
+  let end;
+  if (isWin) {
+    end = /^\w:$/;
+  } else {
+    end = /^\/$/;
+  }
+  processors.forEach(function (v, i, a) {
+    if (v[0] === '.' || v[0] === '/' || /^\w:\\/.test(v)) {
+      return;
+    }
+    let start = process.cwd();
+    let modPath;
+    /**
+     * find modules in current cwd path first
+     * if none match, try the global module
+     * if none match, throw error
+     */
+    while (!end.test(start)) {
+      if (fs.existsSync(path.join(start, '/node_modules', v))) {
+        modPath = path.join(start, '/node_modules', v);
+        break;
+      }
+      start = path.dirname(start);
+    }
+    try {
+      require.resolve(v);
+      modPath = v;
+    } catch (e) {
+      // do nothing
+    }
+    if (!modPath) {
+      console.error('[CUBE_ERROR] processor not find, please install the module `' + v + '`');
+      process.exit(1);
+    }
+    a[i] = modPath;
+  });
+  return processors;
+}
+
+cmd
+  .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
+  .option('-p, --processors [value]', 'the external processors')
+  .option('-P, --port [value]', 'server port')
+  .option('-r, --resbase [value]', 'set the http base path for resourcs')
+  .option('-R, --remote [value]', 'set remote option')
+  .option('-o, --output [value]', 'output dir')
+  .option('--builded', 'if root path is builded-code')
+  .parse(process.argv);
+
+let args = cmd;
+let rootPath = cmd.args[0];
+let processors;
+if (args.processors) {
+  processors = args.processors.split(',');
+} else {
+  processors = [];
+}
+// process
+fixProcessorPath(processors);
+Cube.init({
+  root: path.join(process.cwd(), rootPath || ''),
+  port: args.port ? args.port : 9999,
+  router: args.vpath || '/',
+  processors: processors,
+  resBase: args.resbase,
+  remote: args.remote,
+  middleware: false,
+  builded: args.builded
+});

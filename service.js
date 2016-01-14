@@ -24,14 +24,17 @@ var CACHE = {};
 /**
  * init cube
  *
- * @param  {Object} config
+ * the config is from cube.config
  *         - port       listen port [optional]
  *         - connect    the connect object
  *         - root       static root
  *         - router     http path
  *         - middleware  boolean, default false
+ *         - cached     the cached path
+ *         - builded    if code is builded, boolean, default false
  */
-exports.init = function (cube, config) {
+exports.init = function (cube) {
+  var config = cube.config;
   if (config.middleware === undefined) {
     config.middleware = false;
   }
@@ -136,7 +139,7 @@ exports.init = function (cube, config) {
       } else {
         if (options.compress) {
           code = result.code;
-        } else if (realPath === qpath) {
+        } else if (realPath === qpath) { // for jade/ejs/less transfer
           code = result.source;
         } else {
           code = result.code;

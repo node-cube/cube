@@ -66,43 +66,9 @@ function buildOutput(err, info) {
 
 cmd.version('v' + pkg.version);
 
-function run() {
-  var argv = Array.prototype.slice.call(arguments);
-  var args = argv.pop();
-  var dir = argv[0];
-  var processors;
-  if (args.processors) {
-    processors = args.processors.split(',');
-  }
-  Cube.init({
-    root: path.join(process.cwd(), dir || ''),
-    port: args.port ? args.port : 9999,
-    router: args.vpath || '/',
-    processors: processors,
-    resBase: args.resbase,
-    remote: args.remote,
-    middleware: false
-  });
-}
 
-cmd.command('run')
-  .alias('start')
-  .description('start server, @deprecate, using `cube start`')
-  .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
-  .option('-p, --processors [value]', 'the external processors')
-  .option('-P, --port [value]', 'server port')
-  .option('-r, --resbase [value]', 'set the http base path for resourcs')
-  .option('-R, --remote [value]', 'set remote option')
-  .option('-o, --output [value]', 'output dir')
-  .action(run);
-
-cmd.command('init')
-  .description('init project')
-  .option('--jade', 'with jade runtime')
-  .option('--ejs', 'with ejs runtime')
-  .option('--css', 'with dynamic css load support')
-  .option('-f, --force', 'force update cube.min.js')
-  .action();
+cmd.command('start [path]', 'start server, if path is not giving');
+cmd.command('init', 'init project');
 
 cmd.command('install')
   .description('install dependences')

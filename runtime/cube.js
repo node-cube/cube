@@ -156,10 +156,16 @@
    * @param  {CssCode} css  css code
    */
   var parseCssRe = /\}\n?([\s\S]*?)\{/g;
+  var cssMod = {};
   Cube.css = function (css, namespace, file) {
     if (!css) {
       return;
     }
+    var modId = file + '@' + namespace;
+    if (cssMod[modId]) {
+      return;
+    }
+    cssMod[modId] = true;
     if (namespace) {
       css = '}' + css;
       css = css.replace(parseCssRe, function (match, p1) {

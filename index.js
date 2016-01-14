@@ -27,7 +27,7 @@ function debugRegister(cube, module) {
 }
 
 function defaultProcessor(cube) {
-  cube.register(path.join(__dirname, './lib/processor_js2'));
+  cube.register(path.join(__dirname, './lib/processor_js'));
   // cube.register(path.join(__dirname, './lib/processor_coffee'));
   cube.register(path.join(__dirname, './lib/processor_css'));
   cube.register(path.join(__dirname, './lib/processor_html'));
@@ -131,11 +131,14 @@ function Cube(config) {
  *         - router     http path
  *         - middleware  boolean, default false
  *         - processors {Array} extenal processors
+ *         - cached     the cached path
+ *         - builded    {Boolean} if root path is builded code
+ *
  */
 Cube.init = function (config) {
   var cube = new Cube(config);
   var service = require('./service');
-  service.init(cube, config);
+  service.init(cube);
   if (config.middleware) {
     return cube.middleware;
   }
