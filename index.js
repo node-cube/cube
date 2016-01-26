@@ -50,7 +50,7 @@ function defaultProcessor(cube) {
  *        - resBase {String} [optional] the http base for resource
  *        - scope {String} [optional] set the module scope, like '@ali' [X]
  *        - devCache {Boolean} default true
- *        - noDist {Boolean} switch if search module dist dir
+ *        - withDist {Boolean} switch if search module dist dir
  *
  */
 function Cube(config) {

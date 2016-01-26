@@ -118,6 +118,25 @@
     }
   };
   */
+  function fixUseModPath(mods) {
+    if (typeof mods === 'string') {
+      mods = [mods];
+    }
+    var len = mods.length;
+    var mod;
+    for (var i = 0; i < len; i++) {
+      mod = mods[i];
+      if (mod.indexOf(REMOTE_SEPERATOR) === -1) {
+        /** fix #12 **/
+        if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
+          mod = mod.substr(1);
+        } else if (mod[0] !== '/') {    // be campatible with test.js
+          mod = '/' + mod;
+        }
+      }
+    }
+
+  }
   /**
    * loading module async, this function only support abs path
    * @public
@@ -132,19 +151,17 @@
     if (!cb) {
       cb = dummy;
     }
-    if (mod.indexOf(REMOTE_SEPERATOR) === -1) {
-      /** fix #12 **/
-      if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
-        mod = mod.substr(1);
-      } else if (mod[0] !== '/') {    // be campatible with test.js
-        mod = '/' + mod;
-      }
-    }
+    mod = fixUseModPath(mod);
+
     var ll = new Cube();
     FLAG[ll.name] = [];
     FLAG[ll.name].module = {exports: {}};
     ll.load(mod, function (module, exports, require) {
-      cb(require(mod));
+      var deps = [];
+      for (var i = 0, len = mod.length; i < len; i++) {
+        deps.push(require(mod[i]));
+      }
+      cb.apply(window, deps);
     });
     return this;
   };

@@ -126,6 +126,7 @@ cmd.command('build')
   .option('--remote [value]', 'set the namespace for remote call')
   .option('--merge', 'if merged dependences into on file')
   .option('--with-source', 'create source file')
+  .option('--with-dist', 'seek dist dir in module dir')
   .option('--without-compress', 'do not compress code, output the source with wrap')
   .action(function (source, args) {
     if (!args || !source) {
@@ -168,7 +169,8 @@ cmd.command('build')
         middleware: false,
         processors: args.processors,
         resBase: args.resbase,
-        remote: args.remote
+        remote: args.remote,
+        withDist: args.withDist
       });
       tool = Cube.getTool();
       tool.processFile(cube, source, outputPath, {withSource: args.withSource}, buildOutput);
@@ -182,7 +184,8 @@ cmd.command('build')
         middleware: false,
         processors: args.processors,
         resBase: args.resbase,
-        remote: args.remote
+        remote: args.remote,
+        withDist: args.withDist
       });
       tool = Cube.getTool();
       tool.processDir(cube, inputPath, outputPath, {withSource: args['with-source']}, buildOutput);

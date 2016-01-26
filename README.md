@@ -47,6 +47,25 @@ Cube管理着前端三种类型的资源:
   });
 </script>
 ```
+
+Cube.use 还可以支持多模块加载:
+```
+Cube.use(['/a.js', '/b.js'], function (a, b) {
+  // a -> a.js
+  // b -> b.js
+});
+```
+
+Cube.use 传入的参数寻址，基于当前 init的时候指定的base， 即跟目录下。
+
+```
+Cube.use('/app.js');
+Cube.use('./app.js');
+Cube.use('app.js');
+```
+以上是等效的，都引用了主类目下的  app.js 模块
+
+
 ### 启动cube服务
 ```sh
 > cube start your_project_dir
@@ -118,12 +137,12 @@ cube start your_app_path
   假如你的工程已经是connect工程，或者express工程，那么可以很方便的将cube集成到工程中
   cube可以返回一个middleware方法 `middleware(req, res, next)`
 
-```js
+```
   var Cube = require('node-cube');
   var middleware = Cube.init({
     root: '/wwwroot',  // static resource path, like wwwwroot below
     middleware: true  // run as a service, not return a middleware
-  });
+  });js
   app.use('/static', middleware);
 ```
   ok, 访问你的调试环境  `http://localhost:port/static/xxx`, 静态资源+模块化支持
