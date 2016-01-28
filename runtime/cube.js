@@ -135,7 +135,7 @@
         }
       }
     }
-
+    return mods;
   }
   /**
    * loading module async, this function only support abs path
@@ -152,7 +152,6 @@
       cb = dummy;
     }
     mod = fixUseModPath(mod);
-
     var ll = new Cube();
     FLAG[ll.name] = [];
     FLAG[ll.name].module = {exports: {}};

@@ -42,7 +42,9 @@ exports.init = function (cube) {
   var serveStatic;
   var app;
 
-  config.cached = config.cached ? config.cached : root + '.release';
+  if (!config.cached) {
+    config.cached = config.builded ? config.root : root + '.release';
+  }
 
   if (!xfs.existsSync(config.cached)) {
     config.cached = false;
