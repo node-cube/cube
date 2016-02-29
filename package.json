@@ -21,6 +21,7 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
+    "async": "~1.5.2",
     "clean-css": "3.4.9",
     "commander": "^2.9.0",
     "connect": "3.4.0",
