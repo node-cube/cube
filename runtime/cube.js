@@ -221,7 +221,11 @@
     if (cached) {
       console.error('module already registered:', name);
     } else {
-      CACHED[name] = exports;
+      CACHED[name] = {
+        exports: exports,
+        fn: dummy,
+        loaded: true
+      };
     }
   };
   /**
@@ -251,11 +255,17 @@
             cb && cb(css);
           });
         } else {
-          Cube.css(CACHED[mod], ns, mod);
+          if (!CACHED[mod].loaded) {
+            execMod(mod);
+          }
+          Cube.css(CACHED[mod].exports, ns, mod);
         }
       }
     } else {
-      return CACHED[mod];
+      if (!CACHED[mod].loaded) {
+        execMod(mod);
+      }
+      return CACHED[mod].exports;
     }
   }
   /**
@@ -333,12 +343,16 @@
       var module = FLAG[name].module;
       if (cb) {
         // mod = cb.apply(HOST, [module, module.exports, Require, Async, '', '']);
-        mod = cb.apply(HOST, [module, module.exports, Require, Require, '', '']);
+        mod = cb.bind(HOST, module, module.exports, Require, Require, '', '');
       }
       if (!mod) {
         mod = true;
       }
-      CACHED[name] = mod;
+      CACHED[name] = {
+        exports: {},
+        fn: mod,
+        loaded: false
+      };
       FLAG[name].status = MOD_LOADED;
       fireMod(name);
     },
@@ -403,13 +417,17 @@
 
           if (stack.cb) {
             // mod = stack.cb.apply(HOST, [module, module.exports, Require, Async, sFilename, sDirname]);
-            mod = stack.cb.apply(HOST, [module, module.exports, Require, Require, sFilename, sDirname]);
+            mod = stack.cb.bind(HOST, module, module.exports, Require, Require, sFilename, sDirname);
           }
           if (!mod) {
             mod = true;
           }
           // module downloaded
-          CACHED[sFilename] = mod;
+          CACHED[sFilename] = {
+            exports: {},
+            fn: mod,
+            loaded: false
+          };
           // set module flag
           if (FLAG[sFilename]) {
             FLAG[sFilename].status = MOD_LOADED;
@@ -427,7 +445,7 @@
         flag.status = MOD_LOADING;
         flag.module = module;
         flag.push(cb);
-        CACHED[name] = module.exports;
+        // CACHED[name] = module.exports;
         this._genScriptTag(name);
       } else if (flag && flag.status) {
         if (this._checkCycle(name)) {
@@ -477,6 +495,9 @@
     var parent, res = {};
     var modFlag = FLAG[name];
     if (modFlag) {
+      if (!modFlag.length) {
+        execMod('_0');  // entrance
+      }
       for (var n = modFlag.length - 1; n >= 0; n--) {
         parent = modFlag[n](name);
         if (parent) {
@@ -498,6 +519,13 @@
         // one module self is loaded, so fire it
         fireMod(n);
       }
+    }
+  }
+  function execMod(name) {
+    var module = CACHED[name];
+    if (!module.loaded) {
+      module.exports = module.fn(module, Require);
+      module.loaded = true;
     }
   }
   rename = rename || 'Cube';
