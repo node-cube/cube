@@ -1,3 +1,6 @@
 /node_modules
 example.release
 covreporter.html
+.idea/
+example.abs/
+example.out/

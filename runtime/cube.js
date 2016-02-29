@@ -524,7 +524,7 @@
   function execMod(name) {
     var module = CACHED[name];
     if (!module.loaded) {
-      module.exports = module.fn(module, Require);
+      module.exports = module.fn();
       module.loaded = true;
     }
   }
