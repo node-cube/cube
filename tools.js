@@ -2,7 +2,9 @@ var xfs = require('xfs');
 var path = require('path');
 var requires = require('requires');
 var utils = require('./lib/utils');
-
+var wraper = require('./lib/wraper');
+var async = require('async');
+var debug = require('debug');
 
 function Done(total, done) {
   var count = 0;
@@ -124,20 +126,19 @@ function analyseRequires(script, map, done) {
   });
 }
 
-function processDir(cube, source, dest, opts, cb) {
+function processDir(cube, data, cb) {
+  var source = data.src;
+  var dest = data.dest;
+  var withSource = data.withSource;
   if (!dest) {
     return console.log('[ERROR] param missing! dest');
-  }
-  if (cb === undefined) {
-    cb = opts;
-    opts = {};
   }
   if (!cb) {
     cb = function () {};
   }
   var st = new Date().getTime();
   var fileCount = 0;
-  var ignores = utils.loadIgnore(source);
+  var ignores = cube.ignoresRules;
   var errors = [];
   var root = cube.config.root;
 
@@ -168,14 +169,18 @@ function processDir(cube, source, dest, opts, cb) {
     }
 
     try {
-      processFile(cube, sourceFile, destFile, opts, function (err) {
-        if (err && err.length) {
-          errors.push(err[0]);
+      processFile(cube, {
+        src: sourceFile,
+        dest: destFile,
+        withSource: withSource
+      }, function (err) {
+        if (err) {
+          errors.push(err);
         }
       });
     } catch (e) {
       if (/node_modules/.test(sourceFile)) {
-        // ignore the error
+        // should ignore the error
         errors.push(e);
       } else {
         throw e;
@@ -198,81 +203,136 @@ function processDir(cube, source, dest, opts, cb) {
  * @param  {Object}   opts
  * @param  {Function} cb(err, res)
  */
-function processFile(cube, source, dest, opts, cb) {
-  /*
-  if (!dest) {
-    return console.log('[ERROR] param missing! dest');
-  }
-  */
-  if (cb === undefined) {
-    cb = opts;
-    opts = {};
-  }
+function processFile(cube, data, cb) {
+  var source = data.src;
+  var dest = data.dest;
+  //var withSource = data.withSource;
+  var freezeDest = data.freezeDest;
   if (!cb) {
     cb = function () {};
   }
   var st = new Date().getTime();
-  // var fileCount = 0;
-  var errors = [];
   var root = cube.config.root;
 
-  var relFile = fixWinPath(source.substr(root.length));
+
+  var realFile = fixWinPath(source.substr(root.length));
+  var queryFile = freezeDest ? fixWinPath(dest.substr(root.length)) : realFile;
   var destFile = dest;
   // var destMapFile = path.join(dest, relFile.replace(/\.(\w+)$/, '.map'));
   // var fileName = path.basename(relFile);
-  var ext = path.extname(relFile);
+  var ext = path.extname(realFile);
 
   var type =  cube.processors.map[ext];
   if (type === undefined) {
     // unknow type, copy file
-    console.log('[copying file]:', relFile.substr(1));
+    console.log('[copying file]:', realFile.substr(1));
     xfs.sync().save(destFile, xfs.readFileSync(source));
     return;
   }
   var ps = cube.processors.types[type];
-  var processor = ps[ext];
-  var options = {
-    moduleWrap: true,
-    sourceMap: false,
-    compress: cube.config.compress,
-    release: cube.config.release,
-    root: cube.config.root,
-    qpath: relFile
+  var processors = ps[ext];
+  console.log('[transfer ' + type + ']:', realFile.substr(1));
+
+  var processData = {
+    queryPath: queryFile,
+    realPath: realFile,
+    type: type,
+    code: null,
+    codeWraped: null,
+    source: null,
+    sourceMap: null,
+    wrap: true,
+    processors: processors,
+    compress: data.compress !== undefined ? data.compress : cube.config.compress
   };
-  console.log('[transfer ' + type + ']:', relFile.substr(1));
-  // var st = new Date().getTime();
-  processor.process(relFile, options, function (err, result) {
-    if (err) {
-      console.log('[ERROR]', err.message);
-      errors.push(err);
-    } else if (dest) {
-      var finalFile, wrapDestFile;
-      if (type === 'script') {
-        destFile = destFile.replace(/\.\w+$/, '.js');
-        var destSourceFile = destFile.replace(/\.js/, '.source.js');
-        xfs.sync().save(destFile, result.code);
-        opts.withSource && xfs.sync().save(destSourceFile, result.source);
-      } else if (type === 'style') {
-        finalFile = destFile.replace(/\.\w+$/, '.css');
-        wrapDestFile = destFile + '.js';
-        xfs.sync().save(wrapDestFile, result.wraped);
-        xfs.sync().save(finalFile, result.code);
-      } else if (type === 'template') {
-        wrapDestFile = destFile + '.js';
-        xfs.sync().save(destFile, result.source);
-        xfs.sync().save(wrapDestFile, result.wraped);
-      }
+  try {
+    processData.source = processData.code = xfs.readFileSync(path.join(root, realFile)).toString();
+  } catch (e) {
+    return cb(new Error('read file error:' + realFile));
+  }
+  var processActions = [
+    function (done) {
+      debug('start process');
+      done(null, processData);
     }
-    var end = new Date().getTime();
-    if (result) {
-      result.file = relFile;
-      result.type = type;
-    }
-    cb(errors, {
-      total: 1,
-      time: Math.ceil((end - st) / 1000),
-      result: result
+  ];
+  processData.processors.forEach(function (p) {
+    var name = p.constructor.name;
+    processActions.push(function (d, done) {
+      debug('step into processor:' + name);
+      p.process(d, done);
     });
+  });
+  async.waterfall(processActions, function (err, result) {
+    if (err) {
+      // console.error(err.file, err.line, err.column, err.message);
+      return cb(err);
+    }
+    var wraperMethod;
+    switch(type) {
+      case 'script':
+        try {
+          result = wraper.processScript(cube, result);
+        } catch (e) {
+          return end(e, result);
+        }
+        wraperMethod = 'wrapScript';
+        end(null, result);
+        break;
+      case 'style':
+        wraperMethod = 'wrapStyle';
+        wraper.processCssCode(cube, result, end);
+        break;
+      case 'template':
+        try {
+          result = wraper.processScript(cube, result);
+        } catch (e) {
+          return end(e, result);
+        }
+        wraperMethod = 'wrapScript';
+        end(null, result);
+        break;
+    }
+    function end(err, result) {
+      if (err) {
+        // console.error(err.file, err.line, err.message);
+        return cb(err);
+      }
+      result.mime = cube.getMIMEType('script');
+      wraper[wraperMethod](cube, result, function (err, result) {
+        if (err) {
+          // console.error(err.file, err.line, err.message);
+          return cb(err);
+        }
+        if (dest) {
+          var finalFile, wrapDestFile;
+          if (type === 'script') {
+            wrapDestFile = destFile.replace(/\.\w+$/, '.js');
+            xfs.sync().save(wrapDestFile, result.codeWraped);
+            // var destSourceFile = destFile.replace(/\.js/, '.source.js');
+            // withSource && xfs.sync().save(destSourceFile, result.source);
+          } else if (type === 'style') {
+            finalFile = destFile.replace(/\.\w+$/, '.css');
+            wrapDestFile = destFile + '.js';
+            xfs.sync().save(wrapDestFile, result.codeWraped);
+            xfs.sync().save(finalFile, result.code);
+          } else if (type === 'template') {
+            wrapDestFile = destFile + '.js';
+            //xfs.sync().save(destFile, result.source);
+            xfs.sync().save(wrapDestFile, result.codeWraped);
+          }
+        }
+        var end = new Date().getTime();
+        if (result) {
+          result.file = realFile;
+        }
+        cb(null, {
+          total: 1,
+          time: Math.ceil((end - st) / 1000),
+          result: result
+        });
+      });
+    }
   });
 }
 

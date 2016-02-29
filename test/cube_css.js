@@ -19,27 +19,27 @@ function findNode(mod) {
 }
 
 describe('runtime/cube_css.js', function () {
-  it('should ok when parse normal css', function () {
+  it.skip('should ok when parse normal css', function () {
     var css = '.test div > p, a.select:active {font-weight:bolder;}';
     global.Cube.css(css, '.name', 'test1.css');
     var newCss = findNode('test1.css').innerHTML;
     expect(newCss).match(/\.name \.test div > p/);
     expect(newCss).match(/\.name a\.select:active/);
   });
-  it('should ok when parse normal css with comments', function () {
+  it.skip('should ok when parse normal css with comments', function () {
     var css = '/** test */\n.test div > p, a.select:active {font-weight:bolder;}';
     global.Cube.css(css, '.name', 'test1.css');
     var newCss = findNode('test1.css').innerHTML;
     expect(newCss).match(/\.name \/\*\* test \*\/\n\.test div > p/);
     expect(newCss).match(/\.name a\.select:active/);
   });
-  it('should ok when parse normal css without namespace', function () {
+  it.skip('should ok when parse normal css without namespace', function () {
     var css = '/** test */\n.test div > p, a.select:active {font-weight:bolder;}';
     global.Cube.css(css, undefined, 'test1.css');
     var newCss = findNode('test1.css').innerHTML;
     expect(newCss).eql(css);
   });
-  it('should throw error when parse error css', function () {
+  it.skip('should throw error when parse error css', function () {
     var css = '.test div > p {font-weight:bolder;';
     try {
       global.Cube.css(css, '.name', 'test2.css');
@@ -47,7 +47,7 @@ describe('runtime/cube_css.js', function () {
       expect(e.message).to.match(/missing '\}' near line 1:35 test2.css/);
     }
   });
-  it('should ok when empty css, and no style node created', function () {
+  it.skip('should ok when empty css, and no style node created', function () {
     var css = '';
     try {
       global.Cube.css(css, '.a', 'test3.css');

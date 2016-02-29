@@ -1,0 +1,189 @@
+#!/usr/bin/env node
+const fs = require('xfs');
+const path = require('path');
+const cmd = require('commander');
+const Cube = require('../index');
+
+function getCwd() {
+  return process.cwd();
+}
+function isAbsPath(p) {
+  if (process.platform.indexOf('win') === 0) {
+    return /^\w:/.test(p);
+  } else {
+    return /^\//.test(p);
+  }
+}
+/**
+ * build into single file
+ */
+cmd
+  .option('-p --processors [value]', 'processor1,processor2 your_file')
+  .option('-o, --output [value]', 'output dir')
+  .option('-b, --base [value]', 'set dir base')
+  .option('-r, --resbase [value]', 'resource base')
+  .option('--skip-self', 'skip compress the input file')
+  .parse(process.argv);
+
+var source = cmd.args[0];
+var args = cmd;
+
+if (!args || !source) {
+  return this.help();
+}
+if (args.processors) {
+  args.processors = args.processors.split(',');
+  args.processors.forEach(function (v, i, a) {
+    a[i] = v.trim();
+  });
+}
+
+var cwd = getCwd();
+var outputPath, cube, tool, root;
+var compress = true;
+var fstat;
+root = args.base ? args.base : '';
+if (root) {
+  root = isAbsPath(root) ? root : path.join(cwd, root);
+}
+source = isAbsPath(source) ? source : path.join(cwd, source);
+try {
+  fstat = fs.statSync(source);
+} catch (e) {
+  console.log('source not fould', e);
+  this.help();
+  return;
+}
+if (fstat.isDirectory()) {
+  console.log('proess file only');
+  return ;
+}
+outputPath = args.output ? (isAbsPath(args.output) ? args.output : path.join(cwd, args.output)) : source.replace(/\.(\w+)$/, '.release');
+root = (root ? root : path.dirname(source)).replace(/(\/|\\)$/, '');
+cube = new Cube({
+  release: true,
+  root: root,
+  compress: compress,
+  middleware: false,
+  processors: args.processors,
+  resBase: args.resbase,
+  remote: args.remote,
+  mangleFileName: true
+});
+tool = Cube.getTool();
+var codes = [];
+var styles = [];
+var infos = [];
+var codesMap = {};
+var indent = 0;
+var count = 1;
+var fIndex = 1;
+
+function _cb(err, res, i) {
+  if (err) {
+    if (!Array.isArray(err)) {
+      err = [err];
+    }
+    err.forEach(function () {
+
+    });
+    return ;
+  }
+  var result = res.result;
+  count --;
+
+  // codesMap[result.file] = true;
+  if (result.type === 'style') {
+    styles.push(result.code);
+  } else {
+    codesMap[result.realPath].code = (result.codeWraped);
+    codesMap[result.realPath].requiresOrigin = result.requiresOrigin;
+  }
+  infos.push(fmtInfo(i, result.file));
+  /**
+  function upRequires(n) {
+    n.requiresOrigin && n.requiresOrigin.forEach(function (key) {
+      if (codesMap[key]) {
+        codesMap[key].fIndex = fIndex;
+        fIndex ++;
+        upRequires(codesMap[key]);
+      }
+    });
+  }
+  **/
+  if (result.requiresOrigin) {
+    var n = i + 1;
+    result.requiresOrigin.forEach(function (m) {
+      var absFile = path.join(root, m);
+      if (!fs.existsSync(absFile)) {
+        return console.error('[error] missing require:', m);
+      }
+      if (codesMap[m]) {
+        codesMap[m].fIndex = fIndex;
+        fIndex ++;
+        // upRequires(codesMap[m]);
+        return;
+      }
+      codesMap[m] = {
+        fIndex: fIndex,
+        file: m
+      };
+      fIndex ++;
+      count ++;
+      tool.processFile(cube, {src: path.join(root, m)}, function (err, data) {
+        _cb(err, data, n);
+      });
+    });
+  }
+  if (count === 0) {
+    done();
+  }
+}
+codesMap[source.substr(root.length)] = {
+  fIndex: 0,
+  file: source.substr(root.length)
+};
+tool.processFile(cube, {src: source, compress: !args.skipSelf}, function (err, data) {
+  _cb(err, data, indent);
+});
+function done() {
+  var codeList = [];
+  Object.keys(codesMap).forEach(function (n) {
+    codeList.push(codesMap[n]);
+  });
+  codeList.sort(function (a, b) {
+    if (a.fIndex > b.fIndex) {
+      return -1;
+    } else {
+      return 1;
+    }
+  });
+  codeList.forEach(function (n) {
+    console.log(n.file, n.fIndex);
+    codes.push(n.code);
+  });
+  codes.unshift('var Cube = host.Cube;');
+  codes.unshift(fs.readFileSync(path.join(__dirname, '../runtime/cube_single.min.js')).toString().replace('window,null', 'host,null'));
+  codes.unshift('!(function(host, propName){');
+  // codes.push('Cube.use("' + cube.getFileShortName(infos[0])/*infos[0]*/ + '", function(mod) {');
+  // codes.push('// your code here\n});');
+  // codes.push('// 导出到window里的全局变量名');
+  codes.push('})(window)');
+  fs.sync().save(path.join(outputPath, '/script.js'), codes.join('\n'));
+  fs.sync().save(path.join(outputPath, '/style.css'), styles.join('\n'));
+  console.log('===== deps =====');
+  console.log(infos.join('\n'));
+  console.log('======');
+  console.log('output dir:', outputPath);
+  console.log('======');
+}
+
+function fmtInfo(indent) {
+  var args = [].slice.call(arguments, 1);
+  var str = [];
+  for (var i = 0 ; i < indent ; i ++) {
+    str.push('    ');
+  }
+  args.unshift(str.join(''));
+  return args.join('');
+}

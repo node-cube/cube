@@ -152,16 +152,10 @@
       cb = dummy;
     }
     mod = fixUseModPath(mod);
-    var ll = new Cube();
-    FLAG[ll.name] = [];
-    FLAG[ll.name].module = {exports: {}};
-    ll.load(mod, function (module, exports, require) {
-      var deps = [];
-      for (var i = 0, len = mod.length; i < len; i++) {
-        deps.push(require(mod[i]));
-      }
-      cb.apply(window, deps);
+    mod.forEach(function (v, i, a) {
+      a[i] = CACHED[v];
     });
+    cb.apply(window, mod);
     return this;
   };
   /**
@@ -171,7 +165,7 @@
    * @param  {String} name module name
    * @param  {CssCode} css  css code
    */
-  var parseCssRe = /([^};]+)(\{[^}]+\})/g;
+  var parseCssRe = /\}\n?([\s\S]*?)\{/g;
   var cssMod = {};
   Cube.css = function (css, namespace, file) {
     if (!css) {
@@ -183,7 +177,7 @@
     }
     cssMod[modId] = true;
     if (namespace) {
-      css = css.replace(parseCssRe, function (m0, m1, m2) {
+      css = css.replace(/([^};]+)(\{[^}]+\})/g, function (m0, m1, m2) {
         var selectors = m1.split(',').map(function (selector) {
           return namespace + ' ' + selector.trim();
         });
@@ -307,30 +301,23 @@
       } else if (typeof require === 'string') {
         require = [require];
       }
-      //if(!cb) cb = function(){};
-      var len = require.length;
-      this.loadStack = {
-        total: len,
-        cb: cb,
-        count: 0
-      };
-      if (len) {
-        // module with requires;
-        for (var i = 0; i < len ; i++) {
-          this._loadScript(require[i]);
-        }
-      } else {
-        // module without requires
-        this._leafMod(cb);
-      }
+      // module without requires
+      this._leafMod(require, cb);
     },
     /**
      * the module without require
      */
-    _leafMod: function (cb) {
+    _leafMod: function (requires, cb) {
       var mod;
       var name = this.name;
-      var module = FLAG[name].module;
+      var module = CACHED[name] || {exports: {}};
+      requires.forEach(function (m) {
+        if (!CACHED[m]) {
+          CACHED[m] = {
+            exports: {}
+          };
+        }
+      });
       if (cb) {
         // mod = cb.apply(HOST, [module, module.exports, Require, Async, '', '']);
         mod = cb.apply(HOST, [module, module.exports, Require, Require, '', '']);
@@ -339,167 +326,8 @@
         mod = true;
       }
       CACHED[name] = mod;
-      FLAG[name].status = MOD_LOADED;
-      fireMod(name);
-    },
-    /**
-     * check if cycle require
-     *
-     * RTREE {
-     *   // 每个模块的 parent
-     *   mod_required: {
-     *     mod:true
-     *   }
-     * }
-     */
-    _checkCycle: function (name, parents) {
-      if (!parents) {
-        parents = [name];
-      }
-      var tmp = RTREE[name];
-      var tmpParent;
-      var flag;
-      if (!tmp) {
-        return false;
-      }
-      for (var i in tmp) {
-        if (parents.indexOf(i) !== -1) {
-          parents.unshift(i);
-          console.warn('[WARNNING]', 'cycle require : ' + parents.join(' > '));
-          return true;
-        }
-        tmpParent = parents.slice(0);
-        tmpParent.unshift(i);
-        flag = this._checkCycle(i, tmpParent);
-        if (flag) {
-          return true;
-        }
-      }
-      return false;
-    },
-    _loadScript: function (name) {
-      // get mod from cache;
-      var mod = CACHED[name];
-      var flag = FLAG[name];
-      var self = this;
-      var module = {exports : {}};
-      var parent;
-      var sFilename = this.name;
-      var sDirname = sFilename.replace(/[^\/]*$/, '');
-      // callback: check if mod all deps loaded
-      // 检查依赖模块是否都已加载完毕
-      function cb(mName, forceLoaded) {
-        var stack = self.loadStack;
-        var parentMod = null;
-        var mod;
-        var flag = FLAG[mName];
-        if (!flag || !flag.status || forceLoaded) {
-          parentMod = sFilename;
-          stack.count++;
-        }
-        // if all deps loaded
-        if (stack.total === stack.count) {
-          var module = FLAG[sFilename].module;
-
-          if (stack.cb) {
-            // mod = stack.cb.apply(HOST, [module, module.exports, Require, Async, sFilename, sDirname]);
-            mod = stack.cb.apply(HOST, [module, module.exports, Require, Require, sFilename, sDirname]);
-          }
-          if (!mod) {
-            mod = true;
-          }
-          // module downloaded
-          CACHED[sFilename] = mod;
-          // set module flag
-          if (FLAG[sFilename]) {
-            FLAG[sFilename].status = MOD_LOADED;
-          }
-        }
-        return parentMod;
-      }
-      if (!RTREE[name]) {
-        RTREE[name] = {};
-      }
-      RTREE[name][this.name] = true;
-      // mod not exists
-      if (!mod) {
-        FLAG[name] = flag = [];
-        flag.status = MOD_LOADING;
-        flag.module = module;
-        flag.push(cb);
-        CACHED[name] = module.exports;
-        this._genScriptTag(name);
-      } else if (flag && flag.status) {
-        if (this._checkCycle(name)) {
-          // if cycle require, cut off the cycle
-          parent = cb(name, true);
-          if (parent) {
-            fireMod(parent);
-          }
-        } else {
-          // self.loadStack.deps.push(name);
-          flag.push(cb);
-        }
-      } else { // if deps mod already exists
-        // console.log('>>> module already ready', name);
-        // check if `mod` all deps ok
-        parent = cb(name);
-        if (parent) {
-          // `this` mod downloaded, fire event
-          fireMod(parent);
-        }
-      }
-    },
-    _genScriptTag: function (name) {
-      var script = HEAD.appendChild(document.createElement('script'));
-      script.type = 'text/javascript';
-      script.async = 'true';
-      script.charset = this.charset;
-      // because here can not detect css file or js file
-      // so ignore js source file like:  jquery.scroll.js
-      // if (ENABLE_SOURCE && !/\.\w+\.js$/.test(name)) {
-      //   name = name.replace(/\.js$/, '.source.js');
-      // }
-      var rebaseName = reBase(name);
-      // module in node_modules, but can not find both in browser or server
-      // if (rebaseName.indexOf('/') !== 0) {
-      //  return console.error('[CUBE] module not found:', name, ', should install module in server side, or register(mod) in client side');
-      // }
-      var srcPath = [rebaseName || (this.base + name), '?m=1&', VERSION].join('');
-      script.src = srcPath;
     }
   };
-  /**
-   * fire a module loaded event
-   * @param  {String} name modulename
-   */
-  function fireMod(name) {
-    var parent, res = {};
-    var modFlag = FLAG[name];
-    if (modFlag) {
-      for (var n = modFlag.length - 1; n >= 0; n--) {
-        parent = modFlag[n](name);
-        if (parent) {
-          // module relative ok
-          modFlag.splice(n, 1);
-          // should notify the parent mod
-          res[parent] = true;
-          // reset cursor n
-          n = modFlag.length;
-        }
-      }
-
-      if (!modFlag.length) {
-        // all deps done
-        delete FLAG[name];
-      }
-
-      for (n in res) {
-        // one module self is loaded, so fire it
-        fireMod(n);
-      }
-    }
-  }
   rename = rename || 'Cube';
   if (HOST[rename]) {
     console.log('window.' + rename + ' already in using, replace the last "null" param in cube.js');

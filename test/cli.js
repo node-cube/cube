@@ -5,7 +5,7 @@ var xfs = require('xfs');
 
 describe('cli', function () {
   describe('init', function () {
-    if (/win/.test(process.platform)) {
+    if (/^win/.test(process.platform)) {
       return ;
     }
     afterEach(function () {
@@ -13,10 +13,9 @@ describe('cli', function () {
     });
     it('should work fine', function (done) {
       exec('mkdir -p test_init', function () {
-        exec('cd ./test_init; ./bin/cube init', function (err, stdout, stderr) {
+        exec('cd ./test_init; ../bin/cube init', function (err, stdout, stderr) {
           var res = stdout.toString().split('\n');
           stderr = stderr.toString();
-          console.log(res, stderr);
           expect(stderr).to.be('');
           expect(res).match(/successfully/);
           xfs.sync().rmdir(path.join(__dirname, '../test_init'));
@@ -29,7 +28,7 @@ describe('cli', function () {
     it('should work fine', function (done) {
       var cmd = 'node bin/cube build example';
       exec(cmd, function (err, stdout, stderr) {
-        //console.log(stdout.toString(), stderr.toString());
+        // console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
         var info = [];
         res.forEach(function (v) {
@@ -41,7 +40,7 @@ describe('cli', function () {
           }
         });
         expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[info.length - 2]).match(/Total Errors: 2/);
+        expect(info[info.length - 2]).match(/Total Errors: 5/);
         // check require('css')
         var cssNamespaceAutofill = xfs.readFileSync(path.join(__dirname, '../example.release/test/test_css_namespace.js'));
         expect(cssNamespaceAutofill.toString()).match(/'\/css\/test_css.css.js',''/);
@@ -64,7 +63,7 @@ describe('cli', function () {
           }
         });
         expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[info.length - 2]).match(/Total Errors: 2/);
+        expect(info[info.length - 2]).match(/Total Errors: 5/);
         expect(xfs.existsSync(path.join(__dirname, '../example.out'))).to.be(true);
         xfs.sync().rmdir(path.join(__dirname, '../example.out'));
         done();
@@ -84,7 +83,7 @@ describe('cli', function () {
           }
         });
         expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[info.length - 2]).match(/Total Errors: 2/);
+        expect(info[info.length - 2]).match(/Total Errors: 5/);
         expect(xfs.existsSync(path.join(__dirname, '../example.abs'))).to.be(true);
         expect(xfs.readFileSync(path.join(__dirname, '../example.abs/main.js')).toString()).to.match(/Cube\('\/main\.js/);
         xfs.sync().rmdir(path.join(__dirname, '../example.abs'));
@@ -93,8 +92,9 @@ describe('cli', function () {
     });
     it('should work fine when build single file', function (done) {
       var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus example/css/test_less.less';
-      exec(cmd, function (err, stdout) {
+      exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
+        // console.log(stdout.toString(), stderr.toString());
         var info = [];
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
@@ -113,7 +113,7 @@ describe('cli', function () {
         done();
       });
     });
-    it('should work fine when build single file', function (done) {
+    it('should work fine when build single file 1', function (done) {
       var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus example/css/test_less.less -o example/css/custom';
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
@@ -135,7 +135,7 @@ describe('cli', function () {
         done();
       });
     });
-    it('should work fine when build single file with var', function (done) {
+    it('should work fine when build single file with var 2', function (done) {
       var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var.release.js';
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
@@ -189,8 +189,9 @@ describe('cli', function () {
 
     it('should work fine with --remote option', function (done) {
       var cmd = 'node bin/cube build --remote TEST -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var.release.js';
-      exec(cmd, function (err, stdout) {
+      exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
+        // console.log(stdout.toString(), stderr.toString());
         var info = [];
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
@@ -204,7 +205,7 @@ describe('cli', function () {
         expect(info[info.length - 2]).match(/Successfully/);
         var target = path.join(__dirname, '../example/test/test_require_with_var.release.js');
         var fileCnt = xfs.readFileSync(target).toString();
-        expect(fileCnt).to.match(/Cube\('TEST:\/test\/test_require_with_var\.js'/);
+        expect(fileCnt).to.match(/Cube\('TEST:\/test\/test_require_with_var\.release\.js'/);
         expect(fileCnt).to.match(/'TEST:\/test\/'\+\w\+'\.js',function/ig);
         expect(fileCnt).to.match(/'TEST:\/test\/'\+\w\+'_require_var\.js',function/ig);
         expect(fileCnt).to.match(/'TEST:\/test\/'\+\w\,function/ig);

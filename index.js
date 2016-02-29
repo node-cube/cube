@@ -5,6 +5,7 @@
  * CopyRight 2014 (c) Fish And Other Contributors
  */
 var utils = require('./lib/utils');
+var wraper = require('./lib/wraper');
 var path = require('path');
 var debug;
 
@@ -18,7 +19,7 @@ function debugRegister(cube, module) {
   if (!debug) {
     return;
   }
-  console.error('load debug processor', module);
+  console.log('load debug processor', module);
   try {
     cube.register(module);
   } catch (e) {
@@ -26,29 +27,28 @@ function debugRegister(cube, module) {
   }
 }
 
-function defaultProcessor(cube) {
+function loadDefaultProcessor(cube) {
   cube.register(path.join(__dirname, './lib/processor_js'));
-  // cube.register(path.join(__dirname, './lib/processor_coffee'));
   cube.register(path.join(__dirname, './lib/processor_css'));
   cube.register(path.join(__dirname, './lib/processor_html'));
-
+  /*
   debugRegister(cube, 'cube-ejs');
   debugRegister(cube, 'cube-jade');
   debugRegister(cube, 'cube-less');
   debugRegister(cube, 'cube-stylus');
   debugRegister(cube, 'cube-coffee');
-  debugRegister(cube, '../cube-jsx');
+  debugRegister(cube, 'cube-react');
+  */
 }
 /**
  * [Cube description]
  * @param {Object} config
  *        - root {Path}
  *        - port {String} [optional] server port
- *        - router {String} [optional] server router match
+ *        - router {String} [optional] set the app.use(`$router`, cube_middleware)
  *        - release {Boolean} if build project, set true
  *        - processors {Array} [optional] set the extenal processors
  *        - resBase {String} [optional] the http base for resource
- *        - scope {String} [optional] set the module scope, like '@ali' [X]
  *        - devCache {Boolean} default true
  *        - withDist {Boolean} switch if search module dist dir
  *
@@ -56,10 +56,6 @@ function defaultProcessor(cube) {
 function Cube(config) {
   // remove the last slash(\|/) in config.root
   config.root = config.root.replace(/[\\\/]$/, '');
-  if (config.devCache === undefined) {
-    config.devCache = true;
-  }
-  this.config = config;
   /**
    * processor mapping
    * @type {Object}
@@ -84,17 +80,26 @@ function Cube(config) {
    *         }
    *       }
    */
-  if (this.config.compress === undefined) {
-    this.config.compress;
+  if (config.compress === undefined) {
+    config.compress = false;
   }
+  if (config.devCache === undefined) {
+    config.devCache = true;
+  }
+  if (!config.router) {
+    config.router = '/';
+  }
+
+  this.config = config;
+
   this.processors = {
     map: {
-      '.js': 'script',
-      '.css': 'style'
+      // sufix: type
     },
     types: {
       script: {},
-      style: {}
+      style: {},
+      template: {}
     }
   };
   this.mimeType = {
@@ -103,24 +108,58 @@ function Cube(config) {
     'template': 'text/html'
   };
 
-  defaultProcessor(this);
+  loadDefaultProcessor(this);
   var self = this;
   if (config.processors) {
     config.processors.forEach(function (processor) {
       if (!processor) {
         return ;
       }
-      self.register(processor, true);
+      self.register(processor);
     });
   }
-
   // load ignore
   this.ignoresRules = utils.loadIgnore(config.root);
 
-  this.globalInfo = {
-    requires: [],
-    resources: []
-  };
+  // loading configs from package.json:cube
+  var root = config.root;
+  var pkg;
+  try {
+    pkg = require(path.join(root, './package.json'));
+    console.log('[INFO] loaded static_dir\'s package.json');
+  } catch (e) {
+    console.log('[WARN] loading static_dir\'s package.json failed');
+  }
+  if (pkg) {
+    var anotherCfg = pkg.cube;
+    Object.keys(anotherCfg).forEach(function (key) {
+      var cfg = anotherCfg[key];
+      switch (key) {
+        case 'processors':
+          Object.keys(cfg).forEach(function (p) {
+            self.register(cfg[p], p);
+          });
+          break;
+        case 'build':
+          cfg.skip.forEach(function (v) {
+            if (!v) {
+              return ;
+            }
+            self.ignoresRules.skip.push(utils.genRule(v));
+          });
+          cfg.ignore.forEach(function (v) {
+            if (!v) {
+              return ;
+            }
+            self.ignoresRules.ignore.push(utils.genRule(v));
+          });
+          break;
+        default:
+          console.log('override cube config:' + key);
+          config[key] = anotherCfg[key];
+      }
+    });
+  }
 }
 /**
  *
@@ -128,7 +167,6 @@ function Cube(config) {
  *         - port       listen port [optional]
  *         - connect    the connect object
  *         - root       static root
- *         - router     http path
  *         - middleware  boolean, default false
  *         - processors {Array} extenal processors
  *         - cached     the cached path
@@ -173,71 +211,156 @@ Cube.prototype.checkIgnore = function (absPath) {
  *       type: {String}
  *       process: {Function}
  *     }
- * @param  {Boolean} force       set force will override the origin register
+ * @param {String} ext the regist extension name
  */
-Cube.prototype.register = function (mod, force) {
+Cube.prototype.register = function (mod, ext) {
   var processors = this.processors;
-  var type, ext;
-  var Processor;
+  var type;
+  var customProcessors;
   try {
-    if (typeof mod === 'string') {
-      Processor = require(mod);
-    } else {
-      Processor = mod;
-    }
+    customProcessors = prepareProcessor(this.config.root, mod, ext);
   } catch (e) {
-    console.error('[CUBE_ERRROR]load processor error', mod, e);
-    return;
+    return console.error(e.message);
   }
-  if (Processor.info) {
-    type = Processor.info.type;
-    ext = Processor.info.ext;
-  } else {
-    type = Processor.type;
-    ext = Processor.ext;
+  type = customProcessors.type;
+  ext = ext || customProcessors.ext;
+  /*
+  type = Processor.type || (Processor.info ? Processor.info.type : '');
+  if (!ext) {
+    ext = Processor.ext || (Processor.info ? Processor.info.ext : '');
   }
-  if (!type || !ext || !Processor.prototype.process) {
-    return console.error('[CUBE_ERRROR] processor error, en processor should contain properties `name`, `type`, `ext`, `process`');
-  }
+  */
   var types = processors.types[type];
   if (!types) {
-    // register new type
     types = processors.types[type] = {};
   }
-  if (!Array.isArray(ext)) {
-    ext = [ext];
+  if (!processors.map[ext]) {
+    processors.map[ext] = type;
   }
-
+  var origin = types[ext];
+  if (origin) {
+    console.log('[WARN] ' + ext + ' already register:' + getProcessNames(origin));
+    console.log('[WARN] ' + ext + ' now register:' + getProcessNames(customProcessors.processors));
+  }
+  var processInstances = [];
   var self = this;
-  ext.forEach(function (extName) {
-    if (!processors.map[extName]) {
-      processors.map[extName] = type;
-    }
-    var origin = types[extName];
-    if (origin && !force) {
-      var err = new Error('the ext `' + extName + '` is already binded, you should pass `force` param to override it!');
-      err.code = 'CUBE_BIND_TRANSFER_ERROR';
-      throw err;
-    }
-    types[extName] = new Processor(self);
+  customProcessors.processors.forEach(function (p) {
+    processInstances.push(new p(self));
   });
+  types[ext] = processInstances;
 };
+
+function getProcessNames(processor) {
+  var res = [];
+  if (Array.isArray(processor)) {
+    processor.forEach(function (p) {
+      res.push(p.name);
+    });
+  } else {
+    res.push(processor.name);
+  }
+  return res.join('|');
+}
+/**
+ * [prepareProcessor description]
+ * @param  {String|Array} processor
+ * @param  {String} ext the file extname
+ * @return {[type]}           [description]
+ */
+function prepareProcessor(root, processor, ext) {
+  var res = [];
+  if (!Array.isArray(processor)) {
+    processor = [processor];
+  }
+  var type = null;
+  var processorList = [];
+  var typeList = [];
+  utils.fixProcessorPath(root, processor);
+  processor.forEach(function (mod) {
+    var p;
+    if (!mod) {
+      return;
+    }
+    if (typeof mod === 'string') {
+      try {
+        p = require(mod);
+      } catch (e) {
+        throw new Error('[CUBE_ERROR] load processor error:' + e.message);
+      }
+    } else {
+      p = mod;
+    }
+    if (!ext) {
+      ext = p.ext;
+    }
+    processorList.push(p.name);
+    if (!p.type || !p.ext || !p.prototype.process) {
+      throw new Error('[CUBE_ERROR] process error');
+    }
+    if (type === null) {
+      type = p.type;
+    } else {
+      if (type !== p.type) {
+        throw new Error('[CUBE_ERROR] more then one type of process find in `' + ext + '` config, processors:' + processorList.join(',') + ' types:' + typeList.join(','));
+      }
+    }
+    typeList.push(type);
+    res.push(p);
+  });
+  return {type: type, ext: ext, processors: res};
+}
 
 Cube.prototype.getMIMEType = function (type) {
   var defaultMime = 'text/plain';
   return this.mimeType[type] || defaultMime;
 };
 
-/*
-Cube.prototype.wrapScript = function (qpath, code) {
+var fileNameMaps = {};
+var count = 65;
+var prefix = [];
 
-};
-*/
+function genName() {
+  //65 ~ 90  A-Z
+  //97 ~ 122 a-z
+  var lastPrefixIndex = prefix.length ? prefix.length - 1 : 0;
+  var lastPrefix = prefix[lastPrefixIndex];
+  if (count === 91) {
+    count = 97;
+  } else if (count === 123) {
+    count = 65;
+    if (!lastPrefix) {
+      lastPrefix = 65;
+    } else {
+      lastPrefix += 1;
+    }
+    if (lastPrefix === 91) {
+      lastPrefix = 97;
+    }  else if (lastPrefix === 123) {
+      lastPrefix -= 1;
+      prefix.push(65);
+    }
+    prefix[lastPrefixIndex] = lastPrefix;
+  }
+  var value = '';
+  prefix.forEach(function (v) {
+    if (v) {
+      value += String.fromCharCode(v);
+    }
+  });
+  value += String.fromCharCode(count);
+  count ++;
+  return value;
+}
 
-Cube.prototype.wrapStyle = function (qpath, code) {
-  var options = this.config;
-  return 'Cube("' + utils.moduleName(qpath, 'style', options.release, options.remote) + '", [], function(m){m.exports=' + JSON.stringify(code) + ';return m.exports});';
+Cube.prototype.getFileShortName = function (fileName) {
+  if (fileNameMaps[fileName]) {
+    return fileNameMaps[fileName];
+  }
+  var alias = genName();
+  fileNameMaps[fileName] = alias;
+  return alias;
 };
+
 /** 修订css文件中的资源文件中的路径 **/
 Cube.prototype.fixupResPath = function (dir, code) {
   var base = this.config.resBase || '';
@@ -257,20 +380,11 @@ Cube.prototype.fixupResPath = function (dir, code) {
   });
 };
 
-Cube.prototype.wrapTemplate = function (qpath, code, require, literal) {
-  var options = this.config;
-  require = require ? require : [];
-  literal = literal === 'string' ? true : false;
-  if (literal) {
-    code = 'module.exports=function(){return ' + JSON.stringify(code) + '};';
-  }
-  return 'Cube("' + utils.moduleName(qpath, 'template', options.release, options.remote) +
-    '",' + JSON.stringify(require) + ',function(module,exports,require){' + code + '; return module.exports});';
-};
-
-Cube.prototype.processJsCode = function (filepath, code, options, callback) {
-  var jsp = this.processors.types.script['.js'];
-  jsp.processCode(filepath, code, options, callback);
+Cube.prototype.processJsCode = function (data, callback) {
+  data.queryPath = data.file;
+  data.realPath = data.file;
+  data = wraper.processScript(this, data);
+  wraper.wrapScript(this, data, callback);
 };
 
 

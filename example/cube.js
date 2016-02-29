@@ -24,6 +24,7 @@
   var FLAG = {};
   var TREE = {}; // parent -> child
   var RTREE = {}; // child -> parent
+  var count = 0;
 
   function dummy() {}
 
@@ -55,7 +56,7 @@
       var ld = new Cube(name);
       ld.load(requires, callback);
     } else {
-      this.name = name ? name : '_';
+      this.name = name ? name : '_' + (count++);
       this.base = BASE;
       this.charset = CHARSET;
       // FLAG[this.name] = [];
@@ -117,6 +118,25 @@
     }
   };
   */
+  function fixUseModPath(mods) {
+    if (typeof mods === 'string') {
+      mods = [mods];
+    }
+    var len = mods.length;
+    var mod;
+    for (var i = 0; i < len; i++) {
+      mod = mods[i];
+      if (mod.indexOf(REMOTE_SEPERATOR) === -1) {
+        /** fix #12 **/
+        if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
+          mod = mod.substr(1);
+        } else if (mod[0] !== '/') {    // be campatible with test.js
+          mod = '/' + mod;
+        }
+      }
+    }
+    return mods;
+  }
   /**
    * loading module async, this function only support abs path
    * @public
@@ -131,19 +151,16 @@
     if (!cb) {
       cb = dummy;
     }
-    if (mod.indexOf(REMOTE_SEPERATOR) === -1) {
-      /** fix #12 **/
-      if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
-        mod = mod.substr(1);
-      } else if (mod[0] !== '/') {    // be campatible with test.js
-        mod = '/' + mod;
-      }
-    }
+    mod = fixUseModPath(mod);
     var ll = new Cube();
     FLAG[ll.name] = [];
     FLAG[ll.name].module = {exports: {}};
     ll.load(mod, function (module, exports, require) {
-      cb(require(mod));
+      var deps = [];
+      for (var i = 0, len = mod.length; i < len; i++) {
+        deps.push(require(mod[i]));
+      }
+      cb.apply(window, deps);
     });
     return this;
   };
@@ -154,7 +171,35 @@
    * @param  {String} name module name
    * @param  {CssCode} css  css code
    */
-  Cube.css = function (mod, namespace) {};
+  var parseCssRe = /\}\n?([\s\S]*?)\{/g;
+  var cssMod = {};
+  Cube.css = function (css, namespace, file) {
+    if (!css) {
+      return;
+    }
+    var modId = file + '@' + namespace;
+    if (cssMod[modId]) {
+      return;
+    }
+    cssMod[modId] = true;
+    if (namespace) {
+      css = css.replace(/([^};]+)(\{[^}]+\})/g, function (m0, m1, m2) {
+        var selectors = m1.split(',').map(function (selector) {
+          return namespace + ' ' + selector.trim();
+        });
+        return selectors.join(',') + m2;
+      });
+    }
+    var style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('mod', file);
+    if (namespace) {
+      style.setAttribute('ns', namespace);
+    }
+    HEAD.appendChild(style);
+    style.innerHTML = css;
+    return css;
+  };
   /**
    * remove module from mem cache
    * css remove should override this function to delete style node
@@ -202,7 +247,7 @@
       } else {
         if (cb && typeof cb === 'function') {
           Cube.use(mod, function (css) {
-            Cube.css(css, ns, mod);
+            css = Cube.css(css, ns, mod);
             cb && cb(css);
           });
         } else {
@@ -396,7 +441,7 @@
           flag.push(cb);
         }
       } else { // if deps mod already exists
-        console.log('>>> module already ready', name);
+        // console.log('>>> module already ready', name);
         // check if `mod` all deps ok
         parent = cb(name);
         if (parent) {
@@ -461,8 +506,16 @@
   } else {
     HOST[rename] = Cube;
   }
+  /**
+   * intergration with <script> tag
+   * <script data-base="" src=""></script>
+   */
+  var cse = document.currentScript;
+  if (cse) {
+    var cfg = cse.dataset;
+    if (cfg.base) {
+      Cube.init(cfg);
+      Cube.use(cfg.main || 'index.js', function(app){app.run&& app.run();});
+    }
+  }
 })(window, null);
-
-Cube.register("ejs_runtime",function(){var r={};r.first=function(r){return r[0]};r.last=function(r){return r[r.length-1]};r.capitalize=function(r){r=String(r);return r[0].toUpperCase()+r.substr(1,r.length)};r.downcase=function(r){return String(r).toLowerCase()};r.upcase=function(r){return String(r).toUpperCase()};r.sort=function(r){return Object.create(r).sort()};r.sort_by=function(r,n){return Object.create(r).sort(function(r,t){r=r[n],t=t[n];if(r>t)return 1;if(r<t)return-1;return 0})};r.size=r.length=function(r){return r.length};r.plus=function(r,n){return Number(r)+Number(n)};r.minus=function(r,n){return Number(r)-Number(n)};r.times=function(r,n){return Number(r)*Number(n)};r.divided_by=function(r,n){return Number(r)/Number(n)};r.join=function(r,n){return r.join(n||", ")};r.truncate=function(r,n,t){r=String(r);if(r.length>n){r=r.slice(0,n);if(t)r+=t}return r};r.truncate_words=function(r,n){var r=String(r),t=r.split(/ +/);return t.slice(0,n).join(" ")};r.replace=function(r,n,t){return String(r).replace(n,t||"")};r.prepend=function(r,n){return Array.isArray(r)?[n].concat(r):n+r};r.append=function(r,n){return Array.isArray(r)?r.concat(n):r+n};r.map=function(r,n){return r.map(function(r){return r[n]})};r.reverse=function(r){return Array.isArray(r)?r.reverse():String(r).split("").reverse().join("")};r.get=function(r,n){return r[n]};r.json=function(r){return JSON.stringify(r)};return r}());
-Cube.register("jade_runtime",function(){var r={};function e(r,t){if(arguments.length===1){var a=r[0];for(var i=1;i<r.length;i++){a=e(a,r[i])}return a}var s=r["class"];var f=t["class"];if(s||f){s=s||[];f=f||[];if(!Array.isArray(s))s=[s];if(!Array.isArray(f))f=[f];r["class"]=s.concat(f).filter(n)}for(var l in t){if(l!="class"){r[l]=t[l]}}return r}r.merge=e;function n(r){return r!=null&&r!==""}r.joinClasses=t;function t(r){return Array.isArray(r)?r.map(t).filter(n).join(" "):r}function a(e,n){var a=[];for(var i=0;i<e.length;i++){if(n&&n[i]){a.push(r.escape(t([e[i]])))}else{a.push(t(e[i]))}}var s=t(a);if(s.length){return' class="'+s+'"'}else{return""}}r.cls=a;function i(e,n,t,a){if("boolean"==typeof n||null==n){if(n){return" "+(a?e:e+'="'+e+'"')}else{return""}}else if(0==e.indexOf("data")&&"string"!=typeof n){return" "+e+"='"+JSON.stringify(n).replace(/'/g,"&apos;")+"'"}else if(t){return" "+e+'="'+r.escape(n)+'"'}else{return" "+e+'="'+n+'"'}}r.attr=i;function s(e,n){var a=[];var i=Object.keys(e);if(i.length){for(var s=0;s<i.length;++s){var f=i[s],l=e[f];if("class"==f){if(l=t(l)){a.push(" "+f+'="'+l+'"')}}else{a.push(r.attr(f,l,false,n))}}}return a.join("")}r.attrs=s;function f(r){var e=String(r).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");if(e===""+r)return r;else return e}r.escape=f;function l(r,e,n,t){if(!(r instanceof Error))throw r;if((typeof window!="undefined"||!e)&&!t){r.message+=" on line "+n;throw r}try{t=t||_dereq_("fs").readFileSync(e,"utf8")}catch(a){l(r,null,n)}var i=3,s=t.split("\n"),f=Math.max(n-i,0),u=Math.min(s.length,n+i);var i=s.slice(f,u).map(function(r,e){var t=e+f+1;return(t==n?"  > ":"    ")+t+"| "+r}).join("\n");r.path=e;r.message=(e||"Jade")+":"+n+"\n"+i+"\n\n"+r.message;throw r}r.rethrow=l;return r}());
-!function(t){var e=/\}\n?([\s\S]*?)\{/g;t.css=function(t,n,r){if(!t){return}if(n){t="}"+t;t=t.replace(e,function(t,e,r,i){var s=e.split(",").map(function(t){return n+" "+t.trim()});s=s.join(",");return"}\n"+s+"{"});t=t.slice(1)}var i=document.getElementsByTagName("HEAD")[0];var s=document.createElement("style");s.setAttribute("type","text/css");s.setAttribute("mod",r);if(n){s.setAttribute("ns",n)}i.appendChild(s);s.innerHTML=t}}(Cube);

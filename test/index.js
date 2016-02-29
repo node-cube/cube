@@ -16,10 +16,10 @@ var cubeInst = testMod.init({
   middleware: false,
   resBase: '/resouce_path',
   processors: [
-    require('cube-ejs'),
-    path.join(__dirname, '../node_modules/cube-jade'),
-    'cube-less',
-    'cube-stylus'  // do not delete this comma, for branch test
+    require('../../cube-ejs'),
+    path.join(__dirname, '../../cube-jade'),
+    path.join(__dirname, '../../cube-less'),
+    path.join(__dirname, '../../cube-stylus')  // do not delete this comma, for branch test
   ]
 });
 
@@ -31,10 +31,10 @@ testMod.init({
   remote: 'REMOTE',
   resBase: '/resouce_path',
   processors: [
-    require('cube-ejs'),
-    path.join(__dirname, '../node_modules/cube-jade'),
-    'cube-less',
-    'cube-stylus'  // do not delete this comma, for branch test
+    require('../../cube-ejs'),
+    path.join(__dirname, '../../cube-jade'),
+    path.join(__dirname,'../../cube-less'),
+    path.join(__dirname, '../../cube-stylus')  // do not delete this comma, for branch test
   ]
 });
 
@@ -63,7 +63,7 @@ describe('index.js', function () {
       remoteRequest.get('/tpl/test.ejs?m&c')
         .expect(200)
         .expect('content-type', 'application/javascript')
-        .expect(/Cube\("REMOTE:\/tpl\/test\.ejs"/, done);
+        .expect(/Cube\('REMOTE:\/tpl\/test\.ejs'/, done);
     });
     it('should process require with vars ok with remote info', function (done) {
       remoteRequest.get('/test/test_require_with_var.js?m')
@@ -178,7 +178,7 @@ describe('index.js', function () {
     it('should return err message when file not found when moduleWrap is on', function (done) {
       request.get('/test/module-not-found.js?m')
         .expect(function (res) {
-          console.log(res.text);
+          expect(res.text).match(/console\.error\(/);
         })
         .expect(/console\.error/)
         .expect(/file not found/)
@@ -248,7 +248,7 @@ describe('index.js', function () {
         .expect(200)
         .expect(function (res) {
           expect(res.text).match(/\.test \{/ig);
-          expect(res.text).match(/\@import url\(\'\.\/test_require_css\.css\'\);/);
+          expect(res.text).match(/\@import url\(\/resouce_path\/css\/test_require_css\.css\);/);
         })
         .end(done);
     });
@@ -285,12 +285,11 @@ describe('index.js', function () {
         })
         .end(done);
     });
-    it('should return the source less file', function (done) {
+    it('should return the compiled css file', function (done) {
       request.get('/css/test_less.less')
         .expect(200)
         .expect(function (res) {
-          expect(res.text).match(/\@red/ig);
-          expect(res.text).not.match(/\.test \.box/ig);
+          expect(res.text).match(/\.test \.box a/ig);
         })
         .end(done);
     });
@@ -421,20 +420,16 @@ describe('index.js', function () {
   describe('test processCode', function () {
     it('should work fine', function (done) {
       var code = fs.readFileSync(path.join(__dirname, '../example/main.js')).toString();
-      cubeInst.processJsCode(
-        '/main.js',
-        code,
-        {
-          qpath: '/main.js',
-          root: path.join(__dirname, '../example'),
-          release: false
-        },
-        function (err, result) {
-          expect(err).to.be(null);
-          expect(result.code).to.match(/Cube\("\/main\.js",/);
-          done();
-        }
-      );
+      cubeInst.processJsCode({
+        file: '/main.js',
+        code: code,
+        compress: true
+      },
+      function (err, result) {
+        expect(err).to.be(null);
+        expect(result.codeWraped).to.match(/Cube\('\/main\.js',/);
+        done();
+      });
     });
   });
 });

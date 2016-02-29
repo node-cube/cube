@@ -7,4 +7,10 @@ var fpath = path.join(__dirname, '../runtime/cube.min.js');
 var code = fs.readFileSync(fpath).toString();
 
 code = code.replace(/\$\$version\$\$/, pkg.version);
-fs.writeFileSync(fpath, code);
+var cmt =
+`/*!
+ * Cube v${pkg.version}
+ */
+`;
+
+fs.writeFileSync(fpath, cmt + code);

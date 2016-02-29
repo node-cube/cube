@@ -1,0 +1,23 @@
+{
+  "dependencies": {
+    "jade_runtime": "*"
+  },
+  "cube": {
+    "moduleFixMap": {
+      "react": "reat/dist/react.js"
+    },
+    "processors": {
+      ".less": "cube-less",
+      ".jsx": ["cube-react", ""],
+      ".coffee": "cube-coffee",
+      ".ejs": "cube-ejs",
+      ".jade": "cube-jade",
+      ".styl": "cube-stylus"
+    },
+    "build": {
+      "skip":[],
+      "ignore": [],
+      "reservedModule": []
+    }
+  }
+}

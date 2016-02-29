@@ -1,4 +1,9 @@
 global.window = {};
+global.document = {
+  getElementsByTagName: function () {
+    return [{}];
+  }
+};
 require('../../runtime/cube.js');
 var expect = require('expect.js');
 

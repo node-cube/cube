@@ -6,9 +6,7 @@ install:
 release:
 	@$(UG) ./runtime/cube.js -c -m -o ./runtime/cube.min.js
 	@node ./bin/version.js
-	@$(UG) ./runtime/ejs_runtime.js -m -o ./runtime/ejs_runtime.min.js
-	@$(UG) ./runtime/jade_runtime.js -m -o ./runtime/jade_runtime.min.js
-	@$(UG) ./runtime/cube_css.js -m -o ./runtime/cube_css.min.js
+	@$(UG) ./runtime/cube_single.js -m -o ./runtime/cube_single.min.js
 
 publish: release tag
 	@npm publish
