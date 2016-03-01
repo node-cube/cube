@@ -15,11 +15,12 @@
     remoteSeparator: ':',
     charset: 'utf-8',
     version: +new Date(),
-    entrances: null,
+    entrances: {},
     callbackOfCubeUse: null
   };
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
   var head = document.querySelector('head');
+  var runLock = false;
   function noop() {}
 
   /**
@@ -35,6 +36,19 @@
     } else {
       var css = helpers.fireModule(module);
       Cube.css(css, namespace, module);
+    }
+  }
+
+  function __cube_load__(module, namespace, cb) {
+    if (arguments.length === 2) {
+      cb = namespace;
+      namespace = null;
+      Cube.use(module, cb);
+    } else {
+      Cube.use(module, function (css) {
+        Cube.css(css, namespace, module);
+        cb(css);
+      });
     }
   }
 
@@ -121,7 +135,7 @@
 
       if (!m.fired) {
         m.fired = true;
-        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_require__]);
+        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load__]);
       }
 
       return m.exports;
@@ -130,10 +144,25 @@
      * 从Cube.use的文件开始自上而下运行,并调用回调函数
      */
     startAppAndCallback: function () {
-      settings.entrances.forEach(function (entrance) {
-        helpers.fireModule(entrance);
-        settings.callbackOfCubeUse(__cube_require__(entrance));
-      });
+      if (runLock) {
+        return;
+      }
+
+      runLock = true;
+      var entrances = settings.entrances;
+      var key, arr;
+
+      for (key in entrances) {
+        arr = key.split(',');
+        arr.forEach(function (entrance) {
+          helpers.fireModule(entrance);
+          entrances[key].forEach(function (fn) {
+            fn(__cube_require__(entrance));
+          });
+        });
+      }
+
+      runLock = false;
     }
   };
 
@@ -185,18 +214,22 @@
     }
     cb = cb || noop;
 
-    mods = helpers.fixUseModPath(mods);
+    mods = helpers.fixUseModPath(mods);  // arr
     helpers.load(mods);
-    settings.entrances = mods;
-    settings.callbackOfCubeUse = function () {
+
+    if (!settings.entrances[mods]) {
+      settings.entrances[mods] = [];
+    }
+    settings.entrances[mods].push(function () {
       var apps = [];
+      var length = mods.length;
       return function (entrance) {
         apps.push(entrance);
-        if (apps.length === settings.entrances.length) {
+        if (apps.length === length) {
           cb.apply(global, apps);
         }
       };
-    }();
+    }());
   };
   /**
    * register module in to cache
