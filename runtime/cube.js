@@ -46,7 +46,8 @@
       Cube.use(module, cb);
     } else {
       Cube.use(module, function (css) {
-        Cube.css(css, namespace, module, cb);
+        css = Cube.css(css, namespace, module);
+        cb(css);
       });
     }
   }
@@ -264,9 +265,9 @@
    * @param  {String} name module name
    * @param  {CssCode} css  css code
    */
-  var parseCssRe = /\}\n?([\s\S]*?)\{/g;
+  var parseCssRe = /([^};]+)(\{[^}]+\})/g;
   var cssMod = {};
-  Cube.css = function (css, namespace, file, cb) {
+  Cube.css = function (css, namespace, file) {
     if (!css) {
       return;
     }
@@ -276,16 +277,12 @@
     }
     cssMod[modId] = true;
     if (namespace) {
-      css = '}' + css;
-      css = css.replace(parseCssRe, function (match, p1) {
-        var selectors = p1.split(',').map(function (selector) {
+      css = css.replace(parseCssRe, function (m0, m1, m2) {
+        var selectors = m1.split(',').map(function (selector) {
           return namespace + ' ' + selector.trim();
         });
-        selectors = selectors.join(',');
-
-        return '}\n' + selectors + '{';
+        return selectors.join(',') + m2;
       });
-      css = css.slice(1);
     }
     var style = document.createElement('style');
     style.setAttribute('type', 'text/css');
@@ -295,7 +292,7 @@
     }
     head.appendChild(style);
     style.innerHTML = css;
-    cb && cb(css);
+    return css;
   };
 
 
