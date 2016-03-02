@@ -46,8 +46,7 @@
       Cube.use(module, cb);
     } else {
       Cube.use(module, function (css) {
-        Cube.css(css, namespace, module);
-        cb(css);
+        Cube.css(css, namespace, module, cb);
       });
     }
   }
@@ -155,10 +154,17 @@
       for (key in entrances) {
         arr = key.split(',');
         arr.forEach(function (entrance) {
+          var count = 0;
           helpers.fireModule(entrance);
           entrances[key].forEach(function (fn) {
-            fn(__cube_require__(entrance));
+            var called = fn(installedModules[entrance].exports);
+            if (called) {
+              count++;
+            }
           });
+          if (entrances[key].length === count) {
+            delete entrances[key];
+          }
         });
       }
 
@@ -227,9 +233,13 @@
         apps.push(entrance);
         if (apps.length === length) {
           cb.apply(global, apps);
+          return true;
         }
       };
     }());
+    if (helpers.checkAllDownloaded() === 0) {
+      helpers.startAppAndCallback();
+    }
   };
   /**
    * register module in to cache
@@ -246,7 +256,7 @@
       loaded: true,
       fired: true
     };
-  }
+  };
   /**
    * @interface inject css into page
    * css inject is comp
@@ -256,7 +266,7 @@
    */
   var parseCssRe = /\}\n?([\s\S]*?)\{/g;
   var cssMod = {};
-  Cube.css = function (css, namespace, file) {
+  Cube.css = function (css, namespace, file, cb) {
     if (!css) {
       return;
     }
@@ -285,6 +295,7 @@
     }
     head.appendChild(style);
     style.innerHTML = css;
+    cb && cb(css);
   };
 
 
