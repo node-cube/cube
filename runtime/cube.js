@@ -15,8 +15,7 @@
     remoteSeparator: ':',
     charset: 'utf-8',
     version: +new Date(),
-    entrances: {},
-    callbackOfCubeUse: null
+    entrances: {}  // Cube.use's cb
   };
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
   var head = document.querySelector('head');
@@ -39,6 +38,13 @@
     }
   }
 
+  /**
+   * The load function
+   * @param module
+   * @param namespace
+   * @param cb
+   * @private
+   */
   function __cube_load__(module, namespace, cb) {
     if (arguments.length === 2) {
       cb = namespace;
@@ -144,7 +150,7 @@
      * 从Cube.use的文件开始自上而下运行,并调用回调函数
      */
     startAppAndCallback: function () {
-      if (runLock) {
+      if (runLock) {  // 确保只有一个实例会执行, 解决fireModule可能导致同时多次执行该函数的问题
         return;
       }
 
@@ -163,7 +169,7 @@
               count++;
             }
           });
-          if (entrances[key].length === count) {
+          if (entrances[key].length === count) {  // 回调函数都执行完后删除
             delete entrances[key];
           }
         });
@@ -238,7 +244,7 @@
         }
       };
     }());
-    if (helpers.checkAllDownloaded() === 0) {
+    if (helpers.checkAllDownloaded() === 0) {  // 解决load已存在的模块时,不会进startAppAndCallback
       helpers.startAppAndCallback();
     }
   };
