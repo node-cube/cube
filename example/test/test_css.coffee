@@ -1,7 +1,7 @@
 describe 'test/test_css', ()->
 
   it 'expect loading wrap css module fine, compatible with IE hacks', (done) ->
-    load '../css/test_css.css', (css) ->
+    load '../css/test_css.css', '', (css) ->
       expect(css).to.match(/\.test\s*\{/)
       expect(css).to.match(/color:\s*red\\9/)
       expect(css).to.match(/\*color:/)
@@ -10,7 +10,7 @@ describe 'test/test_css', ()->
 
   it 'expect inject css fine', (done) ->
     load '../css/test_css.css', '.namespace', (css) ->
-      res = $('style[mod="/css/test_css.css"]').html() || $('style[mod="/css/test_css.css.js"]').html()
+      res = $('style[mod="/css/test_css.css"][ns=".namespace"]').html() || $('style[mod="/css/test_css.css.js"][ns=".namespace"]').html()
       expect(res).to.match(/\.namespace\s+\.test/)
       done()
 

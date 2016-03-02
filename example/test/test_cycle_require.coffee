@@ -10,7 +10,7 @@ describe 'test/test_cycle_require', ()->
     console.warn = originWarn
     cache = []
 
-  it 'expect console.warn info', (done)->
+  it.skip 'expect console.warn info', (done)->
     load './cycle/a', ()->
       expect(cache[0]).to.match /cycle/
       done()
