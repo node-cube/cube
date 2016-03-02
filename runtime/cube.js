@@ -46,14 +46,14 @@
    * @private
    */
   function __cube_load__(module, namespace, cb) {
-    if (arguments.length === 2) {
+    if (arguments.length === 2 && typeof namespace === 'function') {
       cb = namespace;
       namespace = null;
       Cube.use(module, cb);
     } else {
       Cube.use(module, function (css) {
         css = Cube.css(css, namespace, module);
-        cb(css);
+        cb && cb(css);
       });
     }
   }
