@@ -4,8 +4,7 @@ describe 'test/test_css', ()->
     load '../css/test_css.css', '', (css) ->
       expect(css).to.match(/\.test\s*\{/)
       expect(css).to.match(/color:\s*red\\9/)
-      expect(css).to.match(/\*color:/)
-      expect(css).to.match(/_color:/)
+      expect(css).to.match(/color:/)
       done()
 
   it 'expect inject css fine', (done) ->

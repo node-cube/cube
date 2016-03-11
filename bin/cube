@@ -61,6 +61,8 @@ cmd.command('init', 'init project');
  * build project
  */
 cmd.command('build', 'build project');
+
+cmd.command('module', 'build module');
 /**
  * build into single file
  */

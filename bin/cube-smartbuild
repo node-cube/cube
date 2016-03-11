@@ -4,12 +4,8 @@ const fs = require('xfs');
 const path = require('path');
 const cmd = require('commander');
 
-cmd.command('smart-build')
-  /**
-   * source , -o,--output, -b, --base 是基于cwd路径, 互相之间没有依赖关系
-   */
-  .usage('-p processor1,processor2 your_code_dir')
-  .description('single build the hole project, including: less->css->min, script->wraped->min')
+cmd
+  .description('build the hole project')
   .option('-p, --processors [value]', 'loading plugin processors, like `cube-coffee,cube-jsx`')
   .option('-o, --output [value]', 'set the output path')
   .option('-b, --base [value]', 'set the cube base')

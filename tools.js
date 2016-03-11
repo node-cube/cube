@@ -143,40 +143,35 @@ function processDir(cube, data, cb) {
   var root = cube.config.root;
 
   // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
-  xfs.walk(source, function (err, sourceFile) {
+  xfs.walk(source, function (err, sourceFile, done) {
     if (err) {
-      throw err;
+      return done(err);
     }
     fileCount++;
 
     var relFile = fixWinPath(sourceFile.substr(root.length));
     var destFile = path.join(dest, relFile);
     var checked = utils.checkIgnore(relFile, ignores);
-    /*
-    if (/\.min\.(css|js)$/.test(sourceFile)) {
-      xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
-      console.log('[copy file]:', relFile.substr(1));
-      return;
-    }
-    */
+
     if (checked.ignore) {
       console.log('[ignore file]:', relFile.substr(1));
-      return;
+      return done();
     } else if (checked.skip) {
       xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
       console.log('[copy file]:', relFile.substr(1));
-      return;
+      return done();
     }
 
     try {
       processFile(cube, {
         src: sourceFile,
-        dest: destFile,
+        dest: dest,
         withSource: withSource
       }, function (err) {
         if (err) {
           errors.push(err);
         }
+        done();
       });
     } catch (e) {
       if (/node_modules/.test(sourceFile)) {
@@ -185,6 +180,7 @@ function processDir(cube, data, cb) {
       } else {
         throw e;
       }
+      done();
     }
   }, function () {
     var end = new Date().getTime();
@@ -199,7 +195,7 @@ function processDir(cube, data, cb) {
  * processFile
  * @param  {Cube}   cube   cube instance
  * @param  {Path}   source the abs source file
- * @param  {Path}   dest   this abs target file
+ * @param  {Path}   dest   this abs target dir
  * @param  {Object}   opts
  * @param  {Function} cb(err, res)
  */
@@ -207,7 +203,7 @@ function processFile(cube, data, cb) {
   var source = data.src;
   var dest = data.dest;
   //var withSource = data.withSource;
-  var freezeDest = data.freezeDest;
+  //var freezeDest = data.freezeDest;
   if (!cb) {
     cb = function () {};
   }
@@ -216,8 +212,12 @@ function processFile(cube, data, cb) {
 
 
   var realFile = fixWinPath(source.substr(root.length));
-  var queryFile = freezeDest ? fixWinPath(dest.substr(root.length)) : realFile;
-  var destFile = dest;
+  // var queryFile = freezeDest ? fixWinPath(dest.substr(root.length)) : realFile;
+  var queryFile = realFile;
+  var destFile;
+  if (dest) {
+    destFile = path.join(dest, realFile);
+  }
   // var destMapFile = path.join(dest, relFile.replace(/\.(\w+)$/, '.map'));
   // var fileName = path.basename(relFile);
   var ext = path.extname(realFile);
@@ -227,7 +227,7 @@ function processFile(cube, data, cb) {
     // unknow type, copy file
     console.log('[copying file]:', realFile.substr(1));
     xfs.sync().save(destFile, xfs.readFileSync(source));
-    return;
+    return cb();
   }
   var ps = cube.processors.types[type];
   var processors = ps[ext];
@@ -241,7 +241,6 @@ function processFile(cube, data, cb) {
     codeWraped: null,
     source: null,
     sourceMap: null,
-    wrap: true,
     processors: processors,
     compress: data.compress !== undefined ? data.compress : cube.config.compress
   };
@@ -299,27 +298,43 @@ function processFile(cube, data, cb) {
         return cb(err);
       }
       result.mime = cube.getMIMEType('script');
-      wraper[wraperMethod](cube, result, function (err, result) {
+      var flagWithoutWrap = cube.config.withoutWrap;
+      if (flagWithoutWrap) {
+        _end(null, result);
+      } else {
+        wraper[wraperMethod](cube, result, _end);
+      }
+
+      function _end(err, result) {
         if (err) {
           // console.error(err.file, err.line, err.message);
           return cb(err);
         }
         if (dest) {
           var finalFile, wrapDestFile;
+          destFile = path.join(dest, result.queryPath.replace(/^\w+:/, ''));
           if (type === 'script') {
-            wrapDestFile = destFile.replace(/\.\w+$/, '.js');
-            xfs.sync().save(wrapDestFile, result.codeWraped);
+            /**
+             * script type, write single js file
+             */
+            wrapDestFile = destFile.replace(/(\.\w+)?$/, '.js');
+            xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
             // var destSourceFile = destFile.replace(/\.js/, '.source.js');
             // withSource && xfs.sync().save(destSourceFile, result.source);
           } else if (type === 'style') {
-            finalFile = destFile.replace(/\.\w+$/, '.css');
-            wrapDestFile = destFile + '.js';
-            xfs.sync().save(wrapDestFile, result.codeWraped);
+            /**
+             * style type, should write both js file and css file
+             */
+            finalFile = path.join(dest, realFile).replace(/(\.\w+)?$/, '.css');
+            wrapDestFile = destFile;
+            xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
             xfs.sync().save(finalFile, result.code);
           } else if (type === 'template') {
-            wrapDestFile = destFile + '.js';
-            //xfs.sync().save(destFile, result.source);
-            xfs.sync().save(wrapDestFile, result.codeWraped);
+            wrapDestFile = destFile;
+            if (/\.html?$/.test(ext)) {
+              xfs.sync().save(path.join(dest, result.realPath), result.source);
+            }
+            xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
           }
         }
         var end = new Date().getTime();
@@ -331,7 +346,7 @@ function processFile(cube, data, cb) {
           time: Math.ceil((end - st) / 1000),
           result: result
         });
-      });
+      }
     }
   });
 }

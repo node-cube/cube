@@ -51,6 +51,9 @@ function loadDefaultProcessor(cube) {
  *        - resBase {String} [optional] the http base for resource
  *        - devCache {Boolean} default true
  *        - withDist {Boolean} switch if search module dist dir
+ *        - merge {Boolean} if merge all file into one file
+ *        - mangleFileName {Boolean}
+ *        - mangleFileNameIgnore {Array}
  *
  */
 function Cube(config) {
@@ -316,28 +319,23 @@ Cube.prototype.getMIMEType = function (type) {
 };
 
 var fileNameMaps = {};
-var count = 65;
+var count = 97;
 var prefix = [];
 
 function genName() {
-  //65 ~ 90  A-Z
   //97 ~ 122 a-z
   var lastPrefixIndex = prefix.length ? prefix.length - 1 : 0;
   var lastPrefix = prefix[lastPrefixIndex];
-  if (count === 91) {
+  if (count === 123) {
     count = 97;
-  } else if (count === 123) {
-    count = 65;
     if (!lastPrefix) {
-      lastPrefix = 65;
+      lastPrefix = 97;
     } else {
       lastPrefix += 1;
     }
-    if (lastPrefix === 91) {
-      lastPrefix = 97;
-    }  else if (lastPrefix === 123) {
+    if (lastPrefix === 123) {
       lastPrefix -= 1;
-      prefix.push(65);
+      prefix.push(97);
     }
     prefix[lastPrefixIndex] = lastPrefix;
   }
@@ -351,12 +349,25 @@ function genName() {
   count ++;
   return value;
 }
+Cube.prototype.printFileShortNameMap = function () {
+  console.log(fileNameMaps);
+};
 
-Cube.prototype.getFileShortName = function (fileName) {
+Cube.prototype.getFileShortName = function (fileName, merge) {
+  var mangleFileNameIgnore = this.config.mangleFileNameIgnore;
+  if (fileName.indexOf('/') !== 0) {
+    return fileName;
+  }
+  if (mangleFileNameIgnore && mangleFileNameIgnore.indexOf(fileName) >= 0) {
+    return fileName;
+  }
   if (fileNameMaps[fileName]) {
     return fileNameMaps[fileName];
   }
   var alias = genName();
+  if (!merge) {
+    alias = '/' + alias + '.js';
+  }
   fileNameMaps[fileName] = alias;
   return alias;
 };

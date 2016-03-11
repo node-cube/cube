@@ -253,28 +253,6 @@
     }
   }
   /**
-   * async loading resource
-   * i.e
-   *   async(modName, function(mod){ //TODO// });
-   *   async(cssMod, nameSpace, function(){ //TODO// });
-   * @param {Path}   mod   [description]
-   * @param {Function|String} cb    [description]
-   * @param {Function}   param
-   */
-  /*
-  function Async(mod, param1, param2) {
-    if (typeof param1 !== 'function') {
-      // mod cb -> namespace
-      Cube.use(mod, function (css) {
-        Cube.css(css, param1, mod);
-        param2 && param2(css);
-      });
-    } else {
-      Cube.use(mod, param1);
-    }
-  }
-  */
-  /**
    get module by name
    **/
   Cube.module = function (name) {

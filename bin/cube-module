@@ -16,7 +16,6 @@ function isAbsPath(p) {
   }
 }
 function buildOutput(err, info) {
-  cube.printFileShortNameMap();
   console.log('==================');
   if (!err) {
     err = [];
@@ -43,17 +42,14 @@ function buildOutput(err, info) {
   console.log('Files:', info.total, 'Cost:', info.time + 's');
   console.log('==================');
 }
-/**
- * source , -o,--output, -b, --base 是基于cwd路径, 互相之间没有依赖关系
- */
+
 cmd
-  .usage('-p processor1,processor2 your_code_dir')
+  .usage('$your_code_dir')
   .description('build the hole project, including: less->css->min, script->wraped->min')
   .option('-p, --processors [value]', 'loading plugin processors, like `cube-coffee,cube-jsx`')
   .option('-o, --output [value]', 'set the output dir')
   .option('-b, --base [value]', 'set the cube base')
   .option('-r, --resbase [value]', 'the http base for resouce')
-  .option('--remote [value]', 'set the namespace for remote call')
   .option('--merge', 'if merged dependences into a file')
   .option('--mangle-file-name', 'mangle the file name into random name')
   .option('--without-compress', 'do not compress code')
@@ -72,6 +68,8 @@ if (args.processors) {
     a[i] = v.trim();
   });
 }
+
+
 
 var cwd = getCwd();
 var fstat;
@@ -93,11 +91,7 @@ try {
 }
 
 if (fstat.isFile()) {
-  if (!args.output) {
-    console.error('`-o `options missing, should tell cube the output dir');
-    process.exit(1);
-  }
-  outputPath = isAbsPath(args.output) ? args.output : path.join(cwd, args.output);
+  outputPath = args.output ? (isAbsPath(args.output) ? args.output : path.join(cwd, args.output)) : source.replace(/\.(\w+)$/, '.min.$1');
   root = (root ? root : path.dirname(source)).replace(/(\/|\\)$/, '');
   cube = new Cube({
     release: true,
@@ -105,10 +99,8 @@ if (fstat.isFile()) {
     compress: compress,
     middleware: false,
     processors: args.processors,
-    resBase: args.resbase,
-    remote: args.remote,
     mangleFileName: args.mangleFileName,
-    mangleFileNameIgnore: ['/main.js']
+    withoutWrap: true
   });
   tool = Cube.getTool();
   tool.processFile(cube, {src:source, dest:outputPath}, buildOutput);
@@ -121,10 +113,8 @@ if (fstat.isFile()) {
     compress: compress,
     middleware: false,
     processors: args.processors,
-    resBase: args.resbase,
-    remote: args.remote,
     mangleFileName: args.mangleFileName,
-    mangleFileNameIgnore: ['/main.js']
+    withoutWrap: true
   });
   tool = Cube.getTool();
   tool.processDir(cube, {src: inputPath, dest:outputPath}, buildOutput);

@@ -31,7 +31,7 @@ var CACHE = {};
  *         - root       static root
  *         - middleware  boolean, default false
  *         - cached     the cached path
- *         - builded    if code is builded, boolean, default false
+ *         - built    if code is built, set to true, working as a static server, default false
  */
 exports.init = function (cube) {
   var config = cube.config;
@@ -43,7 +43,7 @@ exports.init = function (cube) {
   var app;
 
   if (!config.cached) {
-    config.cached = config.builded ? config.root : root + '.release';
+    config.cached = config.built ? config.root : root + '.release';
   }
 
   if (!xfs.existsSync(config.cached)) {
@@ -86,9 +86,8 @@ exports.init = function (cube) {
       'wrap:' + flagModuleWrap,
       'compress:' + flagCompress
     );
-
     if (type === undefined) {
-      console.error('[CUBE]`' + qpath + '` unknow file type, query will passed to connect.static handler');
+      console.log('[CUBE]`' + qpath + '` unmatch file type, query will passed to connect.static handler');
       return serveStatic(req, res, next);
     }
     mime = cube.getMIMEType(type);
@@ -167,6 +166,9 @@ exports.init = function (cube) {
         return error(err, result.mime);
       }
       var code = flagModuleWrap ? result.codeWraped : result.code;
+      if (ext === '.html' && !flagModuleWrap) {
+        code = result.source;
+      }
       res.statusCode = 200;
       res.setHeader('content-type', result.mime);
       res.end(code);
@@ -177,7 +179,6 @@ exports.init = function (cube) {
           mtime: result.mtime,
           mime: result.mime,
           codeFinal: code,
-          codeUnWraped: result.code,
           requires: result.requires,
           requiresGlobalScopeMap: result.requiresGlobalScopeMap
         };
