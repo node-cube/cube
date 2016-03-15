@@ -229,6 +229,7 @@
     if (config.version) {
       settings.version = config.version;
     }
+    return this;
   };
   /**
    * loading module async, this function only support abs path
@@ -262,6 +263,7 @@
     if (helpers.checkAllDownloaded() === 0) {  // 解决load已存在的模块时,不会进startAppAndCallback
       helpers.startAppAndCallback();
     }
+    return this;
   };
   /**
    * register module in to cache
@@ -278,6 +280,7 @@
       loaded: true,
       fired: true
     };
+    return this;
   };
   /**
    * @interface inject css into page
