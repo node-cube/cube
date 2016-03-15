@@ -15,8 +15,7 @@
     remoteSeparator: ':',
     charset: 'utf-8',
     version: +new Date(),
-    entrances: {},  // Cube.use's cb
-    built: false
+    entrances: {}  // Cube.use's cb
   };
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
   var head = document.querySelector('head');
@@ -187,18 +186,24 @@
    * @param callback
    */
   function Cube(name, requires, callback) {
+    var requiresLoaded = false;
+
     if (arguments.length === 3) {
-      if (settings.built && !installedModules[name]) {
+      if (!installedModules[name]) {
         installedModules[name] = {
           exports: {},
           loaded: false,
           fired: false
         };
+        requiresLoaded = true;
+        if (requires.length) {
+          console.info('Cube ' + requires + ' should exist.');
+        }
       }
       var module = installedModules[name];
       module.fn = callback;
       module.loaded = true;
-      if (!settings.built) {
+      if (!requiresLoaded) {
         helpers.load(requires);
       }
     }
@@ -223,9 +228,6 @@
     }
     if (config.version) {
       settings.version = config.version;
-    }
-    if (config.built) {
-      settings.built = config.built;
     }
   };
   /**
