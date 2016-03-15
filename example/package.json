@@ -3,8 +3,8 @@
     "jade_runtime": "*"
   },
   "cube": {
-    "moduleFixMap": {
-      "react": "reat/dist/react.js"
+    "moduleMap": {
+      "react": "dist/react.js"
     },
     "processors": {
       ".less": "cube-less",
@@ -17,6 +17,7 @@
     "build": {
       "skip":[],
       "ignore": [],
+      "mangleFileName": true,
       "reservedModule": []
     }
   }

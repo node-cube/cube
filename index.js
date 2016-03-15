@@ -54,6 +54,8 @@ function loadDefaultProcessor(cube) {
  *        - merge {Boolean} if merge all file into one file
  *        - mangleFileName {Boolean}
  *        - mangleFileNameIgnore {Array}
+ *        - built {Boolean}
+ *        - moduleMap {Object}
  *
  */
 function Cube(config) {
@@ -173,7 +175,7 @@ function Cube(config) {
  *         - middleware  boolean, default false
  *         - processors {Array} extenal processors
  *         - cached     the cached path
- *         - builded    {Boolean} if root path is builded code
+ *         - built    {Boolean} if root path is built code
  *
  */
 Cube.init = function (config) {
