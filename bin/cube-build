@@ -16,7 +16,7 @@ function isAbsPath(p) {
   }
 }
 function buildOutput(err, info) {
-  cube.printFileShortNameMap();
+  // cube.printFileShortNameMap();
   console.log('==================');
   if (!err) {
     err = [];
@@ -36,11 +36,11 @@ function buildOutput(err, info) {
       );
     });
   } else {
-    console.log('Build successfully');
+    console.log('    ');
   }
   console.log('==================');
   console.log(err.length ? 'Build Finished, Total Errors: ' + err.length :  ' Build Successfully');
-  console.log('Files:', info.total, 'Cost:', info.time + 's');
+  info && console.log('Files:', info.total, 'Cost:', info.time + 's');
   console.log('==================');
 }
 /**

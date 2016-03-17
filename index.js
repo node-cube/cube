@@ -135,7 +135,7 @@ function Cube(config) {
   } catch (e) {
     console.log('[WARN] loading static_dir\'s package.json failed');
   }
-  if (pkg) {
+  if (pkg && pkg.cube) {
     var anotherCfg = pkg.cube;
     Object.keys(anotherCfg).forEach(function (key) {
       var cfg = anotherCfg[key];
