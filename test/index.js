@@ -81,6 +81,14 @@ describe('index.js', function () {
         })
         .end(done);
     });
+
+    it('should work fine', function (done) {
+      request.get('/test/test_remote_module.js?m')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(/\["datav:\/coms\/abc"\]/)
+        .expect(/^Cube\(/, done);
+    });
   });
 
   describe('query js files', function () {
