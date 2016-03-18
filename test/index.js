@@ -219,7 +219,7 @@ describe('index.js', function () {
       request.get('/test/test_registered_module.js?m')
         .expect(200)
         .expect(function (res) {
-          expect(res.text).to.match(/\["jquery"\]/);
+          expect(res.text).to.match(/\[\]/);
         })
         .end(done);
     });

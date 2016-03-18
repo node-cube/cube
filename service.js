@@ -166,6 +166,9 @@ exports.init = function (cube) {
         return error(err, result.mime);
       }
       var code = flagModuleWrap ? result.codeWraped : result.code;
+      if (result.debugInfo) {
+        code += '\n' + result.debugInfo.join('');
+      }
       if (ext === '.html' && !flagModuleWrap) {
         code = result.source;
       }
@@ -287,6 +290,14 @@ exports.init = function (cube) {
   } else {
     app = connect();
     app.use(config.router, config.cached ? serveStatic : processQuery);
+    app.use(function(err, req, res, next) {
+      if (/favicon\.ico$/.test(req.url)) {
+        res.statusCode = 200;
+        res.end('ico not found');
+        return;
+      }
+      next();
+    });
     cube.connect = app;
   }
   // other static files

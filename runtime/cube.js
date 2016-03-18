@@ -139,6 +139,11 @@
     fireModule: function (module) {
       var m = installedModules[module];
 
+      // sometimes, module in server side not found,
+      // m is undefined
+      if (!m) {
+        return;
+      }
       if (!m.fired) {
         m.fired = true;
         m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load__]);

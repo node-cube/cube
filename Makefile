@@ -1,12 +1,11 @@
-UG := node_modules/.bin/uglifyjs
+min := node_modules/.bin/esminify
 
 install:
 	@npm install .
 
 release:
-	@$(UG) ./runtime/cube.js -c -m -o ./runtime/cube.min.js
+	@$(min) ./runtime/cube.js -o ./runtime/cube.min.js
 	@node ./bin/version.js
-	@$(UG) ./runtime/cube_single.js -m -o ./runtime/cube_single.min.js
 
 publish: release tag
 	@npm publish
