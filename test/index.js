@@ -16,10 +16,10 @@ var cubeInst = testMod.init({
   middleware: false,
   resBase: '/resouce_path',
   processors: [
-    require('../../cube-ejs'),
-    path.join(__dirname, '../../cube-jade'),
-    path.join(__dirname, '../../cube-less'),
-    path.join(__dirname, '../../cube-stylus')  // do not delete this comma, for branch test
+    require('cube-ejs'),
+    require('cube-jade'),
+    path.join(__dirname, '../../node_modules/cube-less'),
+    'cube-stylus'  // do not delete this comma, for branch test
   ]
 });
 
@@ -31,10 +31,10 @@ testMod.init({
   remote: 'REMOTE',
   resBase: '/resouce_path',
   processors: [
-    require('../../cube-ejs'),
-    path.join(__dirname, '../../cube-jade'),
-    path.join(__dirname,'../../cube-less'),
-    path.join(__dirname, '../../cube-stylus')  // do not delete this comma, for branch test
+    require('cube-ejs'),
+    require('cube-jade'),
+    require('cube-less'),
+    require('cube-stylus')  // do not delete this comma, for branch test
   ]
 });
 
