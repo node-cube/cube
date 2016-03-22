@@ -81,9 +81,9 @@
         if (mod.indexOf(settings.remoteSeparator) === -1) {
           /** fix #12 **/
           if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
-            mod = mod.substr(1);
+            mods[i] = mod.substr(1);
           } else if (mod[0] !== '/') {    // be campatible with test.js
-            mod = '/' + mod;
+            mods[i] = '/' + mod;
           }
         }
       }
