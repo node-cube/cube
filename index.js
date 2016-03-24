@@ -56,6 +56,7 @@ function loadDefaultProcessor(cube) {
  *        - mangleFileNameIgnore {Array}
  *        - built {Boolean}
  *        - moduleMap {Object}
+ *        - forceRequire {Boolean} 是否强制 require, 即使require的内容不存在
  *
  */
 function Cube(config) {
