@@ -15,6 +15,7 @@
     remoteSeparator: ':',
     charset: 'utf-8',
     version: +new Date(),
+    debug: false,
     entrances: {}  // Cube.use's cb
   };
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
@@ -233,6 +234,9 @@
     }
     if (config.version) {
       settings.version = config.version;
+    }
+    if (config.debug) {
+      settings.debug = config.debug;
     }
     return this;
   };
