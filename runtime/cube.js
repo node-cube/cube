@@ -339,4 +339,18 @@
   } else {
     global[alias] = Cube;
   }
+
+
+  /**
+   * intergration with <script> tag
+   * <script data-base="" src=""></script>
+   */
+  var cse = document.currentScript;
+  if (cse) {
+    var cfg = cse.dataset;
+    if (cfg.base) {
+      Cube.init(cfg);
+      Cube.use(cfg.main || 'index.js', function(app){app.run&& app.run();});
+    }
+  }
 })(window, null);
