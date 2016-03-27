@@ -15,6 +15,7 @@
     remoteSeparator: ':',
     charset: 'utf-8',
     version: +new Date(),
+    debug: false,
     entrances: {}  // Cube.use's cb
   };
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
@@ -101,8 +102,9 @@
     /**
      * 下载模块
      * @param requires
+     * @param referer
      */
-    load: function (requires) {
+    load: function (requires, referer) {
       if (typeof requires === 'string') {
         requires = [requires];
       }
@@ -118,6 +120,9 @@
 
         var rebaseName = helpers.reBase(require);
         var srcPath = [rebaseName || (settings.base + require), '?m=1&', settings.version].join('');
+        if (settings.debug) {
+          srcPath += '&ref=' + referer;
+        }
         script.src = srcPath;
 
         head.appendChild(script);
@@ -209,7 +214,7 @@
       module.fn = callback;
       module.loaded = true;
       if (!requiresLoaded) {
-        helpers.load(requires);
+        helpers.load(requires, name);
       }
     }
   }
@@ -234,6 +239,9 @@
     if (config.version) {
       settings.version = config.version;
     }
+    if (config.debug) {
+      settings.debug = config.debug;
+    }
     return this;
   };
   /**
@@ -249,7 +257,7 @@
     cb = cb || noop;
 
     mods = helpers.fixUseModPath(mods);  // arr
-    helpers.load(mods);
+    helpers.load(mods, 'Cube.use');
 
     if (!settings.entrances[mods]) {
       settings.entrances[mods] = [];
