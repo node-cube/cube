@@ -72,9 +72,6 @@
       }
     },
     fixUseModPath: function (mods) {
-      if (typeof mods === 'string') {
-        mods = [mods];
-      }
       var len = mods.length;
       var mod;
       for (var i = 0; i < len; i++) {
@@ -206,7 +203,7 @@
           fired: false
         };
         requiresLoaded = true;
-        if (requires.length) {
+        if (requires.length && settings.debug) {
           console.info('Cube ' + requires + ' should exist.');
         }
       }
@@ -241,22 +238,29 @@
     }
     if (config.debug) {
       settings.debug = config.debug;
+      Cube.cache = installedModules;
     }
     return this;
   };
   /**
    * loading module async, this function only support abs path
    * @public
-   * @param  {Path}     mod module abs path
+   * @param  {Path}     mods module abs path
    * @param  {Function} cb  callback function, usually with module.exports as it's first param
+   * @param  {Boolean}  noFix used only in single mode
    */
-  Cube.use = function (mods, cb) {
+  Cube.use = function (mods, cb, noFix) {
     if (!mods) {
       throw new Error('Cube.use(moduleName) moduleName is undefined!');
     }
     cb = cb || noop;
 
-    mods = helpers.fixUseModPath(mods);  // arr
+    if (typeof mods === 'string') {
+      mods = [mods];
+    }
+    if (!noFix) {
+      mods = helpers.fixUseModPath(mods);
+    }
     helpers.load(mods, 'Cube.use');
 
     if (!settings.entrances[mods]) {
