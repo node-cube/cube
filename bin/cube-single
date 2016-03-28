@@ -142,7 +142,7 @@ function done() {
   codes.unshift('var Cube = host.Cube;');
   codes.unshift(fs.readFileSync(path.join(__dirname, '../runtime/cube.min.js')).toString().replace('window,null', 'host,null'));
   codes.unshift('!(function(host, name){');
-  codes.push('Cube.use("' + cube.getFileShortName(infos[0]) + '", function(m) {host[name]=m});');
+  codes.push('Cube.use("' + cube.getFileShortName(infos[0]) + '", function(m) {host[name]=m}, true);');
   // codes.push('// 导出到window里的全局变量名');
   codes.push('})(window, "DataVDemo")');
   fs.sync().save(path.join(outputPath, '/script.js'), codes.join('\n'));
