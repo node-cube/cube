@@ -35,12 +35,11 @@ Cube管理着前端三种类型的资源:
 <script src='cube.min.js'></script>
 <script>
   Cube.init({
-    charset: 'utf-8',
-    base: '/',                // virtual path, base can be a http path,
+    base: '/',                // required, virtual path, base can be a http path,
                               // like: http://domain.com/project/static
-    debug: true,              // online module ,you should turn off this switch
-    version: 12345,           // the code version, used for flushing client side script
-    timeout: 15000            // loading script timeout setup
+    charset: 'utf-8',         // optional, default is 'utf-8'
+    debug: true,              // optional, default is false
+    version: 12345,           // optional, the code version, used for flushing client side script
   });
   Cube.use('/main.js', function (App) {
     console.log(App.run(appConfig));
