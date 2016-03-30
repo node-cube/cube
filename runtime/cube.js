@@ -144,7 +144,7 @@
       // sometimes, module in server side not found,
       // m is undefined
       if (!m) {
-        return;
+        return console.error('Cube Error: Cannot find module ' + '\'' + module + '\'');
       }
       if (!m.fired) {
         m.fired = true;
