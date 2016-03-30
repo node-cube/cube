@@ -204,7 +204,7 @@
         };
         requiresLoaded = true;
         if (requires.length && settings.debug) {
-          console.info('Cube ' + requires + ' should exist.');
+          console.info('Cube Info: Module ' + '\'' + requires + '\'' + ' should exist');
         }
       }
       var module = installedModules[name];
@@ -289,7 +289,7 @@
    */
   Cube.register = function (module, exports) {
     if (installedModules[module]) {
-      return console.error('module already registered:', module);
+      return console.error('Cube Error: Module ' + '\'' + module + '\'' + ' already registered');
     }
     installedModules[module] = {
       exports: exports,
@@ -339,7 +339,7 @@
 
   alias = alias || 'Cube';
   if (global[alias]) {
-    console.log('window.' + alias + ' already in using, replace the last "null" param in cube.js');
+    console.error('Cube Error: window.' + alias + ' already in using, replace the last "null" param in cube.js');
   } else {
     global[alias] = Cube;
   }
