@@ -166,9 +166,11 @@ exports.init = function (cube) {
         return error(err, result.mime);
       }
       var code = flagModuleWrap ? result.codeWraped : result.code;
+      /*
       if (result.debugInfo) {
         code += '\n' + result.debugInfo.join('');
       }
+      */
       if (ext === '.html' && !flagModuleWrap) {
         code = result.source;
       }
@@ -192,14 +194,16 @@ exports.init = function (cube) {
       res.setHeader('content-type', flagModuleWrap ? 'text/javascript' : mime);
       var msg = flagModuleWrap ?
         'console.error("[CUBE]",' +
-          '"File:' + e.file + '",' +
-          '"Line:' + e.line + '",' +
-          '"Column:' + e.column + '",' +
+          (e.code ? '"Code: "' + e.code + '",' : '') +
+          (e.file ? '"File: ' + e.file + '",' : '') +
+          (e.line ? '"Line: ' + e.line + '",' : '') +
+          (e.column ? '"Column: ' + e.column + '",' : '') +
           '"Message:' + e.message.replace(/"/g, '\\"') + '")' :
         '[CUBE]\n' +
-        'File:' + e.file + '\n' +
-        'Line:' + e.line + '\n' +
-        'Column:' + e.column + '\n' +
+          (e.code ? 'Code: ' + e.code + '\n' : '') +
+          (e.file ? 'File: ' + e.file + '\n' : '') +
+          (e.line ? 'Line: ' + e.line + '\n' : '') +
+          (e.column ? 'Column: ' + e.column + '\n' : '') +
         'Message:' + e.message;
       res.end(msg);
     }

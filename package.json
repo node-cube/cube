@@ -28,7 +28,7 @@
     "debug": "2.1.0",
     "escodegen": "1.8.0",
     "escope": "3.6.0",
-    "esmangle2": "~1.0.4",
+    "esmangle2": "~1.0.5",
     "esprima": "2.7.2",
     "estraverse": "4.1.0",
     "requires": "~1.0.2",
