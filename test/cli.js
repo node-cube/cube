@@ -214,5 +214,55 @@ describe('cli', function () {
         done();
       });
     });
+    it('should work fine with -t option', function (done) {
+      var cmd = 'node bin/cube build -t example/test/test_es2015.js -o example/test/out';
+      exec(cmd, function (err, stdout, stderr) {
+        var res = stdout.toString().split('\n');
+        // console.log(stdout.toString(), stderr.toString());
+        var info = [];
+        res.forEach(function (v) {
+          if (/^=+$/.test(v)) {
+            return;
+          }
+          if (v) {
+            info.push(v);
+          }
+        });
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Successfully/);
+        var target = path.join(__dirname, '../example/test/out/test_es2015.js');
+        var fileCnt = xfs.readFileSync(target).toString();
+        expect(fileCnt).not.to.match(/class Point/);
+        expect(fileCnt).not.to.match(/=>/);
+        expect(fileCnt).not.to.match(/`.*\$\{.+\}.*`/);
+        expect(fileCnt).not.to.match(/let/);
+        xfs.sync().rm(path.join(__dirname, '../example/test/out'));
+        done();
+      });
+    });
+    it.skip('should work fine with -t option', function (done) {
+      var cmd = 'node bin/cube build -p cube-react -t example/test/test_react_es2015.jsx -o example/test/out';
+      exec(cmd, function (err, stdout, stderr) {
+        var res = stdout.toString().split('\n');
+        // console.log(stdout.toString(), stderr.toString());
+        var info = [];
+        res.forEach(function (v) {
+          if (/^=+$/.test(v)) {
+            return;
+          }
+          if (v) {
+            info.push(v);
+          }
+        });
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Successfully/);
+        var target = path.join(__dirname, '../example/test/out/test_react_es2015.js');
+        var fileCnt = xfs.readFileSync(target).toString();
+        expect(fileCnt).not.to.match(/<.*>/);
+        expect(fileCnt).not.to.match(/`.*\$\{.+\}.*`/);
+        xfs.sync().rm(path.join(__dirname, '../example/test/out'));
+        done();
+      });
+    });
   });
 });

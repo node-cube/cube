@@ -57,6 +57,7 @@ cmd
   .option('--merge', 'if merged dependences into a file')
   .option('--mangle-file-name', 'mangle the file name into random name')
   .option('--without-compress', 'do not compress code')
+  .option('-t, --transform', 'transform es2015 codes')
   .parse(process.argv);
 
 var source = cmd.args[0];
@@ -71,6 +72,12 @@ if (args.processors) {
   args.processors.forEach(function (v, i, a) {
     a[i] = v.trim();
   });
+}
+if (args.transform) {
+  if (!args.processors) {
+    args.processors = [];
+  }
+  args.processors.unshift('cube-es2015');
 }
 
 var cwd = getCwd();
