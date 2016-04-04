@@ -77,7 +77,7 @@ if (args.transform) {
   if (!args.processors) {
     args.processors = [];
   }
-  args.processors.unshift('cube-es2015');
+  args.processors.push('cube-es2015');
 }
 
 var cwd = getCwd();
