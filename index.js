@@ -95,6 +95,9 @@ function Cube(config) {
   if (!config.router) {
     config.router = '/';
   }
+  if (!config.hooks) {
+    config.hooks = {};
+  }
 
   this.config = config;
 
@@ -400,6 +403,15 @@ Cube.prototype.processJsCode = function (data, callback) {
   data = wraper.processScript(this, data);
   wraper.wrapScript(this, data, callback);
 };
+
+Cube.prototype.hook = function (hook, arg) {
+  hook = this.config.hooks[hook];
+  if (typeof hook === 'function') {
+    return hook.call(this, arg);
+  } else {
+    return arg;
+  }
+}
 
 
 module.exports = Cube;
