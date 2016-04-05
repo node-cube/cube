@@ -248,3 +248,25 @@ Processor.prototype.process = function (relpath, options, callback) {
 };
 ```
 
+## Hooks
+
+### beforeResolvePath(originPath) 
+
+支持处理require中原始的路径，如在特定的情况下将一个远程依赖改为本地依赖
+
+```
+Cube.init({
+  // ...
+  hooks: {
+    beforeResolvePath: function(originPath) {
+      if (/^\w+?:/.test(originPath)){
+        var _path = path.join(this.root, originPath.split(':')[1]);
+        if (fs.existsSync(_path)) {
+          return _path.replace(this.root, '');
+        }
+      }
+      return file;
+    }
+  }
+});
+```
