@@ -38,8 +38,35 @@ testMod.init({
   ]
 });
 
+testMod.init({
+  root: path.join(__dirname, '../example'),
+  port: 7778,
+  router: '/',
+  middleware: false,
+  resBase: '/resouce_path',
+  hooks: {
+    beforeResolvePath: function(file) {
+      if (/^\w+?:/.test(file)){
+        var _file = file.split(':');
+        var _path = path.join(this.config.root, _file[1]);
+        if (fs.existsSync(_path)) {
+          return _path.replace(this.config.root, '');
+        }
+      }
+      return file;
+    }
+  },
+  processors: [
+    require('cube-ejs'),
+    require('cube-jade'),
+    require('cube-less'),
+    require('cube-stylus')  // do not delete this comma, for branch test
+  ]
+});
+
 var request = Request('http://localhost:7777');
 var remoteRequest = Request('http://localhost:8888');
+var hookRequest = Request('http://localhost:7778');
 
 describe('index.js', function () {
   describe('remote request', function () {
@@ -438,6 +465,20 @@ describe('index.js', function () {
         expect(result.codeWraped).to.match(/Cube\('\/main\.js',/);
         done();
       });
+    });
+  });
+
+  describe.only('test hook', function () {
+    it('resolve filepath', function (done) {
+      hookRequest.get('/test_hook.js?m')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(/Cube\("\/test_hook\.js"/)
+        .expect(/require\(['"]remote:path\/to\/file/)
+        .expect(/require\(['"]\/tests\.js/)
+        .expect(/require\(['"]\/main\.js/)
+        .expect(/exports = function/)
+        .expect(/Cube/, done);
     });
   });
 });
