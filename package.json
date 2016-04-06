@@ -47,6 +47,7 @@
     "cube-stylus": "*",
     "cube-coffee": "*",
     "cube-react": "*",
+    "cube-es2015": "*",
     "esminify": "*"
   },
   "optionalDependencies": {}
