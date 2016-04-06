@@ -240,7 +240,7 @@ describe('cli', function () {
         done();
       });
     });
-    it.skip('should work fine with -t option', function (done) {
+    it('should work fine to transform jsx', function (done) {
       var cmd = 'node bin/cube build -p cube-react -t example/test/test_react_es2015.jsx -o example/test/out';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
