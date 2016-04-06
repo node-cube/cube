@@ -243,20 +243,30 @@ Cube.prototype.register = function (mod, ext) {
   if (!types) {
     types = processors.types[type] = {};
   }
-  if (!processors.map[ext]) {
-    processors.map[ext] = type;
-  }
-  var origin = types[ext];
-  if (origin) {
-    console.log('[WARN] ' + ext + ' already register:' + getProcessNames(origin));
-    console.log('[WARN] ' + ext + ' now register:' + getProcessNames(customProcessors.processors));
+  if (ext !== '.*') {
+    if (!processors.map[ext]) {
+      processors.map[ext] = type;
+    }
+    var origin = types[ext];
+    if (origin) {
+      console.log('[WARN] ' + ext + ' already register:' + getProcessNames(origin));
+      console.log('[WARN] ' + ext + ' now register:' + getProcessNames(customProcessors.processors));
+    } else {
+      types[ext] = [];
+    }
   }
   var processInstances = [];
   var self = this;
   customProcessors.processors.forEach(function (p) {
     processInstances.push(new p(self));
   });
-  types[ext] = processInstances;
+  if (ext === '.*') {
+    Object.keys(types).forEach(function (key) {
+      types[key] = types[key].concat(processInstances);
+    });
+  } else {
+    types[ext] = types[ext].concat(processInstances);
+  }
 };
 
 function getProcessNames(processor) {
