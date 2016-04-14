@@ -26,14 +26,24 @@ function buildOutput(err, info) {
   }
   if (err && err.length) {
     err.forEach(function (e) {
-      console.log(
-        ' *',
-        'File:', e.file,
-        'Line:', e.line,
-        'Column:', e.column,
-        'Code:', e.code,
-        'Message:', e.message
-      );
+      var out = [
+        '*',
+        'File:', e.file
+      ];
+      if (e.line) {
+        out.push('Line:', e.line);
+      }
+      if (e.column) {
+        out.push('Column:', e.column);
+      }
+      if (e.code) {
+        out.push('Code:', e.code);
+      }
+      if (e.message) {
+        out.push('Message:', e.message);
+      }
+
+      console.log.apply(console, out);
     });
   } else {
     console.log('    ');
