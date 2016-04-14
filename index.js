@@ -7,14 +7,9 @@
 var utils = require('./lib/utils');
 var wraper = require('./lib/wraper');
 var path = require('path');
-var debug;
+var debug = require('debug')('cube:init');
 
-try {
-  debug = require('./debug.json');
-} catch (e) {
-  // ignore error
-}
-
+/*
 function debugRegister(cube, module) {
   if (!debug) {
     return;
@@ -26,19 +21,12 @@ function debugRegister(cube, module) {
     // do nothing
   }
 }
+*/
 
 function loadDefaultProcessor(cube) {
   cube.register(path.join(__dirname, './lib/processor_js'));
   cube.register(path.join(__dirname, './lib/processor_css'));
   cube.register(path.join(__dirname, './lib/processor_html'));
-  /*
-  debugRegister(cube, 'cube-ejs');
-  debugRegister(cube, 'cube-jade');
-  debugRegister(cube, 'cube-less');
-  debugRegister(cube, 'cube-stylus');
-  debugRegister(cube, 'cube-coffee');
-  debugRegister(cube, 'cube-react');
-  */
 }
 /**
  * [Cube description]
@@ -117,9 +105,11 @@ function Cube(config) {
     'template': 'text/html'
   };
 
+  debug('loading default process');
   loadDefaultProcessor(this);
   var self = this;
   if (config.processors) {
+    debug('loading custom processors from config', config.processors);
     config.processors.forEach(function (processor) {
       if (!processor) {
         return ;
@@ -141,6 +131,7 @@ function Cube(config) {
   }
   if (pkg && pkg.cube) {
     var anotherCfg = pkg.cube;
+    debug('loading custom processors from package.json:cube', config.processors);
     Object.keys(anotherCfg).forEach(function (key) {
       var cfg = anotherCfg[key];
       switch (key) {
@@ -267,7 +258,25 @@ Cube.prototype.register = function (mod, ext) {
   } else {
     types[ext] = types[ext].concat(processInstances);
   }
+
+  Object.keys(types).forEach(function (key) {
+    types[key] = uniqueProcessors(types[key]);
+  });
 };
+
+function uniqueProcessors(list) {
+  var res = [];
+  var map = {};
+  list.forEach(function (n) {
+    var name = n.constructor.name;
+    if (map[name]) {
+      return;
+    }
+    map[name] = true;
+    res.push(n);
+  });
+  return res;
+}
 
 function getProcessNames(processor) {
   var res = [];

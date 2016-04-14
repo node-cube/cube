@@ -468,7 +468,7 @@ describe('index.js', function () {
     });
   });
 
-  describe.only('test hook', function () {
+  describe('test hook', function () {
     it('resolve filepath', function (done) {
       hookRequest.get('/test_hook.js?m')
         .expect(200)

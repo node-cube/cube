@@ -1,6 +1,8 @@
 /*!
  * Cube services, start a http server, or return a middleware
  */
+'use strict';
+
 var xfs = require('xfs');
 var debug = require('debug')('cube');
 var url = require('url');
@@ -123,11 +125,16 @@ exports.init = function (cube) {
               message: 'read file stats error:' + err.message
             });
           }
+
           var mtime = new Date(stats.mtime).getTime();
           if (tmp) { // if cached, check cache
             if (tmp.mtime === mtime) { // target the cache, just return
               debug('hint cache', rpath);
-              return done({code: 200}, tmp.mime, tmp.codeFinal);
+              return done({code: 'CACHED'}, {
+                mime: tmp.mime,
+                code: tmp.codeFinal,
+                codeWraped: tmp.codeFinal
+              });
             }
           }
           done(null, rpath, processor, mtime);
@@ -162,31 +169,38 @@ exports.init = function (cube) {
     ];
 
     function done(err, result) {
+      var flagCache = false;
       if (err) {
-        return error(err, result.mime);
+        if (err.code === 'CACHED') {
+          flagCache = true;
+        } else {
+          return error(err, result.mime);
+        }
       }
       var code = flagModuleWrap ? result.codeWraped : result.code;
-      /*
-      if (result.debugInfo) {
-        code += '\n' + result.debugInfo.join('');
-      }
-      */
+
       if (ext === '.html' && !flagModuleWrap) {
         code = result.source;
       }
       res.statusCode = 200;
       res.setHeader('content-type', result.mime);
       res.end(code);
+      if (flagCache) {
+        // already cached
+        return;
+      }
       // cache result
       if (cube.config.devCache) {
         debug('cache processed file: %s, %s', result.realPath, result.mtime);
         CACHE[cachePath] = {
-          mtime: result.mtime,
+          mtime: result.modifyTime,
           mime: result.mime,
           codeFinal: code,
-          requires: result.requires,
-          requiresGlobalScopeMap: result.requiresGlobalScopeMap
+          requires: result.requires
         };
+        if (ext === '.html') {
+          CACHE[cachePath].source = result.source;
+        }
       }
     }
     function error(e, mime) {
@@ -210,7 +224,6 @@ exports.init = function (cube) {
 
     function processResult(err, result) {
       if (err) {
-        console.error(err.stack);
         error(err, mime);
         return;
       }
@@ -259,10 +272,8 @@ exports.init = function (cube) {
     }
     async.waterfall(actions, function (err, data) {
       if (err) {
-        if (err.code === 200) {
-          res.statusCode = 200;
-          res.setHeader('content-type', data.mime); // fix #10
-          res.end(data.code);
+        if (err.code === 'CACHED') {
+          done(err, data);
         } else {
           error(err, mime);
         }

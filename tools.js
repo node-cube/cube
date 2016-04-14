@@ -169,6 +169,7 @@ function processDir(cube, data, cb) {
         withSource: withSource
       }, function (err) {
         if (err) {
+          if (!err.file) err.file = sourceFile;
           errors.push(err);
         }
         done();
@@ -176,6 +177,7 @@ function processDir(cube, data, cb) {
     } catch (e) {
       if (/node_modules/.test(sourceFile)) {
         // should ignore the error
+        e.file = sourceFile;
         errors.push(e);
       } else {
         throw e;
@@ -225,8 +227,11 @@ function processFile(cube, data, cb) {
   var type =  cube.processors.map[ext];
   if (type === undefined) {
     // unknow type, copy file
-    console.log('[copying file]:', realFile.substr(1));
-    xfs.sync().save(destFile, xfs.readFileSync(source));
+    console.log('unknow file type, check if processors have been plug-in');
+    if (destFile) {
+      console.log('[copying file]:', realFile.substr(1));
+      destFile && xfs.sync().save(destFile, xfs.readFileSync(source));
+    }
     return cb();
   }
   var ps = cube.processors.types[type];
@@ -242,6 +247,7 @@ function processFile(cube, data, cb) {
     source: null,
     sourceMap: null,
     processors: processors,
+    wrap: true,
     compress: data.compress !== undefined ? data.compress : cube.config.compress
   };
   try {
