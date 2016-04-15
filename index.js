@@ -419,6 +419,7 @@ Cube.prototype.fixupResPath = function (dir, code) {
 Cube.prototype.processJsCode = function (data, callback) {
   data.queryPath = data.file;
   data.realPath = data.file;
+  data.wrap = data.wrap !== undefined ? data.wrap : true;
   data = wraper.processScript(this, data);
   wraper.wrapScript(this, data, callback);
 };

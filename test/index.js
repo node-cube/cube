@@ -462,7 +462,7 @@ describe('index.js', function () {
       },
       function (err, result) {
         expect(err).to.be(null);
-        expect(result.codeWraped).to.match(/Cube\('\/main\.js',/);
+        expect(result.codeWraped).to.match(/Cube\('\/main\.js',\[\'\/tests\.js\']/);
         done();
       });
     });
