@@ -68,6 +68,7 @@ cmd
   .option('--mangle-file-name', 'mangle the file name into random name')
   .option('--without-compress', 'do not compress code')
   .option('-t, --transform', 'transform es2015 codes')
+  .option('--smart', 'smart build, only build necessary')
   .parse(process.argv);
 
 var source = cmd.args[0];
@@ -144,7 +145,7 @@ if (fstat.isFile()) {
     mangleFileNameIgnore: ['/main.js']
   });
   tool = Cube.getTool();
-  tool.processDir(cube, {src: inputPath, dest:outputPath}, buildOutput);
+  tool[args.smart ? 'processDirSmart' : 'processDir'](cube, {src: inputPath, dest:outputPath}, buildOutput);
 } else {
   console.log('unknow type input source', source);
 }

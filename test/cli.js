@@ -49,6 +49,34 @@ describe('cli', function () {
         done();
       });
     });
+    it('should work fine with --smart', function (done) {
+      var cmd = 'node bin/cube build --smart example';
+      exec(cmd, function (err, stdout, stderr) {
+        // console.log(stdout.toString(), stderr.toString());
+        var res = stdout.toString().split('\n');
+        var info = [];
+        res.forEach(function (v) {
+          if (/^=+$/.test(v)) {
+            return;
+          }
+          if (v) {
+            info.push(v);
+          }
+        });
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Total Errors: 5/);
+        // check require('css')
+        var cssNamespaceAutofill = xfs.readFileSync(path.join(__dirname, '../example.release/test/test_css_namespace.js'));
+        expect(cssNamespaceAutofill.toString()).match(/'\/css\/test_css.css.js',''/);
+        expect(xfs.existsSync(path.join(__dirname, '../example.release/test/test_ignore.js'))).to.be(false);
+        // node_modules relative file should be build
+        expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test/lib/b.js'))).to.be(true);
+        // node_modules no rel file should not build
+        expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test_ignored_by_smartbuild.js'))).to.be(false);
+        xfs.sync().rmdir(path.join(__dirname, '../example.release'));
+        done();
+      });
+    });
     it('should work fine with -o relative path', function (done) {
       var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus example -o example.out';
       exec(cmd, function (err, stdout) {

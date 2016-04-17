@@ -129,7 +129,6 @@ function analyseRequires(script, map, done) {
 function processDir(cube, data, cb) {
   var source = data.src;
   var dest = data.dest;
-  var withSource = data.withSource;
   if (!dest) {
     return console.log('[ERROR] param missing! dest');
   }
@@ -165,8 +164,7 @@ function processDir(cube, data, cb) {
     try {
       processFile(cube, {
         src: sourceFile,
-        dest: dest,
-        withSource: withSource
+        dest: dest
       }, function (err) {
         if (err) {
           if (!err.file) err.file = sourceFile;
@@ -193,6 +191,168 @@ function processDir(cube, data, cb) {
   });
   // });
 }
+
+/**
+ * 选择性编译
+ *   1. 当前目录下，除了node_modules目录，其他文件都编译
+ *   2. node_modules目录，选择性编译
+ * @param  {Cube}   cube
+ * @param  {Object}   data
+ * @param  {Function} cb()
+ */
+function processDirSmart(cube, data, cb) {
+  var source = data.src;
+  var dest = data.dest;
+  var withSource = data.withSource;
+  if (!dest) {
+    return console.log('[ERROR] param missing! dest');
+  }
+  if (!cb) {
+    cb = function () {};
+  }
+  var st = new Date().getTime();
+  var fileCount = 0;
+  var ignores = cube.ignoresRules;
+  var errors = [];
+  var root = cube.config.root;
+  var requiredModuleFile = []; // 依赖的node_modules文件
+
+  // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
+  xfs.walk(source, function check(p) {
+    var relFile = fixWinPath(p.substr(root.length));
+    if (/^\/node_modules\//.test(relFile)) {
+      return false;
+    }
+    return true;
+  }, function (err, sourceFile, done) {
+    if (err) {
+      return done(err);
+    }
+    fileCount++;
+
+    var relFile = fixWinPath(sourceFile.substr(root.length));
+    var destFile = path.join(dest, relFile);
+    var checked = utils.checkIgnore(relFile, ignores);
+
+    if (checked.ignore) {
+      console.log('[ignore file]:', relFile.substr(1));
+      return done();
+    } else if (checked.skip) {
+      xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
+      console.log('[copy file]:', relFile.substr(1));
+      return done();
+    }
+
+    try {
+      processFile(cube, {
+        src: sourceFile,
+        dest: dest,
+        withSource: withSource
+      }, function (err, res) {
+        if (err) {
+          if (!err.file) err.file = sourceFile;
+          errors.push(err);
+        }
+        var originRequire;
+        if (res && res.result) {
+          originRequire = res.result.requiresOrigin;
+          originRequire && originRequire.forEach(function (v) {
+            if (/^\/node_modules/.test(v)) {
+              requiredModuleFile.push(v);
+            }
+          });
+        }
+        done();
+      });
+    } catch (e) {
+      if (/node_modules/.test(sourceFile)) {
+        // should ignore the error
+        e.file = sourceFile;
+        errors.push(e);
+      } else {
+        throw e;
+      }
+      done();
+    }
+  }, function () {
+    processRequireModules(cube, dest, requiredModuleFile, function () {
+      var end = new Date().getTime();
+      cb(errors, {
+        total: fileCount,
+        time: Math.ceil((end - st) / 1000)
+      });
+    });
+  });
+  // });
+}
+
+function Pedding(num, cb) {
+  var count = 0;
+  return function done() {
+    count ++;
+    if (count === num) {
+      cb();
+    }
+  };
+}
+/**
+ * 建立映射关系，避免循环依赖导致无法结束
+ */
+var builtModules = {};
+function processRequireModules(cube, dest, arr, callback) {
+  var done = Pedding(arr.length, callback);
+  var root = cube.config.root;
+  arr.forEach(function (v) {
+    if (builtModules[v]) {
+      return done();
+    }
+    builtModules[v] = true;
+    var sourceFile = path.join(root, v);
+    processFileWithRequire(cube, {
+      src: sourceFile,
+      dest: dest
+    }, done);
+  });
+}
+function processFileWithRequire(cube, data, cb) {
+  var root = cube.config.root;
+  var count = 1;
+  function _cb(err, res) {
+    if (err) {
+      if (!Array.isArray(err)) {
+        err = [err];
+      }
+      err.forEach(function (e) {
+        console.log(e);
+      });
+      return ;
+    }
+    var result = res.result;
+    count --;
+    if (result.requiresOrigin) {
+      result.requiresOrigin.forEach(function (m) {
+        if (builtModules[m]) {
+          return;
+        }
+        builtModules[m] = true;
+        count ++;
+        processFile(cube, {
+          src: path.join(root, m),
+          dest: data.dest
+        }, function (err, data) {
+          _cb(err, data);
+        });
+      });
+    }
+    if (count === 0) {
+      cb();
+    }
+  }
+  processFile(cube, data, function (err, data) {
+    _cb(err, data);
+  });
+}
+
 /**
  * processFile
  * @param  {Cube}   cube   cube instance
@@ -226,11 +386,12 @@ function processFile(cube, data, cb) {
 
   var type =  cube.processors.map[ext];
   if (type === undefined) {
-    // unknow type, copy file
-    console.log('unknow file type, check if processors have been plug-in');
     if (destFile) {
       console.log('[copying file]:', realFile.substr(1));
       destFile && xfs.sync().save(destFile, xfs.readFileSync(source));
+    } else {
+      // unknow type, copy file
+      console.log('[unknow file type]', realFile.substr(1));
     }
     return cb();
   }
@@ -363,3 +524,4 @@ function fixWinPath(fpath) {
 
 exports.processFile = processFile;
 exports.processDir = processDir;
+exports.processDirSmart = processDirSmart;
