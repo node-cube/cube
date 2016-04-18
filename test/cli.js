@@ -140,6 +140,29 @@ describe('cli', function () {
         done();
       });
     });
+
+    it('should work fine when build single file with --output-file', function (done) {
+      var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus --output-file example/__test_less.css example/css/test_less.less';
+      exec(cmd, function (err, stdout, stderr) {
+        var res = stdout.toString().split('\n');
+        // console.log(stdout.toString(), stderr.toString());
+        var info = [];
+        res.forEach(function (v) {
+          if (/^=+$/.test(v)) {
+            return;
+          }
+          if (v) {
+            info.push(v);
+          }
+        });
+        expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
+        expect(info[info.length - 2]).match(/Successfully/);
+        expect(xfs.existsSync(path.join(__dirname, '../example/__test_less.css'))).to.be(true);
+        xfs.sync().rm(path.join(__dirname, '../example/__test_less.css'));
+        done();
+      });
+    });
+
     it('should work fine when build single file 1', function (done) {
       var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus example/css/test_less.less -o example/css/custom';
       exec(cmd, function (err, stdout) {
