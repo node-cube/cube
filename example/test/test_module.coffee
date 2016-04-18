@@ -13,6 +13,7 @@ describe 'test/test_module', () ->
   testModuleWithDot = require('module_with_dot.js');
   testNs = require('@ali/ns_test')
   testNsCoffee = require('@ali/ns_coffee')
+  testModulejs = require('module.js')
 
   it 'expect require the test module according package.json::main', () ->
     expect(test.version).to.be('1.0.1');
@@ -30,4 +31,5 @@ describe 'test/test_module', () ->
   it 'expect require the module with dot success', () ->
     expect(testModuleWithDot).to.be('success');
 
-
+  it 'expect require module.js with package.json and index.js', () ->
+    expect(testModulejs).to.be('module.js/lib/index.js');
