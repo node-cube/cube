@@ -356,9 +356,10 @@ function processFileWithRequire(cube, data, cb) {
 /**
  * processFile
  * @param  {Cube}   cube   cube instance
- * @param  {Path}   source the abs source file
- * @param  {Path}   dest   this abs target dir
- * @param  {Object}   opts
+ * @param  {Object} data
+ *         - src abs file path
+ *         - dest output dir
+ *         - destFile output file
  * @param  {Function} cb(err, res)
  */
 function processFile(cube, data, cb) {
@@ -376,7 +377,7 @@ function processFile(cube, data, cb) {
   var realFile = fixWinPath(source.substr(root.length));
   // var queryFile = freezeDest ? fixWinPath(dest.substr(root.length)) : realFile;
   var queryFile = realFile;
-  var destFile;
+  var destFile = data.destFile;
   if (dest) {
     destFile = path.join(dest, realFile);
   }
@@ -503,6 +504,8 @@ function processFile(cube, data, cb) {
             }
             xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
           }
+        } else if (destFile) {
+          xfs.sync().save(destFile, flagWithoutWrap ? result.code : result.codeWraped);
         }
         var end = new Date().getTime();
         if (result) {
