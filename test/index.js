@@ -258,6 +258,16 @@ describe('index.js', function () {
         })
         .end(done);
     });
+
+    it('should return ok when require or load is redefined', function (done) {
+      request.get('/node_modules/modulemap/lib/index.js?m')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).to.match(/Cube\("\/node_modules\/modulemap\/lib\/index\.js", \["\/node_modules\/modulemap\/lib\/test\.js"\]/);
+        })
+        .end(done);
+    });
+
     it('should process require with vars', function (done) {
       request.get('/test/test_require_with_var.js?m')
         .expect(200)

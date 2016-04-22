@@ -4,7 +4,8 @@
   },
   "cube": {
     "moduleMap": {
-      "react": "dist/react.js"
+      "react": "dist/react.js",
+      "modulemap": "lib/index.js"
     },
     "processors": {
       ".less": "cube-less",
