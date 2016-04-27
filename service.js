@@ -133,7 +133,8 @@ exports.init = function (cube) {
               return done({code: 'CACHED'}, {
                 mime: tmp.mime,
                 code: tmp.codeFinal,
-                codeWraped: tmp.codeFinal
+                codeWraped: tmp.codeFinal,
+                source: tmp.source
               });
             }
           }
