@@ -89,6 +89,8 @@ function Cube(config) {
 
   this.config = config;
 
+  this.CACHE = {};
+
   this.processors = {
     map: {
       // sufix: type

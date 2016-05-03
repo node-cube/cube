@@ -14,7 +14,9 @@ var utils = require('./lib/utils');
 var wraper = require('./lib/wraper');
 var async = require('async');
 /**
- * CACHE {
+ * Deprecated
+ * see index.js this.CACHE
+ * this.CACHE {
  *   realPath: {
  *     mtime:
  *     mime:
@@ -117,7 +119,7 @@ exports.init = function (cube) {
         });
       },
       function checkCache(rpath, processor, done) {
-        var tmp = CACHE[cachePath];
+        var tmp = cube.CACHE[cachePath];
         xfs.lstat(path.join(config.root, rpath), function (err, stats) {
           if (err) {
             return done({
@@ -193,14 +195,14 @@ exports.init = function (cube) {
       // cache result
       if (cube.config.devCache) {
         debug('cache processed file: %s, %s', result.realPath, result.mtime);
-        CACHE[cachePath] = {
+        cube.CACHE[cachePath] = {
           mtime: result.modifyTime,
           mime: result.mime,
           codeFinal: code,
           requires: result.requires
         };
         if (ext === '.html') {
-          CACHE[cachePath].source = result.source;
+          cube.CACHE[cachePath].source = result.source;
         }
       }
     }
