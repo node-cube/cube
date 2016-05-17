@@ -14,6 +14,7 @@ describe('cli', function () {
     it('should work fine', function (done) {
       exec('mkdir -p test_init', function () {
         exec('cd ./test_init; ../bin/cube init', function (err, stdout, stderr) {
+          // console.log(stdout.toString(), stderr.toString());
           var res = stdout.toString().split('\n');
           stderr = stderr.toString();
           expect(stderr).to.be('');
@@ -99,7 +100,8 @@ describe('cli', function () {
     });
     it('should work fine with -o abs path', function (done) {
       var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus example -o ' + path.join(__dirname, '../example.abs');
-      exec(cmd, function (err, stdout) {
+      exec(cmd, function (err, stdout, stderr) {
+        // console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
         var info = [];
         res.forEach(function (v) {

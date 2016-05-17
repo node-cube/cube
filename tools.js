@@ -1,8 +1,11 @@
+'use strict';
+
 var xfs = require('xfs');
 var path = require('path');
 var requires = require('requires');
 var utils = require('./lib/utils');
 var wraper = require('./lib/wraper');
+var processor = require('./processor');
 var async = require('async');
 var debug = require('debug');
 
@@ -16,6 +19,7 @@ function Done(total, done) {
   };
 }
 
+/*
 function analyseNoduleModules(fpath, map, done) {
   var modules = xfs.readdirSync(fpath);
   var c = 0;
@@ -125,6 +129,7 @@ function analyseRequires(script, map, done) {
     analyseModule(p, map, d);
   });
 }
+*/
 
 function processDir(cube, data, cb) {
   var source = data.src;
@@ -191,6 +196,7 @@ function processDir(cube, data, cb) {
   });
   // });
 }
+
 
 /**
  * 选择性编译
@@ -412,6 +418,53 @@ function processFile(cube, data, cb) {
     wrap: true,
     compress: data.compress !== undefined ? data.compress : cube.config.compress
   };
+
+  processor.process(cube, processData, function (err, result) {
+    if (err) {
+      // console.error(err.file, err.line, err.message);
+      return cb(err);
+    }
+    let flagWithoutWrap = !result.wrap;
+    if (dest) {
+      var finalFile, wrapDestFile;
+      destFile = path.join(dest, result.queryPath.replace(/^\w+:/, ''));
+      if (type === 'script') {
+        /**
+         * script type, write single js file
+         */
+        wrapDestFile = destFile.replace(/(\.\w+)?$/, '.js');
+        xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
+        // var destSourceFile = destFile.replace(/\.js/, '.source.js');
+        // withSource && xfs.sync().save(destSourceFile, result.source);
+      } else if (type === 'style') {
+        /**
+         * style type, should write both js file and css file
+         */
+        finalFile = path.join(dest, realFile).replace(/(\.\w+)?$/, '.css');
+        wrapDestFile = destFile;
+        xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
+        xfs.sync().save(finalFile, result.code);
+      } else if (type === 'template') {
+        wrapDestFile = destFile;
+        if (/\.html?$/.test(ext)) {
+          xfs.sync().save(path.join(dest, result.realPath), result.source);
+        }
+        xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
+      }
+    } else if (destFile) {
+      xfs.sync().save(destFile, flagWithoutWrap ? result.code : result.codeWraped);
+    }
+    var end = new Date().getTime();
+    if (result) {
+      result.file = realFile;
+    }
+    cb(null, {
+      total: 1,
+      time: Math.ceil((end - st) / 1000),
+      result: result
+    });
+  });
+  /**
   try {
     processData.source = processData.code = xfs.readFileSync(path.join(root, realFile)).toString();
   } catch (e) {
@@ -484,7 +537,7 @@ function processFile(cube, data, cb) {
           if (type === 'script') {
             /**
              * script type, write single js file
-             */
+             *
             wrapDestFile = destFile.replace(/(\.\w+)?$/, '.js');
             xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
             // var destSourceFile = destFile.replace(/\.js/, '.source.js');
@@ -492,7 +545,7 @@ function processFile(cube, data, cb) {
           } else if (type === 'style') {
             /**
              * style type, should write both js file and css file
-             */
+             *
             finalFile = path.join(dest, realFile).replace(/(\.\w+)?$/, '.css');
             wrapDestFile = destFile;
             xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
@@ -519,6 +572,7 @@ function processFile(cube, data, cb) {
       }
     }
   });
+  */
 }
 
 function fixWinPath(fpath) {

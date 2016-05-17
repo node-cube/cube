@@ -11,12 +11,12 @@ var path = require('path');
 var connect = require('connect');
 var connectStatic = require('serve-static');
 var utils = require('./lib/utils');
-var wraper = require('./lib/wraper');
 var async = require('async');
+var processor = require('./processor');
 /**
  * Deprecated
- * see index.js this.CACHE
- * this.CACHE {
+ * see index.js cube.CACHE
+ * cube.CACHE {
  *   realPath: {
  *     mtime:
  *     mime:
@@ -25,7 +25,7 @@ var async = require('async');
  * }
  * @type {Object}
  */
-var CACHE = {};
+
 /**
  * init cube
  *
@@ -45,6 +45,8 @@ exports.init = function (cube) {
   var root = cube.config.root;
   var serveStatic;
   var app;
+  // 模块被引用列表
+  var requiredMap = {};
 
   if (!config.cached) {
     config.cached = config.built ? config.root : root + '.release';
@@ -99,88 +101,59 @@ exports.init = function (cube) {
     cachePath = qpath + ':' + flagModuleWrap + ':' + flagCompress + ':' + config.remote;
     debug('recognize file type: %s', type);
 
-    var actions = [
-      function seekFile(done) {
-        utils.seekFile(cube, root, qpath, ps, function (err, realPath, ext, processor) {
-          if (err) {
-            debug('seek file error', err.code, err.message, 'filetype:', type, 'configs:', config);
-            console.error('[CUBE_ERROR]', err.message);
-            err.statusCode = 404;
-            return done(err);
-          }
-          if (!processor) {
-            return done({
-              code: 500,
-              message: 'unsupported file type, please register `' + ext + '` processor'
-            });
-          }
-          debug('query: %s realpath: %s type: %s %s', qpath, realPath, type, mime);
-          done(null, realPath, processor);
-        });
-      },
-      function checkCache(rpath, processor, done) {
-        var tmp = cube.CACHE[cachePath];
-        xfs.lstat(path.join(config.root, rpath), function (err, stats) {
-          if (err) {
-            return done({
-              code: 500,
-              message: 'read file stats error:' + err.message
-            });
-          }
+    var data = {
+      queryPath: qpath,
+      realPath: null,
+      type: type,
+      code: null,
+      codeWraped: null,
+      source: null,
+      sourceMap: null,
+      processors: null,
+      modifyTime: null,
+      mime: mime,
+      compress: flagCompress,
+      wrap: flagModuleWrap
+    };
 
-          var mtime = new Date(stats.mtime).getTime();
-          if (tmp) { // if cached, check cache
-            if (tmp.mtime === mtime) { // target the cache, just return
-              debug('hint cache', rpath);
-              return done({code: 'CACHED'}, {
-                mime: tmp.mime,
-                code: tmp.codeFinal,
-                codeWraped: tmp.codeFinal,
-                source: tmp.source
-              });
-            }
-          }
-          done(null, rpath, processor, mtime);
-        });
-      },
-      function processCode(rpath, processors, modifyTime, done) {
-        var data = {
-          queryPath: qpath,
-          realPath: rpath,
-          type: type,
-          code: null,
-          codeWraped: null,
-          source: null,
-          sourceMap: null,
-          processors: processors,
-          modifyTime: modifyTime,
-          mime: mime,
-          compress: flagCompress,
-          wrap: flagModuleWrap
-        };
-        try {
-          data.source = data.code = xfs.readFileSync(path.join(root, rpath)).toString();
-        } catch (e) {
+    function seekFile(done) {
+      utils.seekFile(cube, root, qpath, ps, function (err, realPath, ext, processors) {
+        if (err) {
+          debug('seek file error', err.code, err.message, 'filetype:', type, 'configs:', config);
+          console.error('[CUBE_ERROR]', err.message);
+          err.statusCode = 404;
+          return done(err);
+        }
+        if (!processors) {
           return done({
             code: 500,
-            file: qpath,
-            message: 'read file content error:' + e.message
+            message: 'unsupported file type, please register `' + ext + '` processor'
           });
         }
+        debug('query: %s realpath: %s type: %s %s', qpath, realPath, type, mime);
+        data.realPath = realPath;
+        data.processors = processors;
         done(null, data);
+      });
+    }
+
+    async.waterfall([
+      seekFile,
+      function (data, callback) {
+        processor.process(cube, data, callback);
       }
-    ];
+    ], done);
 
     function done(err, result) {
-      var flagCache = false;
-      if (err) {
-        if (err.code === 'CACHED') {
-          flagCache = true;
-        } else {
-          return error(err, result.mime);
-        }
+      if (err && err.code !== 'CACHED') {
+        return errorMsg(err, result);
       }
       var code = flagModuleWrap ? result.codeWraped : result.code;
+
+      if (flagModuleWrap) {
+        // 级联合并
+        result.requires;
+      }
 
       if (ext === '.html' && !flagModuleWrap) {
         code = result.source;
@@ -188,25 +161,9 @@ exports.init = function (cube) {
       res.statusCode = 200;
       res.setHeader('content-type', result.mime);
       res.end(code);
-      if (flagCache) {
-        // already cached
-        return;
-      }
-      // cache result
-      if (cube.config.devCache) {
-        debug('cache processed file: %s, %s', result.realPath, result.mtime);
-        cube.CACHE[cachePath] = {
-          mtime: result.modifyTime,
-          mime: result.mime,
-          codeFinal: code,
-          requires: result.requires
-        };
-        if (ext === '.html') {
-          cube.CACHE[cachePath].source = result.source;
-        }
-      }
     }
-    function error(e, mime) {
+    function errorMsg(e, result) {
+      let mime = result ? result.mime : 'text/html';
       res.statusCode = e.statusCode || 200;
       res.setHeader('content-type', flagModuleWrap ? 'text/javascript' : mime);
       var msg = flagModuleWrap ?
@@ -225,78 +182,7 @@ exports.init = function (cube) {
       res.end(msg);
     }
 
-    function processResult(err, result) {
-      if (err) {
-        error(err, mime);
-        return;
-      }
 
-      var wraperMethod;
-      switch(type) {
-        case 'script':
-          try {
-            result = wraper.processScript(cube, result);
-          } catch (e) {
-            return error(e, result.mime);
-          }
-          if (flagModuleWrap)
-            wraperMethod = 'wrapScript';
-          // utils.setRequires(result.queryPath, result.requires);
-          end(null, result);
-          break;
-        case 'style':
-          if (flagModuleWrap)
-            wraperMethod = 'wrapStyle';
-          wraper.processCssCode(cube, result, end);
-          break;
-        case 'template':
-          if (flagModuleWrap) {
-            try {
-              result = wraper.processScript(cube, result);
-            } catch (e) {
-              return error(e, result.mime);
-            }
-            wraperMethod = 'wrapScript';
-          }
-          end(null, result);
-          break;
-      }
-      function end(err, result) {
-        if (err) {
-          return error(err);
-        }
-        if (flagModuleWrap) {
-          result.mime = cube.getMIMEType('script');
-          wraper[wraperMethod](cube, result, done);
-        } else {
-          done(null, result);
-        }
-      }
-    }
-    async.waterfall(actions, function (err, data) {
-      if (err) {
-        if (err.code === 'CACHED') {
-          done(err, data);
-        } else {
-          error(err, mime);
-        }
-        return;
-      }
-      var processActions = [
-        function (done) {
-          debug('start process');
-          done(null, data);
-        }
-      ];
-      data.processors.forEach(function (p) {
-        var name = p.constructor.name;
-        processActions.push(function (d, done) {
-          debug('step into processor:' + name);
-          p.process(d, done);
-        });
-      });
-      async.waterfall(processActions, processResult);
-    });
   }
 
   // return middleware
