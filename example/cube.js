@@ -1,4 +1,362 @@
 /*!
- * Cube v2.0.0-alpha.5
+ * cube: example/cube.js
+ * Authors  : fish (https://github.com/fishbar)
+ * Authors  : HQidea (https://github.com/HQidea)
+ * Create   : 2014-04-18 15:32:20
+ * Refactor : 2016-02-29
+ * CopyRight 2014 (c) Fish And Other Contributors
+ *
+ * run in browser
  */
-!function(g,e,a,c,h,f,b,j,i){function k(){}function l(n,p){if(arguments.length===1)return b.fireModule(n);var o=b.fireModule(n);d.css(o,p,n)}function m(p,n,o){arguments.length===2&&typeof n==='function'?(o=n,n=null,d.use(p,o)):d.use(p,function(q){q=d.css(q,n,p),o&&o(q)})}function d(n,o,r){var p=!1;if(arguments.length===3){c[n]||(c[n]={exports:{},loaded:!1,fired:!1},p=!0,o.length&&console.info('Cube '+o+' should exist.'));var q=c[n];q.fn=r,q.loaded=!0,p||b.load(o)}}a={base:'',remoteBase:{},remoteSeparator:':',charset:'utf-8',version:+new Date,entrances:{}},c={},h=document.querySelector('head'),f=!1,b={reBase:function(o){var n=o.indexOf(a.remoteSeparator);return n>0?a.remoteBase[o.substr(0,n)]+o.substr(n+1):''},fixUseModPath:function(o){typeof o==='string'&&(o=[o]);var q=o.length,n;for(var p=0;p<q;p++)n=o[p],n.indexOf(a.remoteSeparator)===-1&&(n.indexOf('./')===0?n=n.substr(1):n[0]!=='/'&&(n='/'+n));return o},checkAllDownloaded:function(){var n=0;for(var o in c)c[o].loaded||n++;return n},load:function(n){typeof n==='string'&&(n=[n]),n.forEach(function(p){if(c[p])return;var o=document.createElement('script');o.type='text/javascript',o.async='true',o.charset=a.charset;var q=b.reBase(p),r=[q||a.base+p,'?m=1&',a.version].join('');o.src=r,h.appendChild(o),c[p]={exports:{},loaded:!1,fired:!1}}),b.checkAllDownloaded()===0&&b.startAppAndCallback()},fireModule:function(o){var n=c[o];return n?(n.fired||(n.fired=!0,n.exports=n.fn.apply(g,[n,n.exports,l,m])),n.exports):void 0},startAppAndCallback:function(){if(f)return;f=!0;var n=a.entrances,o,p;for(o in n)p=o.split(','),p.forEach(function(r){var q=0;b.fireModule(r),n[o].forEach(function(t){var s=t(c[r].exports);s&&q++}),n[o].length===q&&delete n[o]});f=!1}},d.init=function(n){if(n.base&&n.base!=='/'&&(a.base=n.base.replace(/\/$/,'')),n.remoteBase)for(var o in n.remoteBase)a.remoteBase[o]=n.remoteBase[o].replace(/\/$/,'');return n.charset&&(a.charset=n.charset),n.version&&(a.version=n.version),this},d.use=function(n,o){if(!n)throw new Error('Cube.use(moduleName) moduleName is undefined!');return o=o||k,n=b.fixUseModPath(n),b.load(n),a.entrances[n]||(a.entrances[n]=[]),a.entrances[n].push(function(p,q){return p=[],q=n.length,function(r){return p.push(r),p.length===q?(o.apply(g,p),!0):void 0}}()),b.checkAllDownloaded()===0&&b.startAppAndCallback(),this},d.register=function(n,o){return c[n]?console.error('module already registered:',n):(c[n]={exports:o,fn:k,loaded:!0,fired:!0},this)},j=/([^};]+)(\{[^}]+\})/g,i={},d.css=function(o,p,r){if(!o)return;var q=r+'@'+p;if(i[q])return;i[q]=!0,p&&(o=o.replace(j,function(v,t,u){var s=t.split(',').map(function(w){return p+' '+w.trim()});return s.join(',')+u}));var n=document.createElement('style');return n.setAttribute('type','text/css'),n.setAttribute('mod',r),p&&n.setAttribute('ns',p),h.appendChild(n),n.innerHTML=o,o},e=e||'Cube',g[e]?console.log('window.'+e+' already in using, replace the last "null" param in cube.js'):g[e]=d}(window,null)
+(function (global, alias) {
+  var settings = {
+    base: '',
+    remoteBase: {},
+    remoteSeparator: ':',
+    charset: 'utf-8',
+    version: +new Date(),
+    debug: false,
+    entrances: {}  // Cube.use's cb
+  };
+  var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
+  var head = document.querySelector('head');
+  var runLock = false;
+  function noop() {}
+
+  /**
+   * The require function
+   * @param module
+   * @param namespace
+   * @returns {*}
+   * @private
+   */
+  function __cube_require__(module, namespace) {
+    if (arguments.length === 1) {
+      return helpers.fireModule(module);
+    } else {
+      var css = helpers.fireModule(module);
+      Cube.css(css, namespace, module);
+    }
+  }
+
+  /**
+   * The load function
+   * @param module
+   * @param namespace
+   * @param cb
+   * @private
+   */
+  function __cube_load__(module, namespace, cb) {
+    if (arguments.length === 2 && typeof namespace === 'function') {
+      cb = namespace;
+      namespace = null;
+      Cube.use(module, cb);
+    } else {
+      Cube.use(module, function (css) {
+        css = Cube.css(css, namespace, module);
+        cb && cb(css);
+      });
+    }
+  }
+
+  var helpers = {
+    /**
+     * If mod is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
+     */
+    reBase: function (mod) {
+      var offset = mod.indexOf(settings.remoteSeparator);
+      if (offset > 0) {
+        return settings.remoteBase[mod.substr(0, offset)] + mod.substr(offset + 1);
+      } else {
+        return '';
+      }
+    },
+    fixUseModPath: function (mods) {
+      var len = mods.length;
+      var mod;
+      for (var i = 0; i < len; i++) {
+        mod = mods[i];
+        if (mod.indexOf(settings.remoteSeparator) === -1) {
+          /** fix #12 **/
+          if (mod.indexOf('./') === 0) {  // be compatible with ./test.js
+            mods[i] = mod.substr(1);
+          } else if (mod[0] !== '/') {    // be campatible with test.js
+            mods[i] = '/' + mod;
+          }
+        }
+      }
+      return mods;
+    },
+    checkAllDownloaded: function () {
+      var unloaded = 0;
+      for (var module in installedModules) {
+        if (!installedModules[module].loaded) {
+          unloaded++;
+        }
+      }
+      return unloaded;
+    },
+    /**
+     * 下载模块
+     * @param requires
+     * @param referer
+     */
+    load: function (requires, referer) {
+      if (typeof requires === 'string') {
+        requires = [requires];
+      }
+      requires.forEach(function (require) {
+        if (installedModules[require]) {
+          return;
+        }
+        // download form server
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.async = 'true';
+        script.charset = settings.charset;
+
+        var rebaseName = helpers.reBase(require);
+        var srcPath = [rebaseName || (settings.base + require), '?m=1&', settings.version].join('');
+        if (settings.debug) {
+          srcPath += '&ref=' + referer;
+        }
+        script.src = srcPath;
+
+        head.appendChild(script);
+        installedModules[require] = {
+          exports: {},
+          loaded: false,
+          fired: false
+        };
+      });
+      if (helpers.checkAllDownloaded() === 0) {
+        helpers.startAppAndCallback();
+      }
+    },
+    /**
+     * 运行模块
+     * @param module
+     * @returns {*}
+     */
+    fireModule: function (module) {
+      var m = installedModules[module];
+
+      // sometimes, module in server side not found,
+      // m is undefined
+      if (!m) {
+        return console.error('Cube Error: Cannot find module ' + '\'' + module + '\'');
+      }
+      if (!m.fired) {
+        m.fired = true;
+        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load__]);
+      }
+
+      return m.exports;
+    },
+    /**
+     * 从Cube.use的文件开始自上而下运行,并调用回调函数
+     */
+    startAppAndCallback: function () {
+      if (runLock) {  // 确保只有一个实例会执行, 解决fireModule可能导致同时多次执行该函数的问题
+        return;
+      }
+
+      runLock = true;
+      var entrances = settings.entrances;
+      var key, arr;
+
+      for (key in entrances) {
+        arr = key.split(',');
+        arr.forEach(function (entrance) {
+          var count = 0;
+          helpers.fireModule(entrance);
+          entrances[key].forEach(function (fn) {
+            var called = fn(installedModules[entrance].exports);
+            if (called) {
+              count++;
+            }
+          });
+          if (entrances[key].length === count) {  // 回调函数都执行完后删除
+            delete entrances[key];
+          }
+        });
+      }
+
+      runLock = false;
+    }
+  };
+
+  /**
+   * 非构造函数,只供模块的wrapper调用
+   * @param name
+   * @param requires
+   * @param callback
+   */
+  function Cube(name, requires, callback) {
+    //var requiresLoaded = false;
+
+    // if (arguments.length === 3) {
+    if (!installedModules[name]) {
+      installedModules[name] = {
+        exports: {},
+        loaded: false,
+        fired: false
+      };
+      /*
+      requiresLoaded = true;
+      if (requires.length && settings.debug) {
+        console.info('Cube Info: Module ' + '\'' + requires + '\'' + ' should exist');
+      }
+      */
+    }
+    var module = installedModules[name];
+    module.fn = callback;
+    module.loaded = true;
+    //if (!requiresLoaded) {
+    helpers.load(requires, name);
+    //}
+    // }
+  }
+
+  /**
+   * init global setting for Cube
+   * @static
+   * @param  {Object} config {base, remoteBase, charset, version}
+   */
+  Cube.init = function (config) {
+    if (config.base && config.base !== '/') {
+      settings.base = config.base.replace(/\/$/, '');
+    }
+    if (config.remoteBase) {
+      for (var key in config.remoteBase) {
+        settings.remoteBase[key] = config.remoteBase[key].replace(/\/$/, '');
+      }
+    }
+    if (config.charset) {
+      settings.charset = config.charset;
+    }
+    if (config.version) {
+      settings.version = config.version;
+    }
+    if (config.debug) {
+      settings.debug = config.debug;
+      Cube.cache = installedModules;
+    }
+    return this;
+  };
+  /**
+   * loading module async, this function only support abs path
+   * @public
+   * @param  {Path}     mods module abs path
+   * @param  {Function} cb  callback function, usually with module.exports as it's first param
+   * @param  {Boolean}  noFix used only in single mode
+   */
+  Cube.use = function (mods, cb, noFix) {
+    if (!mods) {
+      throw new Error('Cube.use(moduleName) moduleName is undefined!');
+    }
+    cb = cb || noop;
+
+    if (typeof mods === 'string') {
+      mods = [mods];
+    }
+    if (!noFix) {
+      mods = helpers.fixUseModPath(mods);
+    }
+    helpers.load(mods, 'Cube.use');
+
+    if (!settings.entrances[mods]) {
+      settings.entrances[mods] = [];
+    }
+    settings.entrances[mods].push(function () {
+      var apps = [];
+      var length = mods.length;
+      return function (entrance) {
+        apps.push(entrance);
+        if (apps.length === length) {
+          cb.apply(global, apps);
+          return true;
+        }
+      };
+    }());
+    if (helpers.checkAllDownloaded() === 0) {  // 解决load已存在的模块时,不会进startAppAndCallback
+      helpers.startAppAndCallback();
+    }
+    return this;
+  };
+  /**
+   * register module in to cache
+   * @param  {string} module    [description]
+   * @param  {} exports [description]
+   */
+  Cube.register = function (module, exports) {
+    if (installedModules[module]) {
+      return console.error('Cube Error: Module ' + '\'' + module + '\'' + ' already registered');
+    }
+    installedModules[module] = {
+      exports: exports,
+      fn: noop,
+      loaded: true,
+      fired: true
+    };
+    return this;
+  };
+  /**
+   * @interface inject css into page
+   * css inject is comp
+   * ie8 and lower only support 32 stylesheets, so this function
+   * @param  {String} name module name
+   * @param  {CssCode} css  css code
+   */
+  var parseCssRe = /([^};]+)(\{[^}]+\})/g;
+  var cssMod = {};
+  Cube.css = function (css, namespace, file) {
+    if (!css) {
+      return;
+    }
+    var modId = file + '@' + namespace;
+    if (cssMod[modId]) {
+      return;
+    }
+    cssMod[modId] = true;
+    if (namespace) {
+      css = css.replace(parseCssRe, function (m0, m1, m2) {
+        var selectors = m1.split(',').map(function (selector) {
+          return namespace + ' ' + selector.trim();
+        });
+        return selectors.join(',') + m2;
+      });
+    }
+    var style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('mod', file);
+    if (namespace) {
+      style.setAttribute('ns', namespace);
+    }
+    head.appendChild(style);
+    style.innerHTML = css;
+    return css;
+  };
+
+
+  alias = alias || 'Cube';
+  if (global[alias]) {
+    console.error('Cube Error: window.' + alias + ' already in using, replace the last "null" param in cube.js');
+  } else {
+    global[alias] = Cube;
+  }
+
+
+  /**
+   * intergration with <script> tag
+   * <script data-base="" src=""></script>
+   */
+  var cse = document.currentScript;
+  if (cse) {
+    var cfg = cse.dataset;
+    if (cfg.base) {
+      Cube.init(cfg);
+      Cube.use(cfg.main || 'index.js', function(app){app.run&& app.run();});
+    }
+  }
+})(window, null);

@@ -204,6 +204,9 @@ function processDir(cube, data, cb) {
  *   2. node_modules目录，选择性编译
  * @param  {Cube}   cube
  * @param  {Object}   data
+ *         - src
+ *         - dest
+ *         - withSource
  * @param  {Function} cb()
  */
 function processDirSmart(cube, data, cb) {
@@ -292,6 +295,181 @@ function processDirSmart(cube, data, cb) {
   // });
 }
 
+function processDirSmart2(cube, data, cb) {
+  var source = data.src;
+  var dest = data.dest;
+  if (!dest) {
+    return console.log('[ERROR] param missing! dest');
+  }
+  if (!cb) {
+    cb = function () {};
+  }
+  var st = new Date().getTime();
+  var fileCount = 0;
+  var ignores = cube.ignoresRules;
+  var errors = [];
+  var root = cube.config.root;
+  var requiredModuleFile = []; // 依赖的node_modules文件
+  var files = [];
+
+  // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
+  xfs.walk(source, function check(p) {
+    var relFile = fixWinPath(p.substr(root.length));
+    if (/^\/node_modules\//.test(relFile)) {
+      return false;
+    }
+    return true;
+  }, function (err, sourceFile, done) {
+    if (err) {
+      return done(err);
+    }
+    fileCount++;
+
+    var relFile = fixWinPath(sourceFile.substr(root.length));
+    var destFile = path.join(dest, relFile);
+    var checked = utils.checkIgnore(relFile, ignores);
+
+    if (checked.ignore) {
+      console.log('[ignore file]:', relFile.substr(1));
+      return done();
+    } else if (checked.skip) {
+      xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
+      console.log('[copy file]:', relFile.substr(1));
+      return done();
+    }
+
+    try {
+      processFile(cube, {
+        src: sourceFile
+      }, function (err, res) {
+        if (err) {
+          if (!err.file) err.file = sourceFile;
+          errors.push(err);
+        }
+        var originRequire;
+        if (res && res.result) {
+          console.log('>>>>', relFile, res.time);
+          files.push(res.result);
+          originRequire = res.result.requiresOrigin;
+          originRequire && originRequire.forEach(function (v) {
+            if (/^\/node_modules/.test(v)) {
+              requiredModuleFile.push(v);
+            }
+          });
+        }
+        done();
+      });
+    } catch (e) {
+      if (/node_modules/.test(sourceFile)) {
+        // should ignore the error
+        e.file = sourceFile;
+        errors.push(e);
+      } else {
+        throw e;
+      }
+      done();
+    }
+  }, function () {
+    processRequireModules2(cube, dest, requiredModuleFile, function (err, modFiles) {
+      let end = new Date().getTime();
+      files = files.concat(modFiles);
+      // 建立 被依赖 映射
+      let finalCodes = mergeNode(files);
+
+      finalCodes.forEach(function (code) {
+        let targetPath = path.join(dest, code.file);
+        xfs.sync().save(targetPath, code.code);
+      });
+      //
+      cb(errors, {
+        total: fileCount,
+        time: Math.ceil((end - st) / 1000)
+      });
+    });
+  });
+}
+
+function mergeNode(files) {
+  let requiredMap = {}; // 模块被谁依赖
+  let fileMap = {};
+  files.forEach(function (file) {
+    let reqs = file.requires;
+    let qpath = file.queryPath;
+    if (!requiredMap[qpath]) {
+      requiredMap[qpath] = {};
+    }
+    fileMap[qpath] = file;
+    reqs && reqs.forEach(function (req) {
+      if (/^\w+:/.test(req)) {
+        // remote require, ignore
+        return;
+      }
+      if (!requiredMap[req]) {
+        requiredMap[req] = {};
+      }
+      requiredMap[req][qpath] = true;
+    });
+  });
+
+  console.log(requiredMap);
+
+  // 相邻节点折叠
+  Object.keys(requiredMap).forEach(function (k) {
+    let tmp = requiredMap[k];
+    let parents = Object.keys(tmp);
+
+    if (parents.length === 0) {
+      fileMap[k].__root = true;
+      // root node, ignore
+    } else if (parents.length === 1) {
+      let f = parents[0];
+      if (!fileMap[f].merges) {
+        fileMap[f].merges = [];
+      }
+      fileMap[f].merges.push(k);
+      // requiredMap[k];
+    }
+  });
+
+  //console.log(requiredMap);
+
+  function recurseMerge(arr, node) {
+    arr.unshift({file: node.queryPath, code: node.codeWraped});
+    if (node.merges) {
+      node.merges.forEach(function (key) {
+        recurseMerge(arr, fileMap[key]);
+      });
+    }
+  }
+
+  let finalList = [];
+  // 根据上面的折叠，递归合并
+  files.forEach(function(file) {
+    if (!file.__root) {
+      finalList.push({
+        file: file.queryPath,
+        code: file.codeWraped
+      });
+      return;
+    }
+    let code = [];
+    let map = {};
+    let finalCode = [];
+    recurseMerge(code, file);
+    // 去重
+    code.forEach(function (c) {
+      if (map[c.file]) {
+        return;
+      }
+      map[c.file] = true;
+      finalCode.push(c.code);
+    });
+    finalList.push({file: file.queryPath, code: finalCode.join(';')});
+  });
+  return finalList;
+}
+
+
 function Pedding(num, cb) {
   var count = 0;
   return function done() {
@@ -320,6 +498,7 @@ function processRequireModules(cube, dest, arr, callback) {
     }, done);
   });
 }
+
 function processFileWithRequire(cube, data, cb) {
   var root = cube.config.root;
   var count = 1;
@@ -352,6 +531,71 @@ function processFileWithRequire(cube, data, cb) {
     }
     if (count === 0) {
       cb();
+    }
+  }
+  processFile(cube, data, function (err, data) {
+    _cb(err, data);
+  });
+}
+
+
+function processRequireModules2(cube, dest, arr, callback) {
+  var res = [];
+  var done = Pedding(arr.length, function () {
+    callback(null, res);
+  });
+  var root = cube.config.root;
+
+  arr.forEach(function (v) {
+    if (builtModules[v]) {
+      return done();
+    }
+    builtModules[v] = true;
+    var sourceFile = path.join(root, v);
+    processFileWithRequire2(cube, {
+      src: sourceFile
+    }, function (err, data) {
+      res = res.concat(data);
+      done();
+    });
+  });
+}
+
+function processFileWithRequire2(cube, data, cb) {
+  var root = cube.config.root;
+  var count = 1;
+  var files = [];
+  function _cb(err, res) {
+    if (err) {
+      if (!Array.isArray(err)) {
+        err = [err];
+      }
+      err.forEach(function (e) {
+        console.log(e);
+      });
+      return ;
+    }
+    var result = res.result;
+    files.push(res.result);
+    count --;
+    if (result.requiresOrigin) {
+      result.requiresOrigin.forEach(function (m) {
+        if (builtModules[m]) {
+          return;
+        }
+        builtModules[m] = true;
+        count ++;
+        processFile(cube, {
+          src: path.join(root, m)
+        }, function (err, data) {
+          process.nextTick(function () {
+            _cb(err, data);
+          });
+        });
+      });
+    }
+    if (count === 0) {
+      cb(null, files);
     }
   }
   processFile(cube, data, function (err, data) {
@@ -582,3 +826,4 @@ function fixWinPath(fpath) {
 exports.processFile = processFile;
 exports.processDir = processDir;
 exports.processDirSmart = processDirSmart;
+exports.processDirSmart2 = processDirSmart2;

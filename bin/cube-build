@@ -154,7 +154,7 @@ if (fstat.isFile()) {
     mangleFileNameIgnore: ['/main.js']
   });
   tool = Cube.getTool();
-  tool[args.smart ? 'processDirSmart' : 'processDir'](cube, {src: inputPath, dest:outputPath}, buildOutput);
+  tool[args.smart ? 'processDirSmart2' : 'processDir'](cube, {src: inputPath, dest:outputPath}, buildOutput);
 } else {
   console.log('unknow type input source', source);
 }

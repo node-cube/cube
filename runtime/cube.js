@@ -193,27 +193,29 @@
    * @param callback
    */
   function Cube(name, requires, callback) {
-    var requiresLoaded = false;
+    //var requiresLoaded = false;
 
-    if (arguments.length === 3) {
-      if (!installedModules[name]) {
-        installedModules[name] = {
-          exports: {},
-          loaded: false,
-          fired: false
-        };
-        requiresLoaded = true;
-        if (requires.length && settings.debug) {
-          console.info('Cube Info: Module ' + '\'' + requires + '\'' + ' should exist');
-        }
+    // if (arguments.length === 3) {
+    if (!installedModules[name]) {
+      installedModules[name] = {
+        exports: {},
+        loaded: false,
+        fired: false
+      };
+      /*
+      requiresLoaded = true;
+      if (requires.length && settings.debug) {
+        console.info('Cube Info: Module ' + '\'' + requires + '\'' + ' should exist');
       }
-      var module = installedModules[name];
-      module.fn = callback;
-      module.loaded = true;
-      if (!requiresLoaded) {
-        helpers.load(requires, name);
-      }
+      */
     }
+    var module = installedModules[name];
+    module.fn = callback;
+    module.loaded = true;
+    //if (!requiresLoaded) {
+    helpers.load(requires, name);
+    //}
+    // }
   }
 
   /**

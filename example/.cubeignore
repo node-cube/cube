@@ -1,6 +1,9 @@
 [skip]
 /lib/
 /cube.js
+/index.html
+/css/mocha.css
+
 [ignore]
 /test/test_ignore.js
 /node_modules/ignore/

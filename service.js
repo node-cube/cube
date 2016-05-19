@@ -13,18 +13,118 @@ var connectStatic = require('serve-static');
 var utils = require('./lib/utils');
 var async = require('async');
 var processor = require('./processor');
-/**
- * Deprecated
- * see index.js cube.CACHE
- * cube.CACHE {
- *   realPath: {
- *     mtime:
- *     mime:
- *     code:
- *   }
- * }
- * @type {Object}
- */
+
+function Pedding(num, cb) {
+  var count = 0;
+  return function done() {
+    count ++;
+    if (count === num) {
+      cb();
+    }
+  };
+}
+
+
+function prepare(cube, data, done) {
+  let qpath = data.queryPath;
+  let ext = path.extname(qpath);
+  let type = cube.processors.map[ext];
+  if (type === undefined) {
+    console.log('[CUBE]`' + qpath + '` unmatch file type, query will passed to connect.static handler');
+    return done({code: 'STATIC_FILE'});
+  }
+  let ps = cube.processors.types[type];
+  let mime = cube.getMIMEType(type);
+
+  debug('query file:' + qpath,
+    'ext:' + ext,
+    'type:' + type,
+    'wrap:' + data.wrap,
+    'compress:' + data.compress
+  );
+
+  data.type = type;
+  data.ext = ext;
+  data.mime = mime;
+  done(null, cube, data, ps);
+}
+
+function seekFile(cube, data, ps, done) {
+  let qpath = data.queryPath;
+  let root = cube.config.root;
+  utils.seekFile(cube, root, qpath, ps, function (err, realPath, ext, processors) {
+    if (err) {
+      debug('seek file error', err.code, err.message, 'filetype:', data.type);
+      console.error('[CUBE_ERROR]', err.message);
+      err.statusCode = 404;
+      return done(err);
+    }
+    if (!processors) {
+      return done({
+        code: 500,
+        message: 'unsupported file type, please register `' + ext + '` processor'
+      });
+    }
+    debug('query: %s realpath: %s type: %s %s', qpath, realPath, data.type, data.mime);
+    data.realPath = realPath;
+    data.processors = processors;
+    done(null, data);
+  });
+}
+
+function mergeRequire(cube, result, arr, done) {
+  let qpath = result.queryPath;
+  if (!/^\/node_modules/.test(qpath)) {
+    return done();
+  }
+  debug('hint merge');
+  let requires = result.requires;
+  let basePath = path.dirname(qpath);
+  // find node_modules request
+  let list = [];
+  requires.forEach(function (reqfile) {
+    if (reqfile.indexOf(basePath) !== 0) {
+      return;
+    }
+    list.push(reqfile);
+  });
+
+  if (!list.length) {
+    return done();
+  }
+
+  done = Pedding(list.length, done);
+
+  list.forEach(function (reqfile) {
+    let data = {
+      queryPath: reqfile,
+      realPath: reqfile,
+      type: null,
+      code: null,
+      codeWraped: null,
+      source: null,
+      sourceMap: null,
+      processors: null,
+      modifyTime: null,
+      mime: null,
+      compress: result.compress,
+      wrap: result.wrap
+    };
+    async.waterfall([
+      function (done) {
+        done(null, cube, data);
+      },
+      prepare,
+      seekFile,
+      function (data, callback) {
+        processor.process(cube, data, callback);
+      }
+    ], function (err, result) {
+      arr.unshift(result);
+      mergeRequire(cube, result, arr, done);
+    });
+  });
+}
 
 /**
  * init cube
@@ -65,12 +165,7 @@ exports.init = function (cube) {
   function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
     var qpath = q.pathname;
-    var ext = path.extname(qpath);
-    var cachePath;
     var queryString;
-    var type;
-    var ps;
-    var mime;
     var flagModuleWrap;
     var flagCompress;
     if (qpath === '/') {
@@ -85,59 +180,27 @@ exports.init = function (cube) {
     flagModuleWrap = req.query.m === undefined ? false : true;
     flagCompress = req.query.c === undefined ? false : true;
 
-    type =  cube.processors.map[ext];
-    debug('query file:' + qpath,
-      'ext:' + ext,
-      'type:' + type,
-      'wrap:' + flagModuleWrap,
-      'compress:' + flagCompress
-    );
-    if (type === undefined) {
-      console.log('[CUBE]`' + qpath + '` unmatch file type, query will passed to connect.static handler');
-      return serveStatic(req, res, next);
-    }
-    mime = cube.getMIMEType(type);
-    ps = cube.processors.types[type];
-    cachePath = qpath + ':' + flagModuleWrap + ':' + flagCompress + ':' + config.remote;
-    debug('recognize file type: %s', type);
 
     var data = {
       queryPath: qpath,
       realPath: null,
-      type: type,
+      type: null,
       code: null,
       codeWraped: null,
       source: null,
       sourceMap: null,
       processors: null,
       modifyTime: null,
-      mime: mime,
+      mime: null,
       compress: flagCompress,
       wrap: flagModuleWrap
     };
 
-    function seekFile(done) {
-      utils.seekFile(cube, root, qpath, ps, function (err, realPath, ext, processors) {
-        if (err) {
-          debug('seek file error', err.code, err.message, 'filetype:', type, 'configs:', config);
-          console.error('[CUBE_ERROR]', err.message);
-          err.statusCode = 404;
-          return done(err);
-        }
-        if (!processors) {
-          return done({
-            code: 500,
-            message: 'unsupported file type, please register `' + ext + '` processor'
-          });
-        }
-        debug('query: %s realpath: %s type: %s %s', qpath, realPath, type, mime);
-        data.realPath = realPath;
-        data.processors = processors;
-        done(null, data);
-      });
-    }
-
     async.waterfall([
+      function (done) {
+        done(null, cube, data);
+      },
+      prepare,
       seekFile,
       function (data, callback) {
         processor.process(cube, data, callback);
@@ -145,22 +208,45 @@ exports.init = function (cube) {
     ], done);
 
     function done(err, result) {
-      if (err && err.code !== 'CACHED') {
-        return errorMsg(err, result);
+      if (err) {
+        if (err.code === 'STATIC_FILE') {
+          return serveStatic(req, res, next);
+        }
+        if (err.code !== 'CACHED') {
+          return errorMsg(err, result);
+        }
       }
       var code = flagModuleWrap ? result.codeWraped : result.code;
 
-      if (flagModuleWrap) {
+      if (flagModuleWrap && !result.merged) {
         // 级联合并
-        result.requires;
+        let depsMods = [];
+        mergeRequire(cube, result, depsMods, function () {
+          let map = {};
+          let codesDeps = [];
+          depsMods.forEach(function (data) {
+            if (map[data.queryPath]) {
+              return;
+            }
+            map[data.queryPath] = true;
+            codesDeps.push(flagModuleWrap ? data.codeWraped : data.code);
+          });
+          code = (codesDeps.length ? codesDeps.join('\n') + '\n' : '') + code;
+          output();
+        });
+
+      } else {
+        output();
       }
 
-      if (ext === '.html' && !flagModuleWrap) {
-        code = result.source;
+      function output() {
+        if (result.ext === '.html' && !flagModuleWrap) {
+          code = result.source;
+        }
+        res.statusCode = 200;
+        res.setHeader('content-type', result.mime);
+        res.end(code);
       }
-      res.statusCode = 200;
-      res.setHeader('content-type', result.mime);
-      res.end(code);
     }
     function errorMsg(e, result) {
       let mime = result ? result.mime : 'text/html';
@@ -181,7 +267,6 @@ exports.init = function (cube) {
         'Message:' + e.message;
       res.end(msg);
     }
-
 
   }
 

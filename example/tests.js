@@ -8,5 +8,6 @@ require('./test/test_less');
 require('./test/test_styl');
 require('./test/test_jade');
 require('./test/test_ejs');
+require('./test/test_merge');
 
 require('./test/test_main').run();

@@ -486,7 +486,6 @@ describe('index.js', function () {
         .expect(/Cube\("\/test_hook\.js"/)
         .expect(/require\(['"]remote:path\/to\/file/)
         .expect(/require\(['"]\/tests\.js/)
-        .expect(/require\(['"]\/main\.js/)
         .expect(/exports = function/)
         .expect(/Cube/, done);
     });
