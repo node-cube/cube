@@ -218,6 +218,11 @@
     // }
   }
 
+  /** version, will replace in `make release` **/
+  Cube.toString = function () {
+    return 'Cube:v$$version$$';
+  };
+
   /**
    * init global setting for Cube
    * @static
