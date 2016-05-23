@@ -338,7 +338,8 @@
   /* debug */
   if (window.localStorage && localStorage.cube === 'debug') {
     settings.debug = true;
-    Cube.info = function () {
+    Cube.info = noop;
+    Cube.info.toString = function () {
       var unloaded = [], unfired = [], i, m;
 
       for (i in installedModules) {
@@ -353,11 +354,9 @@
         }
       }
 
-      return {
-        modules: installedModules,
-        unloaded: unloaded,
-        unfired: unfired
-      };
+      console.info('modules:', installedModules);
+      console.info('unloaded:', unloaded);
+      console.info('unfired:', unfired);
     };
   }
 
