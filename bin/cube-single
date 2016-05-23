@@ -23,6 +23,7 @@ cmd
   .option('-b, --base [value]', 'set dir base')
   .option('-r, --resBase [value]', 'resource base')
   .option('-c, --compress', 'compress code')
+  .option('-e, --export [value]', 'set the script export name, default is DataVDemo')
   .option('--mangle-filename', 'short the filename')
   .parse(process.argv);
 
@@ -30,7 +31,7 @@ var source = cmd.args[0];
 var args = cmd;
 
 if (!args || !source) {
-  return this.help();
+  return cmd.help();
 }
 if (args.processors) {
   args.processors = args.processors.split(',');
@@ -38,6 +39,8 @@ if (args.processors) {
     a[i] = v.trim();
   });
 }
+
+cmd.export = cmd.export || 'EXPORT_OBJECT';
 
 var cwd = getCwd();
 var outputPath, cube, tool, root;
@@ -74,9 +77,10 @@ cube = new Cube({
 });
 tool = Cube.getTool();
 var codes = [];
-var styles = [];
+// var styles = [];
 var infos = [];
 var codesMap = {};
+var codesList = [];
 var indent = 0;
 var count = 1;
 
@@ -92,16 +96,12 @@ function _cb(err, res, i) {
   }
   var result = res.result;
   count --;
+  codesList.unshift(result.realPath);
+  codesMap[result.realPath] = {
+    file: result.realPath,
+    code: result.codeWraped
+  };
 
-  // codesMap[result.file] = true;
-  //if (result.type === 'style') {
-  //  styles.push(result.code);
-  //} else {
-    codesMap[result.realPath] = {
-      file: result.realPath,
-      code: result.codeWraped
-    };
-  //}
   infos.push(fmtInfo(i, result.file));
   if (result.requiresOrigin) {
     var n = i + 1;
@@ -128,25 +128,32 @@ function _cb(err, res, i) {
 tool.processFile(cube, {src: source}, function (err, data) {
   _cb(err, data, indent);
 });
+
 function done() {
-  var codeList = [];
-  Object.keys(codesMap).forEach(function (n) {
-    codeList.push(codesMap[n]);
+  var map = {};
+  var mods = [];
+  codesList.forEach(function (n) {
+    if (map[n]) {
+      return;
+    }
+    map[n] = true;
+    mods.push(codesMap[n]);
   });
-  codeList.forEach(function (n) {
+  mods.forEach(function (n) {
     if (!n.code) {
       return;
     }
     codes.push(n.code);
   });
-  codes.unshift('var Cube = host.Cube;');
-  codes.unshift(fs.readFileSync(path.join(__dirname, '../runtime/cube.min.js')).toString().replace('window,null', 'host,null'));
+  codes.unshift('var C=a.Cube;');
+  codes.unshift(fs.readFileSync(path.join(__dirname, '../runtime/cube.min.js')).toString().replace('window,null', 'a,null'));
+  codes.unshift('var a={};');
   codes.unshift('!(function(host, name){');
-  codes.push('Cube.use("' + cube.getFileShortName(infos[0]) + '", function(m) {host[name]=m}, true);');
+  codes.push('C.use("' + cube.getFileShortName(infos[0]) + '", function(m) {host[name]=m}, true);');
   // codes.push('// 导出到window里的全局变量名');
-  codes.push('})(window, "DataVDemo")');
+  codes.push('})(window, "' + cmd.export + '")');
   fs.sync().save(path.join(outputPath, '/script.js'), codes.join('\n'));
-  fs.sync().save(path.join(outputPath, '/style.css'), styles.join('\n'));
+  // fs.sync().save(path.join(outputPath, '/style.css'), styles.join('\n'));
   console.log('===== deps =====');
   console.log(infos.join('\n'));
   console.log('======');
