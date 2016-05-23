@@ -343,8 +343,7 @@
   /* debug */
   if (window.localStorage && localStorage.cube === 'debug') {
     settings.debug = true;
-    Cube.info = noop;
-    Cube.info.toString = function () {
+    Cube.info = function () {
       var unloaded = [], unfired = [], i, m;
 
       for (i in installedModules) {

@@ -203,11 +203,11 @@
         fired: false
       };
       /*
-      requiresLoaded = true;
-      if (requires.length && settings.debug) {
-        console.info('Cube Info: Module ' + '\'' + requires + '\'' + ' should exist');
-      }
-      */
+       requiresLoaded = true;
+       if (requires.length && settings.debug) {
+       console.info('Cube Info: Module ' + '\'' + requires + '\'' + ' should exist');
+       }
+       */
     }
     var module = installedModules[name];
     module.fn = callback;
@@ -217,6 +217,11 @@
     //}
     // }
   }
+
+  /** version, will replace in `make release` **/
+  Cube.toString = function () {
+    return 'Cube:v$$version$$';
+  };
 
   /**
    * init global setting for Cube
@@ -237,10 +242,6 @@
     }
     if (config.version) {
       settings.version = config.version;
-    }
-    if (config.debug) {
-      settings.debug = config.debug;
-      Cube.cache = installedModules;
     }
     return this;
   };
@@ -337,6 +338,31 @@
     style.innerHTML = css;
     return css;
   };
+
+
+  /* debug */
+  if (window.localStorage && localStorage.cube === 'debug') {
+    settings.debug = true;
+    Cube.info = function () {
+      var unloaded = [], unfired = [], i, m;
+
+      for (i in installedModules) {
+        if (installedModules.hasOwnProperty(i)) {
+          m = installedModules[i];
+          if (!m.loaded) {
+            unloaded.push(m);
+          }
+          if (!m.fired) {
+            unfired.push(m);
+          }
+        }
+      }
+
+      console.info('modules:', installedModules);
+      console.info('unloaded:', unloaded);
+      console.info('unfired:', unfired);
+    };
+  }
 
 
   alias = alias || 'Cube';
