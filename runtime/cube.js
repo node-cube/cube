@@ -19,6 +19,7 @@
     entrances: {}  // Cube.use's cb
   };
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
+  var loading = {};
   var head = document.querySelector('head');
   var runLock = false;
   function noop() {}
@@ -88,13 +89,11 @@
       return mods;
     },
     checkAllDownloaded: function () {
-      var unloaded = 0;
-      for (var module in installedModules) {
-        if (!installedModules[module].loaded) {
-          unloaded++;
-        }
+      for (var i in loading) {
+        return false;
       }
-      return unloaded;
+
+      return true;
     },
     /**
      * 下载模块
@@ -128,6 +127,7 @@
           loaded: false,
           fired: false
         };
+        loading[require] = true;
       });
       if (helpers.checkAllDownloaded() === 0) {
         helpers.startAppAndCallback();
@@ -212,6 +212,7 @@
     var module = installedModules[name];
     module.fn = callback;
     module.loaded = true;
+    delete loading[name];
     //if (!requiresLoaded) {
     helpers.load(requires, name);
     //}
