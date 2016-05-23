@@ -238,10 +238,6 @@
     if (config.version) {
       settings.version = config.version;
     }
-    if (config.debug) {
-      settings.debug = config.debug;
-      Cube.cache = installedModules;
-    }
     return this;
   };
   /**
@@ -337,6 +333,37 @@
     style.innerHTML = css;
     return css;
   };
+
+
+  /* debug */
+  if (window.localStorage && localStorage.cube === 'debug') {
+    settings.debug = true;
+    Cube._modules = installedModules;
+    Cube._unloaded = function () {
+      var unloaded = [], i, m;
+
+      for (i in installedModules) {
+        m = installedModules[i];
+        if (!m.loaded) {
+          unloaded.push(m);
+        }
+      }
+
+      return unloaded;
+    };
+    Cube._unfired = function () {
+      var unfired = [], i, m;
+
+      for (i in installedModules) {
+        m = installedModules[i];
+        if (!m.fired) {
+          unfired.push(m);
+        }
+      }
+
+      return unfired;
+    };
+  }
 
 
   alias = alias || 'Cube';
