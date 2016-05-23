@@ -343,9 +343,11 @@
       var unloaded = [], i, m;
 
       for (i in installedModules) {
-        m = installedModules[i];
-        if (!m.loaded) {
-          unloaded.push(m);
+        if (installedModules.hasOwnProperty(i)) {
+          m = installedModules[i];
+          if (!m.loaded) {
+            unloaded.push(m);
+          }
         }
       }
 
@@ -355,9 +357,11 @@
       var unfired = [], i, m;
 
       for (i in installedModules) {
-        m = installedModules[i];
-        if (!m.fired) {
-          unfired.push(m);
+        if (installedModules.hasOwnProperty(i)) {
+          m = installedModules[i];
+          if (!m.fired) {
+            unfired.push(m);
+          }
         }
       }
 
