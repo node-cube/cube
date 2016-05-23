@@ -90,7 +90,9 @@
     },
     checkAllDownloaded: function () {
       for (var i in loading) {
-        return false;
+        if (loading.hasOwnProperty(i)) {
+          return false;
+        }
       }
 
       return true;
@@ -129,7 +131,7 @@
         };
         loading[require] = true;
       });
-      if (helpers.checkAllDownloaded() === 0) {
+      if (helpers.checkAllDownloaded()) {
         helpers.startAppAndCallback();
       }
     },
@@ -280,7 +282,7 @@
         }
       };
     }());
-    if (helpers.checkAllDownloaded() === 0) {  // 解决load已存在的模块时,不会进startAppAndCallback
+    if (helpers.checkAllDownloaded()) {  // 解决load已存在的模块时,不会进startAppAndCallback
       helpers.startAppAndCallback();
     }
     return this;
