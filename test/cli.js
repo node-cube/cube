@@ -1,3 +1,5 @@
+'use strict';
+
 var exec = require('child_process').exec;
 var expect = require('expect.js');
 var path = require('path');
@@ -74,6 +76,12 @@ describe('cli', function () {
         expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test/lib/b.js'))).to.be(true);
         // node_modules no rel file should not build
         expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test_ignored_by_smartbuild.js'))).to.be(false);
+        // check auto merge
+        let mainScript = xfs.readFileSync(path.join(__dirname, '../example.release/main.js')).toString();
+        expect(mainScript).to.match(/Cube\(('|")\/node_modules\/cycle_server\/c.js/);
+        expect(mainScript).to.match(/Cube\(('|")\/node_modules\/cycle_server\/b.js/);
+        expect(mainScript).to.match(/Cube\(('|")\/node_modules\/cycle_server\/a.js/);
+
         xfs.sync().rmdir(path.join(__dirname, '../example.release'));
         done();
       });

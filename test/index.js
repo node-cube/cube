@@ -4,6 +4,8 @@
  * Create   : 2014-04-18 15:32:20
  * CopyRight 2014 (c) Fish And Other Contributors
  */
+'use strict';
+
 var expect = require('expect.js');
 var testMod = require('../index');
 var path = require('path');
@@ -282,6 +284,22 @@ describe('index.js', function () {
           expect(res.text).to.match(/load\(a \+ '\.coffee',/ig);
           // only var
           expect(res.text).to.match(/load\(a,/ig);
+        })
+        .end(done);
+    });
+    it('should merge query when enter file is an node_modules, and cycle require is also fine', function (done) {
+      request.get('/node_modules/cycle_server/a.js?m')
+        .expect(200)
+        .expect(function (res) {
+          expect(res.text).to.match(/\/node_modules\/cycle_server\/a\.js/);
+          expect(res.text).to.match(/\/node_modules\/cycle_server\/b\.js/);
+          expect(res.text).to.match(/\/node_modules\/cycle_server\/c\.js/);
+          let indexA = res.text.indexOf('Cube("/node_modules/cycle_server/a.js');
+          let indexB = res.text.indexOf('Cube("/node_modules/cycle_server/b.js');
+          let indexC = res.text.indexOf('Cube("/node_modules/cycle_server/c.js');
+          expect(indexA > indexB).to.be(true);
+          expect(indexA > indexC).to.be(true);
+          expect(indexB > indexC).to.be(true);
         })
         .end(done);
     });
