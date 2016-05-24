@@ -262,17 +262,16 @@ exports.init = function (cube) {
       res.setHeader('content-type', flagModuleWrap ? 'text/javascript' : mime);
       var msg = flagModuleWrap ?
         'console.error("[CUBE]",' +
-          (e.code ? '"Code: "' + e.code + '",' : '') +
-          (e.file ? '"File: ' + e.file + '",' : '') +
-          (e.line ? '"Line: ' + e.line + '",' : '') +
-          (e.column ? '"Column: ' + e.column + '",' : '') +
-          '"Message:' + e.message.replace(/"/g, '\\"') + '")' :
+          (e.code ? '"'+ e.code.replace(/"/g, '\\"') + ': ' + e.message.replace(/"/g, '\\"') +  '",' : '') +
+          (e.file ? '"[File]: ' + e.file + '",' : '') +
+          (e.line ? '"[Line]: ' + e.line + '",' : '') +
+          (e.column ? '"[Column]: ' + e.column + '"' : '') +
+          ');' :
         '[CUBE]\n' +
-          (e.code ? 'Code: ' + e.code + '\n' : '') +
+          (e.code ? e.code + ': ' + e.message + '\n' : '') +
           (e.file ? 'File: ' + e.file + '\n' : '') +
           (e.line ? 'Line: ' + e.line + '\n' : '') +
-          (e.column ? 'Column: ' + e.column + '\n' : '') +
-        'Message:' + e.message;
+          (e.column ? 'Column: ' + e.column + '\n' : '');
       res.end(msg);
     }
 
