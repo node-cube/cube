@@ -72,13 +72,13 @@ function seekFile(cube, data, ps, done) {
   });
 }
 
-function mergeRequire(cube, result, arr, done) {
+function mergeRequire(cube, result, arr, parents, done) {
   let qpath = result.queryPath;
   if (!/^\/node_modules/.test(qpath)) {
     return done();
   }
   debug('hint merge');
-  let requires = result.requires;
+  let requires = result.requires || [];
   let basePath = path.dirname(qpath);
   // find node_modules request
   let list = [];
@@ -86,6 +86,11 @@ function mergeRequire(cube, result, arr, done) {
     if (reqfile.indexOf(basePath) !== 0) {
       return;
     }
+    // cut off the cycle requires
+    if (parents.indexOf(reqfile) >= 0) {
+      return;
+    }
+
     list.push(reqfile);
   });
 
@@ -121,7 +126,9 @@ function mergeRequire(cube, result, arr, done) {
       }
     ], function (err, result) {
       arr.unshift(result);
-      mergeRequire(cube, result, arr, done);
+      let p = parents.slice(0);
+      p.push(result.queryPath);
+      mergeRequire(cube, result, arr, p, done);
     });
   });
 }
@@ -217,11 +224,12 @@ exports.init = function (cube) {
         }
       }
       var code = flagModuleWrap ? result.codeWraped : result.code;
+      var parent = [result.queryPath];
 
       if (flagModuleWrap && !result.merged) {
         // 级联合并
         let depsMods = [];
-        mergeRequire(cube, result, depsMods, function () {
+        mergeRequire(cube, result, depsMods, parent, function () {
           let map = {};
           let codesDeps = [];
           depsMods.forEach(function (data) {

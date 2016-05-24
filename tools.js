@@ -348,7 +348,6 @@ function processDirSmart2(cube, data, cb) {
         }
         var originRequire;
         if (res && res.result) {
-          console.log('>>>>', relFile, res.time);
           files.push(res.result);
           originRequire = res.result.requiresOrigin;
           originRequire && originRequire.forEach(function (v) {
@@ -370,7 +369,7 @@ function processDirSmart2(cube, data, cb) {
       done();
     }
   }, function () {
-    processRequireModules2(cube, dest, requiredModuleFile, function (err, modFiles) {
+    processRequireModules2(cube, requiredModuleFile, function (err, modFiles) {
       let end = new Date().getTime();
       files = files.concat(modFiles);
       // 建立 被依赖 映射
@@ -411,10 +410,28 @@ function mergeNode(files) {
     });
   });
 
-  console.log(requiredMap);
+  // 从跟节点开始检查循环依赖
+
+  let mods = Object.keys(requiredMap);
+  let roots = [];
+
+  mods.forEach(function (k) {
+    let tmp = requiredMap[k];
+    let parents = Object.keys(tmp);
+    if (parents.length === 0) {
+      roots.push(k);
+    }
+  });
+
+  // TODO concat custom root list
+
+  roots.forEach(function (k) {
+    let file = fileMap[k];
+    processCycleRequire(file, fileMap);
+  });
 
   // 相邻节点折叠
-  Object.keys(requiredMap).forEach(function (k) {
+  mods.forEach(function (k) {
     let tmp = requiredMap[k];
     let parents = Object.keys(tmp);
 
@@ -430,6 +447,32 @@ function mergeNode(files) {
       // requiredMap[k];
     }
   });
+
+  function processCycleRequire(file, map, parents) {
+    if (!parents) parents = [];
+    if (!file) return;
+    let modName = file.queryPath;
+    if (parents.indexOf(modName) >=0) {
+      // cycle require
+      console.log('cycle require:', parents.join('>') + '>' + modName);
+      // cut off the cycle
+      let lastMod = parents[parents.length - 1];
+      // remove requiredMap
+      delete requiredMap[modName][lastMod];
+      // remove file require to t
+      let index = map[lastMod].requires.indexOf(modName);
+      map[lastMod].requires.splice(index, 1);
+      return;
+    }
+
+    parents.push(modName);
+
+    file.requires && file.requires.forEach(function (k) {
+      let f = map[k];
+      let p = parents.slice(0);
+      processCycleRequire(f, map, p);
+    });
+  }
 
   //console.log(requiredMap);
 
@@ -539,7 +582,7 @@ function processFileWithRequire(cube, data, cb) {
 }
 
 
-function processRequireModules2(cube, dest, arr, callback) {
+function processRequireModules2(cube, arr, callback) {
   var res = [];
   var done = Pedding(arr.length, function () {
     callback(null, res);
