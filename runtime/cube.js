@@ -347,16 +347,16 @@
   if (window.localStorage && localStorage.cube === 'debug') {
     settings.debug = true;
     Cube.info = function () {
-      var unloaded = [], unfired = [], i, m;
+      var unloaded = {}, unfired = {}, i, m;
 
       for (i in installedModules) {
         if (installedModules.hasOwnProperty(i)) {
           m = installedModules[i];
           if (!m.loaded) {
-            unloaded.push(m);
+            unloaded[i] = m;
           }
           if (!m.fired) {
-            unfired.push(m);
+            unfired[i] = m;
           }
         }
       }
