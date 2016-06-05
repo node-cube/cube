@@ -4,3 +4,4 @@ covreporter.html
 .idea/
 example.abs/
 example.out/
+/test_merge*

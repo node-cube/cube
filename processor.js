@@ -62,14 +62,16 @@ exports.process = function (cube, data, callback) {
         } catch (e) {
           return callback(e, result);
         }
-        if (flagModuleWrap)
+        if (flagModuleWrap) {
           wraperMethod = 'wrapScript';
+        }
         // utils.setRequires(result.queryPath, result.requires);
         end(null, result);
         break;
       case 'style':
-        if (flagModuleWrap)
+        if (flagModuleWrap) {
           wraperMethod = 'wrapStyle';
+        }
         wraper.processCssCode(cube, result, end);
         break;
       case 'template':
@@ -90,7 +92,18 @@ exports.process = function (cube, data, callback) {
       if (err) {
         return callback(err);
       }
-      if (flagModuleWrap) {
+      /** build 的时候，启用lazyWrap， 方便确认哪些require需要被转名字 */
+      if (config.lazyWrap) {
+        result.genCode = function (cb) {
+          wraper[wraperMethod](cube, this, function (err, result) {
+            if (!err) {
+              //cache(result);
+            }
+            cb(err, result);
+          });
+        };
+        callback(null, result);
+      } else if (flagModuleWrap && !config.lazyWrap) {
         result.mime = cube.getMIMEType('script');
         wraper[wraperMethod](cube, result, function (err, result) {
           if (!err) {

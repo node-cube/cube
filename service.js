@@ -24,8 +24,10 @@ function Pedding(num, cb) {
   };
 }
 
-
-function prepare(cube, data, done) {
+/**
+ * 识别请求文件的类型、ext、mime
+ */
+function prepareFile(cube, data, done) {
   let qpath = data.queryPath;
   let ext = path.extname(qpath);
   let type = cube.processors.map[ext];
@@ -119,7 +121,7 @@ function mergeRequire(cube, result, arr, parents, done) {
       function (done) {
         done(null, cube, data);
       },
-      prepare,
+      prepareFile,
       seekFile,
       function (data, callback) {
         processor.process(cube, data, callback);
@@ -152,8 +154,6 @@ exports.init = function (cube) {
   var root = cube.config.root;
   var serveStatic;
   var app;
-  // 模块被引用列表
-  var requiredMap = {};
 
   if (!config.cached) {
     config.cached = config.built ? config.root : root + '.release';
@@ -186,7 +186,15 @@ exports.init = function (cube) {
 
     flagModuleWrap = req.query.m === undefined ? false : true;
     flagCompress = req.query.c === undefined ? false : true;
+    /*
+    let remote = config.remote;
 
+    let cache = cube.caches.get(flagModuleWrap + ':' + flagCompress + ':' + remote);
+
+    if (cache[qpath]) {
+      done(null, cache[qpath]);
+    }
+    */
 
     var data = {
       queryPath: qpath,
@@ -207,7 +215,7 @@ exports.init = function (cube) {
       function (done) {
         done(null, cube, data);
       },
-      prepare,
+      prepareFile,
       seekFile,
       function (data, callback) {
         processor.process(cube, data, callback);

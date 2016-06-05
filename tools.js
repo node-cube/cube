@@ -2,134 +2,9 @@
 
 var xfs = require('xfs');
 var path = require('path');
-var requires = require('requires');
-var utils = require('./lib/utils');
-var wraper = require('./lib/wraper');
-var processor = require('./processor');
 var async = require('async');
-var debug = require('debug');
-
-function Done(total, done) {
-  var count = 0;
-  return function () {
-    count++;
-    if (total === count) {
-      done();
-    }
-  };
-}
-
-/*
-function analyseNoduleModules(fpath, map, done) {
-  var modules = xfs.readdirSync(fpath);
-  var c = 0;
-  var mlist = [];
-
-  modules.forEach(function (mname) {
-    if (mname === '.bin') {
-      return;
-    }
-    mlist.push(mname);
-  });
-  var d = Done(mlist.length, done);
-  mlist.forEach(function (mname) {
-    var mpath = path.join(fpath, mname);
-    analyseModule(mpath, map, function () {
-      c++;
-      d();
-    });
-  });
-}
-
-function analyseModule(mpath, map, done) {
-  //console.log(mpath);
-  var stat = xfs.statSync(mpath);
-  if (!stat.isDirectory()) {
-    return done();
-  }
-  var pkgInfo;
-  var d;
-  try {
-    pkgInfo = JSON.parse(xfs.readFileSync(path.join(mpath, 'package.json')));
-  } catch (e) {
-    return analyseNoduleModules(mpath, map, done);
-  }
-  if (!pkgInfo.main) {
-    if (xfs.existsSync(path.join(mpath, 'index.js'))) {
-      pkgInfo.main = 'index.js';
-    }
-  }
-  if (!pkgInfo.main) {
-    if (xfs.existsSync(path.join(mpath, 'node_modules'))) {
-      d = Done(2, done);
-      analyseNoduleModules(path.join(mpath, 'node_modules'), map, d);
-    } else {
-      d = Done(1, done);
-    }
-    // console.log('package.main not found');
-    xfs.walk(mpath, function (fpath) {
-      if (/node_modules\/?$/.test(fpath)) {
-        return false;
-      } else if (/(\.md|\/\.\w+)$/ig.test(fpath)) {
-        return false;
-      }
-      return true;
-    }, function (err, file) {
-      map[file] = true;
-    }, function () {
-      d();
-    });
-  } else {
-    d = Done(2, done);
-    var mainScript = require.resolve(path.join(mpath, pkgInfo.main));
-    analyseRequires(mainScript, map, d);
-    // add the rest file
-    xfs.walk(mpath, function (fpath) {
-      if (/node_modules\/?$/.test(fpath)) {
-        return false;
-      } else if (!/\.(png|jpg|gif|json|svg)$/ig.test(fpath)) {
-        return false;
-      }
-      return true;
-    }, function (err, file) {
-      map[file] = true;
-    }, d);
-  }
-}
-
-function analyseRequires(script, map, done) {
-  map[script] = true;
-  var fstr = xfs.readFileSync(script).toString();
-  var list = requires(fstr);
-  var list1 = [];
-  var list2 = [];
-  list.forEach(function (n) {
-    var p = n.path;
-    if (!/^[\/\.]/.test(p)) {
-      p = 'node_modules/' + p;
-      p = path.join(path.dirname(script), p);
-      if (xfs.existsSync(p)) {
-        list2.push(p);
-      }
-      return;
-    }
-    var realp = require.resolve(path.join(path.dirname(script), p));
-    map[realp] = true;
-    list1.push(realp);
-  });
-  var totalLen = list1.length + list2.length;
-  if (totalLen === 0) {
-    return done();
-  }
-  var d = Done(totalLen, done);
-  list1.forEach(function (p) {
-    analyseRequires(p, map, d);
-  });
-  list2.forEach(function (p) {
-    analyseModule(p, map, d);
-  });
-}
-*/
+var utils = require('./lib/utils');
+var processor = require('./processor');
 
 function processDir(cube, data, cb) {
   var source = data.src;
@@ -209,91 +84,6 @@ function processDir(cube, data, cb) {
  *         - withSource
  * @param  {Function} cb()
  */
-function processDirSmart(cube, data, cb) {
-  var source = data.src;
-  var dest = data.dest;
-  var withSource = data.withSource;
-  if (!dest) {
-    return console.log('[ERROR] param missing! dest');
-  }
-  if (!cb) {
-    cb = function () {};
-  }
-  var st = new Date().getTime();
-  var fileCount = 0;
-  var ignores = cube.ignoresRules;
-  var errors = [];
-  var root = cube.config.root;
-  var requiredModuleFile = []; // 依赖的node_modules文件
-
-  // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
-  xfs.walk(source, function check(p) {
-    var relFile = fixWinPath(p.substr(root.length));
-    if (/^\/node_modules\//.test(relFile)) {
-      return false;
-    }
-    return true;
-  }, function (err, sourceFile, done) {
-    if (err) {
-      return done(err);
-    }
-    fileCount++;
-
-    var relFile = fixWinPath(sourceFile.substr(root.length));
-    var destFile = path.join(dest, relFile);
-    var checked = utils.checkIgnore(relFile, ignores);
-
-    if (checked.ignore) {
-      console.log('[ignore file]:', relFile.substr(1));
-      return done();
-    } else if (checked.skip) {
-      xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
-      console.log('[copy file]:', relFile.substr(1));
-      return done();
-    }
-
-    try {
-      processFile(cube, {
-        src: sourceFile,
-        dest: dest,
-        withSource: withSource
-      }, function (err, res) {
-        if (err) {
-          if (!err.file) err.file = sourceFile;
-          errors.push(err);
-        }
-        var originRequire;
-        if (res && res.result) {
-          originRequire = res.result.requiresOrigin;
-          originRequire && originRequire.forEach(function (v) {
-            if (/^\/node_modules/.test(v)) {
-              requiredModuleFile.push(v);
-            }
-          });
-        }
-        done();
-      });
-    } catch (e) {
-      if (/node_modules/.test(sourceFile)) {
-        // should ignore the error
-        e.file = sourceFile;
-        errors.push(e);
-      } else {
-        throw e;
-      }
-      done();
-    }
-  }, function () {
-    processRequireModules(cube, dest, requiredModuleFile, function () {
-      var end = new Date().getTime();
-      cb(errors, {
-        total: fileCount,
-        time: Math.ceil((end - st) / 1000)
-      });
-    });
-  });
-  // });
-}
 
 function processDirSmart2(cube, data, cb) {
   var source = data.src;
@@ -304,13 +94,15 @@ function processDirSmart2(cube, data, cb) {
   if (!cb) {
     cb = function () {};
   }
-  var st = new Date().getTime();
-  var fileCount = 0;
   var ignores = cube.ignoresRules;
   var errors = [];
   var root = cube.config.root;
-  var requiredModuleFile = []; // 依赖的node_modules文件
+  var requiredModuleFile = {}; // 依赖的node_modules文件
   var files = [];
+
+  let st = new Date().getTime();
+
+  console.time('process app file');
 
   // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
   xfs.walk(source, function check(p) {
@@ -323,7 +115,6 @@ function processDirSmart2(cube, data, cb) {
     if (err) {
       return done(err);
     }
-    fileCount++;
 
     var relFile = fixWinPath(sourceFile.substr(root.length));
     var destFile = path.join(dest, relFile);
@@ -352,7 +143,7 @@ function processDirSmart2(cube, data, cb) {
           originRequire = res.result.requiresOrigin;
           originRequire && originRequire.forEach(function (v) {
             if (/^\/node_modules/.test(v)) {
-              requiredModuleFile.push(v);
+              requiredModuleFile[v] = true;
             }
           });
         }
@@ -369,52 +160,179 @@ function processDirSmart2(cube, data, cb) {
       done();
     }
   }, function () {
-    processRequireModules2(cube, requiredModuleFile, function (err, modFiles) {
-      let end = new Date().getTime();
+    console.timeEnd('process app file');
+    let requireModules = Object.keys(requiredModuleFile);
+    console.time('process node_modules file');
+    processRequireModules2(cube, requireModules, function (err, modFiles) {
+      console.timeEnd('process node_modules file');
       files = files.concat(modFiles);
-      // 建立 被依赖 映射
-      let finalCodes = mergeNode(files);
 
-      finalCodes.forEach(function (code) {
-        let targetPath = path.join(dest, code.file);
-        xfs.sync().save(targetPath, code.code);
+      let appCodes = mergeNode(files, cube.config.exportModules);
+      // 建立 被依赖 映射
+      // let modCodes = mergeNode(modFiles, requireModules);
+
+      // console.log(appCodes);
+      let merged = Object.keys(appCodes);
+      let total = merged.length;
+      let count = 0;
+      merged.forEach(function (key) {
+        let code = appCodes[key];
+        let targetPath = path.join(dest, key);
+        let map = {};
+        let stream = [];
+        let actions = [function (callback) {
+          callback(null);
+        }];
+        code.forEach(function (cc) {
+          if (map[cc.queryPath]) {
+            return;
+          }
+          map[cc.queryPath] = true;
+          actions.push(function (callback) {
+            // genCode 之前，先判断是否mangleFileName;
+            if (!appCodes[cc.queryPath]) {
+              cc.queryPath = cube.getFileShortName(cc.queryPath);
+            }
+            let requiresNew = [];
+            cc.requires && cc.requires.forEach(function (key) {
+              if (appCodes[key]) {
+                requiresNew.push(key);
+              }
+            });
+            cc.requires = requiresNew;
+
+            cc.requiresRef && cc.requiresRef.forEach(function (node) {
+              if (appCodes[node.value]) {
+                return;
+              }
+              node.value = cube.getFileShortName(node.value);
+            });
+
+            cc.genCode(function (err, res) {
+              stream.push(res.codeWraped);
+              callback(null);
+            });
+          });
+        });
+        async.waterfall(actions, function () {
+          xfs.sync().save(targetPath, stream.join('\n'));
+          count++;
+          if (count >= total) {
+            end();
+          }
+        });
       });
-      //
-      cb(errors, {
-        total: fileCount,
-        time: Math.ceil((end - st) / 1000)
-      });
+      function end() {
+        xfs.sync().save(path.join(dest, '/filemap.json'), JSON.stringify(cube.getFileShortNameMap(), null, 2));
+        console.log('done!');
+        let end = new Date().getTime();
+        cb(errors, {
+          total: files.length,
+          merged: merged.length,
+          time: Math.ceil((end - st) / 1000)
+        });
+      }
     });
   });
 }
 
-function mergeNode(files) {
-  let requiredMap = {}; // 模块被谁依赖
+function mergeNode(files, exportModules) {
   let fileMap = {};
+  let requiredMap = {};
+  function processCycleRequire(file, parents) {
+    // console.log('-------', file, parents);
+    if (!parents) parents = [];
+    if (!file) return;
+    let modName = file.queryPath;
+    if (parents.indexOf(modName) >= 0) {
+      // cycle require
+      console.log('[warning] cycle require:', parents.join('>') + '>' + modName);
+      // cut off the cycle
+      let lastMod = parents[parents.length - 1];
+      // remove requiredMap
+      delete requiredMap[modName][lastMod];
+      // remove file require to t
+      let index = fileMap[lastMod].requires.indexOf(modName);
+      fileMap[lastMod].requires.splice(index, 1);
+      return;
+    }
+
+    parents.push(modName);
+
+    file.requires && file.requires.forEach(function (k) {
+      let f = fileMap[k];
+      let p = parents.slice(0);
+      processCycleRequire(f, p);
+    });
+  }
+  /*
+  function markRoot(list, root) {
+    let sub = [];
+    list.forEach(function (modName) {
+      let mod = fileMap[modName];
+      if (!mod) {
+        return;
+      }
+      if (!mod.__roots) {
+        mod.__roots = {};
+      }
+      if (mod.__roots[root]) {
+        return;
+      }
+
+      mod.__roots[root] = true;
+
+      if (Object.keys(mod.__roots).length > 1) {
+        return;
+      }
+      let reqs = mod.requires;
+      if (reqs) {
+        sub = sub.concat(reqs);
+      }
+    });
+    return sub;
+  }
+  **/
+  function unique(arr) {
+    let obj = {};
+    arr.forEach(function (f) {
+      obj[f] = true;
+    });
+    return Object.keys(obj);
+  }
+
+  // 建立模块被谁依赖的关系
+  console.log('prepare files');
   files.forEach(function (file) {
     let reqs = file.requires;
     let qpath = file.queryPath;
+    if (!qpath) {
+      console.log(file);
+    }
     if (!requiredMap[qpath]) {
       requiredMap[qpath] = {};
     }
     fileMap[qpath] = file;
-    reqs && reqs.forEach(function (req) {
-      if (/^\w+:/.test(req)) {
-        // remote require, ignore
-        return;
-      }
-      if (!requiredMap[req]) {
-        requiredMap[req] = {};
-      }
-      requiredMap[req][qpath] = true;
-    });
+    if (reqs && reqs.length) {
+      reqs.forEach(function (req) {
+        if (/^\w+:/.test(req)) {
+          // remote require, ignore
+          return;
+        }
+        if (!requiredMap[req]) {
+          requiredMap[req] = {};
+        }
+        requiredMap[req][qpath] = true;
+      });
+    }
   });
 
-  // 从跟节点开始检查循环依赖
-
+  // 从根节点开始检查循环依赖
   let mods = Object.keys(requiredMap);
   let roots = [];
 
+  // 找出根节点
+  console.log('find root file');
   mods.forEach(function (k) {
     let tmp = requiredMap[k];
     let parents = Object.keys(tmp);
@@ -422,96 +340,119 @@ function mergeNode(files) {
       roots.push(k);
     }
   });
+  // merge custom roots
+  if (exportModules) {
+    roots = unique(roots.concat(exportModules));
+  }
 
-  // TODO concat custom root list
-
+  // 解开循环引用
+  console.log('process cycle require');
   roots.forEach(function (k) {
     let file = fileMap[k];
-    processCycleRequire(file, fileMap);
+    processCycleRequire(file);
   });
 
-  // 相邻节点折叠
-  mods.forEach(function (k) {
-    let tmp = requiredMap[k];
-    let parents = Object.keys(tmp);
-
-    if (parents.length === 0) {
-      fileMap[k].__root = true;
-      // root node, ignore
-    } else if (parents.length === 1) {
-      let f = parents[0];
-      if (!fileMap[f].merges) {
-        fileMap[f].merges = [];
-      }
-      fileMap[f].merges.push(k);
-      // requiredMap[k];
+  console.log('root list:', roots);
+  // 各模块自根向下检查，如果只属于一个rootNode，标记合并
+  // 如果属于不同root, 则提升为rootNode
+  /*
+  console.log('mark root node');
+  roots.forEach(function (root) {
+    let sub = [root];
+    while(sub.length) {
+      sub = markRoot(sub, root);
     }
   });
+  */
 
-  function processCycleRequire(file, map, parents) {
-    if (!parents) parents = [];
-    if (!file) return;
-    let modName = file.queryPath;
-    if (parents.indexOf(modName) >=0) {
-      // cycle require
-      console.log('cycle require:', parents.join('>') + '>' + modName);
-      // cut off the cycle
-      let lastMod = parents[parents.length - 1];
-      // remove requiredMap
-      delete requiredMap[modName][lastMod];
-      // remove file require to t
-      let index = map[lastMod].requires.indexOf(modName);
-      map[lastMod].requires.splice(index, 1);
-      return;
-    }
-
-    parents.push(modName);
-
-    file.requires && file.requires.forEach(function (k) {
-      let f = map[k];
-      let p = parents.slice(0);
-      processCycleRequire(f, map, p);
+  console.log('merge node');
+  let result = {};
+  let list = [];
+  roots.forEach(function (root) {
+    list.push({
+      reqs: [root],
+      root: root
     });
+  });
+  while (list.length) {
+    let tmp = [];
+    list.forEach(function (n) {
+      n.reqs.forEach(function (m) {
+        let next = mergeFromRoot(result[n.root], m, n.root);
+        if (next) {
+          tmp.push(next);
+        }
+      });
+    });
+    list = tmp;
   }
 
-  //console.log(requiredMap);
-
-  function recurseMerge(arr, node) {
-    arr.unshift({file: node.queryPath, code: node.codeWraped});
-    if (node.merges) {
-      node.merges.forEach(function (key) {
-        recurseMerge(arr, fileMap[key]);
-      });
-    }
+  function checkRoot(roots) {
+    return Object.keys(roots).length > 1;
   }
-
-  let finalList = [];
-  // 根据上面的折叠，递归合并
-  files.forEach(function(file) {
-    if (!file.__root) {
-      finalList.push({
-        file: file.queryPath,
-        code: file.codeWraped
-      });
+  /**
+   * 从跟节点开始合并，
+   * 判断被多依赖的模块，只有所有的依赖到齐，才继续向下分析
+   * 这样能合并很多分析，加速合并流程
+   */
+  function mergeFromRoot(arr, moduleName, root) {
+    let tmp = fileMap[moduleName];
+    // 如果模块不存在，跳过
+    if (!tmp) {
       return;
     }
-    let code = [];
-    let map = {};
-    let finalCode = [];
-    recurseMerge(code, file);
-    // 去重
-    code.forEach(function (c) {
-      if (map[c.file]) {
+    // 如果已经处理过，跳过
+    if (tmp.merged) {
+      return;
+    }
+    // 初始化模块的 roots
+    if (!tmp.__roots) {
+      tmp.__roots = {};
+      tmp.__roots[root] = true;
+    }
+
+    // 检查模块的依赖方，如果模块的依赖方都还没到齐， 跳过
+    let reqeds = requiredMap[moduleName];
+    let flag = true;
+    Object.keys(reqeds).forEach(function (key) {
+      let t = fileMap[key];
+      if (!t.merged) {
+        flag = false;
+      }
+      t.__roots && Object.keys(t.__roots).forEach(function (k) {
+        tmp.__roots[k] = true;
+      });
+    });
+    if (!flag) {
+      return {reqs: [moduleName], root: root};
+    }
+
+    if (!arr || checkRoot(tmp.__roots)) {
+      if (result[moduleName]) {
+        // already split
         return;
       }
-      map[c.file] = true;
-      finalCode.push(c.code);
-    });
-    finalList.push({file: file.queryPath, code: finalCode.join(';')});
-  });
-  return finalList;
-}
+      if (arr) {
+        console.log('>> split :', moduleName, tmp.__roots);
+        root = moduleName;
+        tmp.__roots = {};
+        tmp.__roots[root] = true;
+      }
+      arr = [];
+      result[moduleName] = arr;
+      requiredMap[moduleName] = {};
+    }
 
+    tmp.merged = true;
+    arr.unshift(tmp);
+    let reqs = tmp.requires;
+    if (!reqs) {
+      return null;
+    }
+    return {reqs: reqs, root: root};
+  }
+  return result;
+}
 
 function Pedding(num, cb) {
   var count = 0;
@@ -526,61 +467,6 @@ function Pedding(num, cb) {
  * 建立映射关系，避免循环依赖导致无法结束
  */
 var builtModules = {};
-function processRequireModules(cube, dest, arr, callback) {
-  var done = Pedding(arr.length, callback);
-  var root = cube.config.root;
-  arr.forEach(function (v) {
-    if (builtModules[v]) {
-      return done();
-    }
-    builtModules[v] = true;
-    var sourceFile = path.join(root, v);
-    processFileWithRequire(cube, {
-      src: sourceFile,
-      dest: dest
-    }, done);
-  });
-}
-
-function processFileWithRequire(cube, data, cb) {
-  var root = cube.config.root;
-  var count = 1;
-  function _cb(err, res) {
-    if (err) {
-      if (!Array.isArray(err)) {
-        err = [err];
-      }
-      err.forEach(function (e) {
-        console.log(e);
-      });
-      return ;
-    }
-    var result = res.result;
-    count --;
-    if (result.requiresOrigin) {
-      result.requiresOrigin.forEach(function (m) {
-        if (builtModules[m]) {
-          return;
-        }
-        builtModules[m] = true;
-        count ++;
-        processFile(cube, {
-          src: path.join(root, m),
-          dest: data.dest
-        }, function (err, data) {
-          _cb(err, data);
-        });
-      });
-    }
-    if (count === 0) {
-      cb();
-    }
-  }
-  processFile(cube, data, function (err, data) {
-    _cb(err, data);
-  });
-}
-
 
 function processRequireModules2(cube, arr, callback) {
   var res = [];
@@ -751,122 +637,14 @@ function processFile(cube, data, cb) {
       result: result
     });
   });
-  /**
-  try {
-    processData.source = processData.code = xfs.readFileSync(path.join(root, realFile)).toString();
-  } catch (e) {
-    return cb(new Error('read file error:' + realFile));
-  }
-  var processActions = [
-    function (done) {
-      debug('start process');
-      done(null, processData);
-    }
-  ];
-  processData.processors.forEach(function (p) {
-    var name = p.constructor.name;
-    processActions.push(function (d, done) {
-      debug('step into processor:' + name);
-      p.process(d, done);
-    });
-  });
-  async.waterfall(processActions, function (err, result) {
-    if (err) {
-      // console.error(err.file, err.line, err.column, err.message);
-      return cb(err);
-    }
-    var wraperMethod;
-    switch(type) {
-      case 'script':
-        try {
-          result = wraper.processScript(cube, result);
-        } catch (e) {
-          return end(e, result);
-        }
-        wraperMethod = 'wrapScript';
-        end(null, result);
-        break;
-      case 'style':
-        wraperMethod = 'wrapStyle';
-        wraper.processCssCode(cube, result, end);
-        break;
-      case 'template':
-        try {
-          result = wraper.processScript(cube, result);
-        } catch (e) {
-          return end(e, result);
-        }
-        wraperMethod = 'wrapScript';
-        end(null, result);
-        break;
-    }
-    function end(err, result) {
-      if (err) {
-        // console.error(err.file, err.line, err.message);
-        return cb(err);
-      }
-      result.mime = cube.getMIMEType('script');
-      var flagWithoutWrap = cube.config.withoutWrap;
-      if (flagWithoutWrap) {
-        _end(null, result);
-      } else {
-        wraper[wraperMethod](cube, result, _end);
-      }
-
-      function _end(err, result) {
-        if (err) {
-          // console.error(err.file, err.line, err.message);
-          return cb(err);
-        }
-        if (dest) {
-          var finalFile, wrapDestFile;
-          destFile = path.join(dest, result.queryPath.replace(/^\w+:/, ''));
-          if (type === 'script') {
-            /**
-             * script type, write single js file
-             *
-            wrapDestFile = destFile.replace(/(\.\w+)?$/, '.js');
-            xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
-            // var destSourceFile = destFile.replace(/\.js/, '.source.js');
-            // withSource && xfs.sync().save(destSourceFile, result.source);
-          } else if (type === 'style') {
-            /**
-             * style type, should write both js file and css file
-             *
-            finalFile = path.join(dest, realFile).replace(/(\.\w+)?$/, '.css');
-            wrapDestFile = destFile;
-            xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
-            xfs.sync().save(finalFile, result.code);
-          } else if (type === 'template') {
-            wrapDestFile = destFile;
-            if (/\.html?$/.test(ext)) {
-              xfs.sync().save(path.join(dest, result.realPath), result.source);
-            }
-            xfs.sync().save(wrapDestFile, flagWithoutWrap ? result.code : result.codeWraped);
-          }
-        } else if (destFile) {
-          xfs.sync().save(destFile, flagWithoutWrap ? result.code : result.codeWraped);
-        }
-        var end = new Date().getTime();
-        if (result) {
-          result.file = realFile;
-        }
-        cb(null, {
-          total: 1,
-          time: Math.ceil((end - st) / 1000),
-          result: result
-        });
-      }
-    }
-  });
-  */
 }
 
 function fixWinPath(fpath) {
   return fpath.replace(/\\/g, '/');
 }
 
+exports.mergeNode = mergeNode;
 exports.processFile = processFile;
 exports.processDir = processDir;
-exports.processDirSmart = processDirSmart;
+// exports.processDirSmart = processDirSmart;
 exports.processDirSmart2 = processDirSmart2;

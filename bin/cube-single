@@ -1,8 +1,11 @@
 #!/usr/bin/env node
+'use strict';
+
 const fs = require('xfs');
 const path = require('path');
 const cmd = require('commander');
 const Cube = require('../index');
+const async = require('async');
 
 function getCwd() {
   return process.cwd();
@@ -24,7 +27,6 @@ cmd
   .option('-r, --resBase [value]', 'resource base')
   .option('-c, --compress', 'compress code')
   .option('-e, --export [value]', 'set the script export name, default is DataVDemo')
-  .option('--mangle-filename', 'short the filename')
   .parse(process.argv);
 
 var source = cmd.args[0];
@@ -43,7 +45,10 @@ if (args.processors) {
 cmd.export = cmd.export || 'EXPORT_OBJECT';
 
 var cwd = getCwd();
-var outputPath, cube, tool, root;
+var outputPath;
+var cube;
+var tool;
+var root;
 var compress = args.compress;
 var fstat;
 root = args.base ? args.base : '';
@@ -72,15 +77,13 @@ cube = new Cube({
   processors: args.processors,
   resBase: args.resBase,
   remote: args.remote,
-  mangleFileName: true,
-  merge: true
+  merge: true,
+  lazyWrap: true
 });
+
 tool = Cube.getTool();
-var codes = [];
-// var styles = [];
 var infos = [];
 var codesMap = {};
-var codesList = [];
 var indent = 0;
 var count = 1;
 
@@ -96,13 +99,10 @@ function _cb(err, res, i) {
   }
   var result = res.result;
   count --;
-  codesList.unshift(result.realPath);
-  codesMap[result.realPath] = {
-    file: result.realPath,
-    code: result.codeWraped
-  };
+  codesMap[result.realPath] = result;
 
   infos.push(fmtInfo(i, result.file));
+
   if (result.requiresOrigin) {
     var n = i + 1;
     result.requiresOrigin.forEach(function (m) {
@@ -113,8 +113,8 @@ function _cb(err, res, i) {
       if (codesMap[m]) {
         return;
       }
-      codesMap[m] = {};
       count ++;
+      codesMap[m] = true;
       tool.processFile(cube, {src: path.join(root, m)}, function (err, data) {
         _cb(err, data, n);
       });
@@ -132,33 +132,69 @@ tool.processFile(cube, {src: source}, function (err, data) {
 function done() {
   var map = {};
   var mods = [];
-  codesList.forEach(function (n) {
-    if (map[n]) {
+  Object.keys(codesMap).forEach(function (file) {
+    mods.push(codesMap[file]);
+  });
+
+  let mergedCodes = tool.mergeNode(mods);
+
+  let merged = Object.keys(mergedCodes);
+  if (merged.length > 2) {
+    console.error('单文件合并，不应该出现多个导出文件', merged);
+    process.exit(0);
+  }
+
+  let actions = [function (callback) {
+    callback(null);
+  }];
+  let file = merged[0];
+  let codes = [];
+  mergedCodes[file].forEach(function (cc) {
+    if (map[cc.queryPath]) {
       return;
     }
-    map[n] = true;
-    mods.push(codesMap[n]);
+    map[cc.queryPath] = true;
+    actions.push(function (callback) {
+      // genCode 之前，先判断是否mangleFileName;
+      // if (!appCodes[cc.queryPath]) {
+      cc.queryPath = cube.getFileShortName(cc.queryPath);
+      // }
+      let requiresNew = [];
+      cc.requires && cc.requires.forEach(function (key) {
+        if (mergedCodes[key]) {
+          requiresNew.push(key);
+        }
+      });
+      cc.requires = requiresNew;
+
+      cc.requiresRef && cc.requiresRef.forEach(function (node) {
+        if (mergedCodes[node.value]) {
+          return;
+        }
+        node.value = cube.getFileShortName(node.value);
+      });
+
+      cc.genCode(function (err, res) {
+        codes.push(res.codeWraped);
+        callback(null);
+      });
+    });
   });
-  mods.forEach(function (n) {
-    if (!n.code) {
-      return;
-    }
-    codes.push(n.code);
+  async.waterfall(actions, function () {
+    codes.unshift('var C=a.Cube;');
+    codes.unshift(fs.readFileSync(path.join(__dirname, '../runtime/cube.min.js')).toString().replace('window,null', 'a,null'));
+    codes.unshift('var a={};');
+    codes.unshift('!(function(host, name){');
+    codes.push('C.use("' + cube.getFileShortName(file) + '", function(m) {host[name]=m}, true);');
+    codes.push('})(window, "' + cmd.export + '")');
+    fs.sync().save(path.join(outputPath, '/script.js'), codes.join('\n'));
+    // fs.sync().save(path.join(outputPath, '/style.css'), styles.join('\n'));
+    console.log('===== deps =====');
+    console.log(infos.join('\n'));
+    console.log('======');
+    console.log('output dir:', outputPath);
+    console.log('======');
   });
-  codes.unshift('var C=a.Cube;');
-  codes.unshift(fs.readFileSync(path.join(__dirname, '../runtime/cube.min.js')).toString().replace('window,null', 'a,null'));
-  codes.unshift('var a={};');
-  codes.unshift('!(function(host, name){');
-  codes.push('C.use("' + cube.getFileShortName(infos[0]) + '", function(m) {host[name]=m}, true);');
-  // codes.push('// 导出到window里的全局变量名');
-  codes.push('})(window, "' + cmd.export + '")');
-  fs.sync().save(path.join(outputPath, '/script.js'), codes.join('\n'));
-  // fs.sync().save(path.join(outputPath, '/style.css'), styles.join('\n'));
-  console.log('===== deps =====');
-  console.log(infos.join('\n'));
-  console.log('======');
-  console.log('output dir:', outputPath);
-  console.log('======');
 }
 
 function fmtInfo(indent) {

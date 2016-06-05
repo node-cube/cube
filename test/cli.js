@@ -55,7 +55,7 @@ describe('cli', function () {
     it('should work fine with --smart', function (done) {
       var cmd = 'node bin/cube build --smart example';
       exec(cmd, function (err, stdout, stderr) {
-        // console.log(stdout.toString(), stderr.toString());
+        console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
         var info = [];
         res.forEach(function (v) {
@@ -70,18 +70,18 @@ describe('cli', function () {
         expect(info[info.length - 2]).match(/Total Errors: 5/);
         // check require('css')
         var cssNamespaceAutofill = xfs.readFileSync(path.join(__dirname, '../example.release/test/test_css_namespace.js'));
-        expect(cssNamespaceAutofill.toString()).match(/'\/css\/test_css.css.js',''/);
+        // check css import path
+        expect(cssNamespaceAutofill.toString()).match(/\/css\/test_require_css.css/);
         expect(xfs.existsSync(path.join(__dirname, '../example.release/test/test_ignore.js'))).to.be(false);
-        // node_modules relative file should be build
-        expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test/lib/b.js'))).to.be(true);
+        // node_modules relative file should be merged
+        expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test/lib/b.js'))).to.be(false);
         // node_modules no rel file should not build
         expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test_ignored_by_smartbuild.js'))).to.be(false);
         // check auto merge
         let mainScript = xfs.readFileSync(path.join(__dirname, '../example.release/main.js')).toString();
-        expect(mainScript).to.match(/Cube\(('|")\/node_modules\/cycle_server\/c.js/);
-        expect(mainScript).to.match(/Cube\(('|")\/node_modules\/cycle_server\/b.js/);
-        expect(mainScript).to.match(/Cube\(('|")\/node_modules\/cycle_server\/a.js/);
-
+        // expect(mainScript).to.match(/Cube\(('|")\/node_modules\/cycle_server\/c.js/);
+        // expect(mainScript).to.match(/Cube\(('|")\/node_modules\/cycle_server\/b.js/);
+        // expect(mainScript).to.match(/Cube\(('|")\/node_modules\/cycle_server\/a.js/);
         xfs.sync().rmdir(path.join(__dirname, '../example.release'));
         done();
       });
