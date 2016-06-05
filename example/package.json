@@ -18,8 +18,9 @@
     "build": {
       "skip":[],
       "ignore": [],
-      "mangleFileName": true,
-      "reservedModule": []
+      "exportModules": [
+        "/css/test_css.css.js"
+      ]
     }
   }
 }

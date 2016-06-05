@@ -38,14 +38,14 @@ function loadDefaultProcessor(cube) {
  *        - processors {Array} [optional] set the extenal processors
  *        - resBase {String} [optional] the http base for resource
  *        - devCache {Boolean} default true
- *        - withDist {Boolean} switch if search module dist dir
+ *        - withDist {Boolean} switch if search module dist dir 已废弃
  *        - merge {Boolean} if merge all file into one file
  *        - mangleFileName {Boolean}
  *        - mangleFileNameIgnore {Array}
  *        - built {Boolean}
- *        - moduleMap {Object}
+ *        - moduleMap {Object} 映射模块寻址路径
  *        - forceRequire {Boolean} 是否强制 require, 即使require的内容不存在
- *
+ *        - exportModules {Array} 自定义导出模块，编译时用
  */
 function Cube(config) {
   // remove the last slash(\|/) in config.root
@@ -90,6 +90,15 @@ function Cube(config) {
   this.config = config;
 
   this.CACHE = {};
+  this.caches = {
+    _cache: {},
+    get: function (key) {
+      if (!this._cache[key]) {
+        this._cache[key] = {};
+      }
+      return this._cache[key];
+    }
+  };
 
   this.processors = {
     map: {
@@ -143,18 +152,21 @@ function Cube(config) {
           });
           break;
         case 'build':
-          cfg.skip.forEach(function (v) {
+          cfg.skip && cfg.skip.forEach(function (v) {
             if (!v) {
               return ;
             }
             self.ignoresRules.skip.push(utils.genRule(v));
           });
-          cfg.ignore.forEach(function (v) {
+          cfg.ignore && cfg.ignore.forEach(function (v) {
             if (!v) {
               return ;
             }
             self.ignoresRules.ignore.push(utils.genRule(v));
           });
+          if (cfg.exportModules) {
+            self.config.exportModules = cfg.exportModules;
+          }
           break;
         default:
           console.log('override cube config:' + key);
@@ -380,7 +392,7 @@ Cube.prototype.printFileShortNameMap = function () {
   console.log(fileNameMaps);
 };
 
-Cube.prototype.getFileShortName = function (fileName, merge) {
+Cube.prototype.getFileShortName = function (fileName) {
   var mangleFileNameIgnore = this.config.mangleFileNameIgnore;
   if (fileName.indexOf('/') !== 0) {
     return fileName;
@@ -392,9 +404,11 @@ Cube.prototype.getFileShortName = function (fileName, merge) {
     return fileNameMaps[fileName];
   }
   var alias = genName();
+  /*
   if (!merge) {
     alias = '/' + alias + '.js';
   }
+  */
   fileNameMaps[fileName] = alias;
   return alias;
 };

@@ -64,9 +64,10 @@ cmd
   .option('--output-file [value]', 'set the output file')
   .option('-b, --base [value]', 'set the cube base')
   .option('-r, --resbase [value]', 'the http base for resouce')
-  .option('--remote [value]', 'set the namespace for remote call')
   .option('--merge', 'if merged dependences into a file')
+  .option('--remote [value]', 'set the namespace for remote call')
   .option('--mangle-file-name', 'mangle the file name into random name')
+  .option('--custom-export-files [value]', 'files which will be loaded in html, and should keep the original filename')
   .option('--without-compress', 'do not compress code')
   .option('--without-wrap', 'do not wraper code')
   .option('-t, --transform', 'transform es2015 codes')
@@ -91,6 +92,10 @@ if (args.transform) {
     args.processors = [];
   }
   args.processors.push('cube-es2015');
+}
+
+if (args.customExportFiles) {
+  args.customExportFiles = args.customExportFiles.split(',');
 }
 
 var cwd = getCwd();
@@ -131,7 +136,9 @@ if (fstat.isFile()) {
     remote: args.remote,
     withoutWrap: args.withoutWrap,
     mangleFileName: args.mangleFileName,
-    mangleFileNameIgnore: ['/main.js']
+    mangleFileNameIgnore: ['/main.js'],
+    customExportFiles: args.customExportFiles,
+    lazyWrap: args.smart
   });
   tool = Cube.getTool();
   tool.processFile(cube, {
@@ -151,7 +158,9 @@ if (fstat.isFile()) {
     resBase: args.resbase,
     remote: args.remote,
     mangleFileName: args.mangleFileName,
-    mangleFileNameIgnore: ['/main.js']
+    mangleFileNameIgnore: ['/main.js'],
+    customExportFiles: args.customExportFiles,
+    lazyWrap: args.smart
   });
   tool = Cube.getTool();
   tool[args.smart ? 'processDirSmart2' : 'processDir'](cube, {src: inputPath, dest:outputPath}, buildOutput);
