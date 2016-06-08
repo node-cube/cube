@@ -167,7 +167,7 @@ function processDirSmart2(cube, data, cb) {
       console.timeEnd('process node_modules file');
       files = files.concat(modFiles);
 
-      let appCodes = mergeNode(files, cube.config.exportModules);
+      let appCodes = mergeNode(files, cube.config.build && cube.config.build.exportModules);
       // 建立 被依赖 映射
       // let modCodes = mergeNode(modFiles, requireModules);
 

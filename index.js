@@ -45,7 +45,6 @@ function loadDefaultProcessor(cube) {
  *        - built {Boolean}
  *        - moduleMap {Object} 映射模块寻址路径
  *        - forceRequire {Boolean} 是否强制 require, 即使require的内容不存在
- *        - exportModules {Array} 自定义导出模块，编译时用
  */
 function Cube(config) {
   // remove the last slash(\|/) in config.root

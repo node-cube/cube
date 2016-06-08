@@ -55,7 +55,7 @@ describe('cli', function () {
     it('should work fine with --smart', function (done) {
       var cmd = 'node bin/cube build --smart example';
       exec(cmd, function (err, stdout, stderr) {
-        console.log(stdout.toString(), stderr.toString());
+        // console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
         var info = [];
         res.forEach(function (v) {
@@ -70,8 +70,8 @@ describe('cli', function () {
         expect(info[info.length - 2]).match(/Total Errors: 5/);
         // check require('css')
         var cssNamespaceAutofill = xfs.readFileSync(path.join(__dirname, '../example.release/test/test_css_namespace.js'));
-        // check css import path
-        expect(cssNamespaceAutofill.toString()).match(/\/css\/test_require_css.css/);
+        // check if remain the module name when module is a exportModule
+        expect(cssNamespaceAutofill.toString()).match(/\/css\/test_css\.css\.js/);
         expect(xfs.existsSync(path.join(__dirname, '../example.release/test/test_ignore.js'))).to.be(false);
         // node_modules relative file should be merged
         expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test/lib/b.js'))).to.be(false);
