@@ -168,20 +168,22 @@
       var key, arr;
 
       for (key in entrances) {
-        arr = key.split(',');
-        arr.forEach(function (entrance) {
-          var count = 0;
-          helpers.fireModule(entrance);
-          entrances[key].forEach(function (fn) {
-            var called = fn(installedModules[entrance].exports);
-            if (called) {
-              count++;
+        if (entrances.hasOwnProperty(key)) {
+          arr = key.split(',');
+          arr.forEach(function (entrance) {
+            var count = 0;
+            helpers.fireModule(entrance);
+            entrances[key].forEach(function (fn) {
+              var called = fn(installedModules[entrance].exports);
+              if (called) {
+                count++;
+              }
+            });
+            if (entrances[key].length === count) {  // 回调函数都执行完后删除
+              delete entrances[key];
             }
           });
-          if (entrances[key].length === count) {  // 回调函数都执行完后删除
-            delete entrances[key];
-          }
-        });
+        }
       }
 
       runLock = false;
@@ -237,7 +239,9 @@
     }
     if (config.remoteBase) {
       for (var key in config.remoteBase) {
-        settings.remoteBase[key] = config.remoteBase[key].replace(/\/$/, '');
+        if (config.remoteBase.hasOwnProperty(key)) {
+          settings.remoteBase[key] = config.remoteBase[key].replace(/\/$/, '');
+        }
       }
     }
     if (config.charset) {
@@ -347,16 +351,16 @@
   if (window.localStorage && localStorage.cube === 'debug') {
     settings.debug = true;
     Cube.info = function () {
-      var unloaded = [], unfired = [], i, m;
+      var unloaded = {}, unfired = {}, i, m;
 
       for (i in installedModules) {
         if (installedModules.hasOwnProperty(i)) {
           m = installedModules[i];
           if (!m.loaded) {
-            unloaded.push(m);
+            unloaded[i] = m;
           }
           if (!m.fired) {
-            unfired.push(m);
+            unfired[i] = m;
           }
         }
       }
