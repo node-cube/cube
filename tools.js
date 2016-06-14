@@ -134,7 +134,13 @@ function processDirSmart2(cube, data, cb) {
         src: sourceFile
       }, function (err, res) {
         if (err) {
-          if (!err.file) err.file = sourceFile;
+          if (err === 'unknow_type') {
+            xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
+            console.log('[copy file]:', relFile.substr(1));
+            return done();
+          } else if (!err.file) {
+            err.file = sourceFile;
+          }
           errors.push(err);
         }
         var originRequire;
@@ -569,11 +575,12 @@ function processFile(cube, data, cb) {
     if (destFile) {
       console.log('[copying file]:', realFile.substr(1));
       destFile && xfs.sync().save(destFile, xfs.readFileSync(source));
+      return cb();
     } else {
       // unknow type, copy file
       console.log('[unknow file type]', realFile.substr(1));
+      return cb('unknow_type');
     }
-    return cb();
   }
   var ps = cube.processors.types[type];
   var processors = ps[ext];
