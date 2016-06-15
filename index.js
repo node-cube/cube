@@ -430,6 +430,40 @@ Cube.prototype.fixupResPath = function (dir, code) {
   });
 };
 
+/** 修订css文件中的资源文件中的路径 **/
+Cube.prototype.fixStyleResPath = function (dir, code) {
+  var base = this.config.resBase || '';
+  var deps = [];
+  code = code.replace(/url\( *([\'\"]*)([^\'\"\)]+)\1 *\)/ig, function (m0, m1, m2) {
+    if (!m2) {
+      return m0; // url() content is empty, do nothing
+    }
+    m2 = m2.trim();
+    var st = 0;
+    var end = m2.length;
+    if (m2[0] === '\'' || m2[0] === '"') {
+      st = 1;
+    }
+    if (m2[m2.length - 1] === '\'' || m2[m2.length - 1] === '"') {
+      end = end - 1;
+    }
+    m2 = m2.substring(st, end);
+    if (m2.indexOf('data:') === 0) { // url() is a base64 coded resource, ignore
+      return m0;
+    }
+    if (m2.indexOf('http') === 0) { // url() is a remote resource, ignore
+      return m0;
+    }
+    if (m2.indexOf('/') === 0) {
+      deps.push(m2);
+      return m0.replace(/\"|\'/g, ''); // url() is pointer to a abs path resource
+    }
+    var tmp = path.join(base, dir, m2);
+    deps.push(path.join(dir, m2));
+    return 'url(' + tmp.replace(/\\/g, '/') + ')';
+  });
+};
+
 Cube.prototype.processJsCode = function (data, callback) {
   data.queryPath = data.file;
   data.realPath = data.file;

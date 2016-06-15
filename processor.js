@@ -72,7 +72,7 @@ exports.process = function (cube, data, callback) {
         if (flagModuleWrap) {
           wraperMethod = 'wrapStyle';
         }
-        wraper.processCssCode(cube, result, end);
+        wraper.processStyle(cube, result, end);
         break;
       case 'template':
         if (flagModuleWrap) {
@@ -103,7 +103,7 @@ exports.process = function (cube, data, callback) {
           });
         };
         callback(null, result);
-      } else if (flagModuleWrap && !config.lazyWrap) {
+      } else if (flagModuleWrap) {
         result.mime = cube.getMIMEType('script');
         wraper[wraperMethod](cube, result, function (err, result) {
           if (!err) {

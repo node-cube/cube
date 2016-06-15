@@ -145,6 +145,9 @@ function processDirSmart2(cube, data, cb) {
         }
         var originRequire;
         if (res && res.result) {
+          if (res.result.type === 'style') {
+            xfs.sync().save(destFile.replace(/\.\w+$/, '.css'), res.result.code);
+          }
           files.push(res.result);
           originRequire = res.result.requiresOrigin;
           originRequire && originRequire.forEach(function (v) {
