@@ -5,3 +5,4 @@ covreporter.html
 example.abs/
 example.out/
 /test_merge*
+/out/

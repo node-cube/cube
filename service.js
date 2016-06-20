@@ -2,17 +2,13 @@
  * Cube services, start a http server, or return a middleware
  */
 'use strict';
-
-var xfs = require('xfs');
-var debug = require('debug')('cube');
-var url = require('url');
-var qs = require('querystring');
-var path = require('path');
-var connect = require('connect');
-var connectStatic = require('serve-static');
-var utils = require('./lib/utils');
-var async = require('async');
-var processor = require('./processor');
+const xfs = require('xfs');
+const debug = require('debug')('cube:service');
+const url = require('url');
+const path = require('path');
+const connect = require('connect');
+const connectStatic = require('serve-static');
+const async = require('async');
 
 function Pedding(num, cb) {
   var count = 0;
@@ -23,57 +19,11 @@ function Pedding(num, cb) {
     }
   };
 }
-
 /**
- * 识别请求文件的类型、ext、mime
+ * 动态合并请求，加速开发模式下的访问速度
+ *   开发模式下影响访问效率的主要原因是：并发下载的模块太多导致浏览器下载队列排队现象严重
+ *   需要合理的merge模块
  */
-function prepareFile(cube, data, done) {
-  let qpath = data.queryPath;
-  let ext = path.extname(qpath);
-  let type = cube.processors.map[ext];
-  if (type === undefined) {
-    console.log('[CUBE]`' + qpath + '` unmatch file type, query will passed to connect.static handler');
-    return done({code: 'STATIC_FILE'});
-  }
-  let ps = cube.processors.types[type];
-  let mime = cube.getMIMEType(type);
-
-  debug('query file:' + qpath,
-    'ext:' + ext,
-    'type:' + type,
-    'wrap:' + data.wrap,
-    'compress:' + data.compress
-  );
-
-  data.type = type;
-  data.ext = ext;
-  data.mime = mime;
-  done(null, cube, data, ps);
-}
-
-function seekFile(cube, data, ps, done) {
-  let qpath = data.queryPath;
-  let root = cube.config.root;
-  utils.seekFile(cube, root, qpath, ps, function (err, realPath, ext, processors) {
-    if (err) {
-      debug('seek file error', err.code, err.message, 'filetype:', data.type);
-      console.error('[CUBE_ERROR]', err.message);
-      err.statusCode = 404;
-      return done(err);
-    }
-    if (!processors) {
-      return done({
-        code: 500,
-        message: 'unsupported file type, please register `' + ext + '` processor'
-      });
-    }
-    debug('query: %s realpath: %s type: %s %s', qpath, realPath, data.type, data.mime);
-    data.realPath = realPath;
-    data.processors = processors;
-    done(null, data);
-  });
-}
-
 function mergeRequire(cube, result, arr, parents, done) {
   let qpath = result.queryPath;
   if (!/^\/node_modules/.test(qpath)) {
@@ -121,11 +71,9 @@ function mergeRequire(cube, result, arr, parents, done) {
       function (done) {
         done(null, cube, data);
       },
-      prepareFile,
-      seekFile,
-      function (data, callback) {
-        processor.process(cube, data, callback);
-      }
+      cube.seekFile.bind(cube),
+      cube.readFile.bind(cube),
+      cube.processFile.bind(cube)
     ], function (err, result) {
       arr.unshift(result);
       let p = parents.slice(0);
@@ -135,90 +83,93 @@ function mergeRequire(cube, result, arr, parents, done) {
   });
 }
 
-/**
- * init cube
- *
- * the config is from cube.config
- *         - port       listen port [optional]
- *         - connect    the connect object
- *         - root       static root
- *         - middleware  boolean, default false
- *         - cached     the cached path
- *         - built    if code is built, set to true, working as a static server, default false
- */
-exports.init = function (cube) {
-  var config = cube.config;
-  if (config.middleware === undefined) {
-    config.middleware = false;
-  }
-  var root = cube.config.root;
-  var serveStatic;
-  var app;
-
-  if (!config.cached) {
-    config.cached = config.built ? config.root : root + '.release';
-  }
-
-  if (!xfs.existsSync(config.cached)) {
-    config.cached = false;
-  }
-
-  config.maxAge = config.maxAge && config.cached ? config.maxAge : 0;
-
-  serveStatic = connectStatic(config.cached ? config.cached : config.root, {
-    maxAge: config.maxAge
-  });
-
-  function processQuery(req, res, next) {
-    var q = url.parse(req.url, true);
-    var qpath = q.pathname;
-    var queryString;
-    var flagModuleWrap;
-    var flagCompress;
+function createMiddleware(cube, serveStatic, checkSkip) {
+  let config = cube.config;
+  return function (req, res, next) {
+    debug('query path', req.url);
+    let q = url.parse(req.url, true);
+    let qpath = q.pathname;
+    let flagWrap;
+    let flagCompress;
     if (qpath === '/') {
       req.url = '/index.html';
     }
     // parse query object
     if (!req.query) {
-      queryString = url.parse(req.originalUrl || req.url).query;
-      req.query = qs.parse(queryString);
+      req.query = q.query;
+    }
+    if (checkSkip(req.url)) {
+      res.setHeader('x-cube-skip', 'true');
+      return next();
+    }
+    /**
+     * for cube loader
+     */
+    if (qpath === '/cube.js') {
+      res.setHeader('content-type', 'text/javascript');
+      return xfs.createReadStream(path.join(__dirname, './runtime/cube.min.js')).pipe(res);
     }
 
-    flagModuleWrap = req.query.m === undefined ? false : true;
+    flagWrap = req.query.m === undefined ? false : true;
     flagCompress = req.query.c === undefined ? false : true;
-    /*
-    let remote = config.remote;
 
-    let cache = cube.caches.get(flagModuleWrap + ':' + flagCompress + ':' + remote);
-
-    if (cache[qpath]) {
-      done(null, cache[qpath]);
-    }
-    */
-
-    var data = {
-      queryPath: qpath,
-      realPath: null,
-      type: null,
-      code: null,
-      codeWraped: null,
-      source: null,
-      sourceMap: null,
-      processors: null,
-      modifyTime: null,
-      mime: null,
-      compress: flagCompress,
-      wrap: flagModuleWrap
-    };
-
+    let cachePath = qpath + ':' + flagWrap + ':' + flagCompress + ':' + config.remote;
     async.waterfall([
-      function (done) {
-        done(null, cube, data);
+      function prepareData(done) {
+        /**
+         * 贯穿转换过程的Data数据结构
+         */
+        let data = {
+          queryPath: qpath,   // 查询path
+          absPath: null,      // 绝对路径
+          realPath: null,     // 真实path
+          type: null,         // 文件类型
+          source: null,       // 源码
+          code: null,         // 文件代码
+          codeWraped: null,   // wrap后的文件代码
+          sourceMap: null,    // 源码的sourceMap
+          modifyTime: null,   // 修改时间，检测缓存用
+          mime: null,         // mime 类型
+          wrap: flagWrap      // 是否wrap代码
+        };
+        done(null, data);
       },
-      prepareFile,
-      seekFile,
-      function (data, callback) {
-        processor.process(cube, data, callback);
+      /** 检查cache，以便下次快速返回 */
+      function checkCache(data, callback) {
+        let cache = cube.caches.get[cachePath];
+        if (!cache) {
+          data.modifyTime = new Date().getTime();
+          return callback(null, data);
+        }
+        xfs.lstat(cache.absPath, function (err, stats) {
+          if (err) {
+            return callback({
+              code: 'CHECK_CACHE_FILE_ERROR',
+              message: 'read file stats error:' + err.message
+            });
+          }
+          var mtime = new Date(stats.mtime).getTime();
+          if (cache.modifyTime >= mtime) { // target the cache, just return
+            debug('hint cache', cachePath, data.queryPath);
+            return done({code: 'CACHED'}, cache);
+          }
+          data.modifyTime = mtime;
+          callback(null, data);
+        });
+      },
+      cube.seekFile.bind(cube),
+      cube.readFile.bind(cube),
+      cube.transferCode.bind(cube),
+      /** cache结果，以便下次快速返回 */
+      function cacheData(data, callback) {
+        data.genCode(function (err, data) {
+          if (config.devCache) {
+            debug('cache processed file: %s, %s', data.queryPath, data.mtime);
+            delete data.ast;
+            cube.caches.set(cachePath, data);
+          }
+          callback(err, data);
+        });
       }
     ], done);
 
@@ -231,12 +182,14 @@ exports.init = function (cube) {
           return errorMsg(err, result);
         }
       }
-      var code = flagModuleWrap ? result.codeWraped : result.code;
-      var parent = [result.queryPath];
+      var code = flagWrap ? result.codeWraped : result.code;
+      // var parent = [result.queryPath];
 
-      if (flagModuleWrap && !result.merged) {
+      if (flagWrap && !result.merged) {
         // 级联合并
-        let depsMods = [];
+        // let depsMods = [];
+        output();
+        /*
         mergeRequire(cube, result, depsMods, parent, function () {
           let map = {};
           let codesDeps = [];
@@ -245,18 +198,18 @@ exports.init = function (cube) {
               return;
             }
             map[data.queryPath] = true;
-            codesDeps.push(flagModuleWrap ? data.codeWraped : data.code);
+            codesDeps.push(flagWrap ? data.codeWraped : data.code);
           });
           code = (codesDeps.length ? codesDeps.join('\n') + '\n' : '') + code;
           output();
         });
-
+        */
       } else {
         output();
       }
 
       function output() {
-        if (result.ext === '.html' && !flagModuleWrap) {
+        if (result.ext === '.html' && !flagWrap) {
           code = result.source;
         }
         res.statusCode = 200;
@@ -264,11 +217,12 @@ exports.init = function (cube) {
         res.end(code);
       }
     }
+
     function errorMsg(e, result) {
       let mime = result ? result.mime : 'text/html';
       res.statusCode = e.statusCode || 200;
-      res.setHeader('content-type', flagModuleWrap ? 'text/javascript' : mime);
-      var msg = flagModuleWrap ?
+      res.setHeader('content-type', flagWrap ? 'text/javascript' : mime);
+      var msg = flagWrap ?
         'console.error("[CUBE]",' +
           (e.code ? '"'+ e.code.replace(/"/g, '\\"') + ': ' + e.message.replace(/"/g, '\\"') +  '",' : '') +
           (e.file ? '"[File]: ' + e.file + '",' : '') +
@@ -282,18 +236,65 @@ exports.init = function (cube) {
           (e.column ? 'Column: ' + e.column + '\n' : '');
       res.end(msg);
     }
+  };
+}
 
+/**
+ * init service
+ *
+ * @param {Cube} cube instance
+ */
+exports.init = function (cube) {
+  let config = cube.config;
+  let root = config.root;
+  let serveStatic;
+  let cubeMiddleware;
+  let app;
+
+  if (!config.cached) {
+    config.cached = config.built ? config.root : root + '.release';
   }
 
-  // return middleware
+  if (!xfs.existsSync(config.cached)) {
+    config.cached = false;
+  }
+
+  let skip = cube.config.skip;
+
+  function checkSkip(url) {
+    if (!skip) {
+      return false;
+    }
+
+    for (let i =0, len = skip.length; i < len; i++) {
+      if (skip[i].test(url)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  config.maxAge = config.maxAge && config.cached ? config.maxAge : 0;
+  /**
+   * fallback the 404 request
+   */
+  serveStatic = connectStatic(config.cached ? config.cached : config.root, {
+    maxAge: config.maxAge
+  });
+
+  /**
+   * cube middleware
+   */
+  cubeMiddleware = createMiddleware(cube, serveStatic, checkSkip);
+
   if (config.middleware) {
-    cube.middleware = config.cached ? serveStatic : processQuery;
+    cube.middleware = config.cached ? serveStatic : cubeMiddleware;
     cube.middleware.getCube = function () {
       return cube;
     };
   } else {
     app = connect();
-    app.use(config.router, config.cached ? serveStatic : processQuery);
+    app.use(config.router, config.cached ? serveStatic : cubeMiddleware);
     app.use(function(err, req, res, next) {
       if (/favicon\.ico$/.test(req.url)) {
         res.statusCode = 200;
@@ -303,10 +304,7 @@ exports.init = function (cube) {
       next();
     });
     cube.connect = app;
-  }
-  // other static files
-  if (!config.middleware && config.port) {
-    app.listen(config.port, function (err) {
+    config.port && app.listen(config.port, function (err) {
       if (err) {
         console.error('[Cube] server fail to start,', err.message);
       } else {

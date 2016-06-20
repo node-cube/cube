@@ -6,30 +6,24 @@ const Cube = require('../index');
 
 cmd
   .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
-  .option('-p, --processors [value]', 'the external processors')
-  .option('-P, --port [value]', 'server port')
+  // .option('-p, --processors [value]', 'the external processors')
+  .option('-p, --port [value]', 'server port')
   .option('-r, --resbase [value]', 'set the http base path for resourcs')
   .option('-R, --remote [value]', 'set remote option')
   .option('-o, --output [value]', 'output dir')
-  .option('--builded', 'if root path is builded-code')
+  .option('--built', 'if root path is builded-code')
+  .option('--router [value]', 'url prefix')
   .parse(process.argv);
 
 let args = cmd;
 let rootPath = cmd.args[0];
-let processors;
-if (args.processors) {
-  processors = args.processors.split(',');
-} else {
-  processors = [];
-}
 
-Cube.init({
+Cube.service({
   root: path.join(process.cwd(), rootPath || ''),
   port: args.port ? args.port : 9999,
-  router: args.vpath || '/',
-  processors: processors,
+  router: args.router || '/',
   resBase: args.resbase,
   remote: args.remote,
-  middleware: false,
+  service: true,
   builded: args.builded
 });

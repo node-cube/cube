@@ -71,7 +71,7 @@ cmd.command('single', 'build single file');
 cmd.command('install')
   .description('install dependences')
   .action(function (option, dir) {
-    dir = dir ? filePath(dir) : getCwd();
+    // dir = dir ? filePath(dir) : getCwd();
     var out = childProcess.execSync('npm3 -v').toString().trim();
     var m = out.match(/(\d+)\.(\d+)\.(\d+)/);
     if (!m) {

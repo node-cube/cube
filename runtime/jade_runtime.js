@@ -4,8 +4,6 @@
  * Create   : 2014-06-11 14:43:42
  * CopyRight 2014 (c) Alibaba Group
  */
-
-
 Cube.register('jade_runtime', (function () {
   var exports = {};
   /**

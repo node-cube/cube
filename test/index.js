@@ -11,36 +11,36 @@ var testMod = require('../index');
 var path = require('path');
 var fs = require('fs');
 var Request = require('supertest');
-var cubeInst = testMod.init({
+var cubeInst = testMod.service({
   root: path.join(__dirname, '../example'),
   port: 7777,
   router: '/',
   middleware: false,
   resBase: '/resouce_path',
-  processors: [
-    require('cube-ejs'),
-    require('cube-jade'),
-    path.join(__dirname, '../../node_modules/cube-less'),
-    'cube-stylus'  // do not delete this comma, for branch test
-  ]
+  processors: {
+    '.ejs': require('cube-ejs'),
+    '.jade': require('cube-jade'),
+    '.less': path.join(__dirname, '../node_modules/cube-less'),
+    '.styl': 'cube-stylus'  // do not delete this comma, for branch test
+  }
 });
 
-testMod.init({
+testMod.service({
   root: path.join(__dirname, '../example'),
   port: 8888,
   router: '/',
   middleware: false,
   remote: 'REMOTE',
   resBase: '/resouce_path',
-  processors: [
-    require('cube-ejs'),
-    require('cube-jade'),
-    require('cube-less'),
-    require('cube-stylus')  // do not delete this comma, for branch test
-  ]
+  processors: {
+    '.ejs': require('cube-ejs'),
+    '.jade': require('cube-jade'),
+    '.less': require('cube-less'),
+    '.styl': require('cube-stylus')  // do not delete this comma, for branch test
+  }
 });
 
-testMod.init({
+testMod.service({
   root: path.join(__dirname, '../example'),
   port: 7778,
   router: '/',
@@ -58,12 +58,12 @@ testMod.init({
       return file;
     }
   },
-  processors: [
-    require('cube-ejs'),
-    require('cube-jade'),
-    require('cube-less'),
-    require('cube-stylus')  // do not delete this comma, for branch test
-  ]
+  processors: {
+    '.ejs': require('cube-ejs'),
+    '.jade': require('cube-jade'),
+    '.less': require('cube-less'),
+    '.styl': require('cube-stylus')  // do not delete this comma, for branch test
+  }
 });
 
 var request = Request('http://localhost:7777');
@@ -71,6 +71,7 @@ var remoteRequest = Request('http://localhost:8888');
 var hookRequest = Request('http://localhost:7778');
 
 describe('index.js', function () {
+
   describe('remote request', function () {
     it('should return a js module with remote info', function (done) {
       remoteRequest.get('/main.js?m')

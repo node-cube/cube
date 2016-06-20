@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+'use strict';
 const fs = require('xfs');
 const path = require('path');
 const cmd = require('commander');
@@ -53,13 +53,30 @@ function buildOutput(err, info) {
   info && console.log('Files:', info.total, 'Cost:', info.time + 's');
   console.log('==================');
 }
+
+function findRoot(file) {
+  let dir = path.dirname(file);
+  let res = null;
+  while (dir) {
+    let origin = dir;
+    if (fs.existsSync(path.join(dir, 'package.json'))) {
+      res = dir;
+      break;
+    }
+    dir = path.dirname(dir);
+    if (dir === origin) { // if dir is the root dir, break
+      break;
+    }
+  }
+  return res;
+}
 /**
  * source , -o,--output, -b, --base 是基于cwd路径, 互相之间没有依赖关系
  */
 cmd
   .usage('-p processor1,processor2 your_code_dir')
   .description('build the hole project, including: less->css->min, script->wraped->min')
-  .option('-p, --processors [value]', 'loading plugin processors, like `cube-coffee,cube-jsx`')
+  // .option('-p, --processors [value]', 'loading plugin processors, like `cube-coffee,cube-jsx`')
   .option('-o, --output [value]', 'set the output dir')
   .option('--output-file [value]', 'set the output file')
   .option('-b, --base [value]', 'set the cube base')
@@ -70,7 +87,7 @@ cmd
   .option('--custom-export-files [value]', 'files which will be loaded in html, and should keep the original filename')
   .option('--without-compress', 'do not compress code')
   .option('--without-wrap', 'do not wraper code')
-  .option('-t, --transform', 'transform es2015 codes')
+  // .option('-t, --transform', 'transform es2015 codes')
   .option('--smart', 'smart build, only build necessary')
   .parse(process.argv);
 
@@ -81,6 +98,7 @@ if (!args || !source) {
   this.help();
   return;
 }
+/*
 if (args.processors) {
   args.processors = args.processors.split(',');
   args.processors.forEach(function (v, i, a) {
@@ -93,6 +111,7 @@ if (args.transform) {
   }
   args.processors.push('cube-es2015');
 }
+*/
 
 if (args.customExportFiles) {
   args.customExportFiles = args.customExportFiles.split(',');
@@ -125,13 +144,13 @@ if (fstat.isFile()) {
   outputPath = args.output ?
     (isAbsPath(args.output) ? args.output : path.join(cwd, args.output)) :
     undefined;
-  root = (root ? root : path.dirname(source)).replace(/(\/|\\)$/, '');
+  root = (root ? root : findRoot(source) || path.dirname(source)).replace(/(\/|\\)$/, '');
   cube = new Cube({
     release: true,
     root: root,
     compress: compress,
     middleware: false,
-    processors: args.processors,
+    // processors: args.processors,
     resBase: args.resbase,
     remote: args.remote,
     withoutWrap: args.withoutWrap,
@@ -140,7 +159,7 @@ if (fstat.isFile()) {
     customExportFiles: args.customExportFiles,
     lazyWrap: args.smart
   });
-  tool = Cube.getTool();
+  tool = Cube.tools;
   tool.processFile(cube, {
     src: source,
     dest: outputPath,
@@ -154,7 +173,7 @@ if (fstat.isFile()) {
     root: root,
     compress: compress,
     middleware: false,
-    processors: args.processors,
+    // processors: args.processors,
     resBase: args.resbase,
     remote: args.remote,
     mangleFileName: args.mangleFileName,
@@ -162,8 +181,8 @@ if (fstat.isFile()) {
     customExportFiles: args.customExportFiles,
     lazyWrap: args.smart
   });
-  tool = Cube.getTool();
-  tool[args.smart ? 'processDirSmart2' : 'processDir'](cube, {src: inputPath, dest:outputPath}, buildOutput);
+  tool = Cube.tools;
+  tool[args.smart ? 'processDirSmart' : 'processDir'](cube, {src: inputPath, dest:outputPath}, buildOutput);
 } else {
   console.log('unknow type input source', source);
 }

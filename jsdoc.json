@@ -1,0 +1,21 @@
+{
+    "tags": {
+        "allowUnknownTags": true,
+        "dictionaries": ["jsdoc","closure"]
+    },
+    "source": {
+        "includePattern": ".+\\.js(doc)?$",
+        "excludePattern": "node_modules|^_.*|runtime"
+    },
+    "plugins": [
+        "plugins/markdown"
+    ],
+    "markdown": {
+        "tags": ["param", "example"],
+        "hardwrap": true
+    },
+    "templates": {
+        "cleverLinks": false,
+        "monospaceLinks": false
+    }
+}

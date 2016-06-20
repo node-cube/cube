@@ -8,7 +8,8 @@
     <p>init your page like this:</p>
     <textarea id="show" style="width: 600px; height: 400px"></textarea>
     <div id="initscript">
-      <script type="text/javascript" src='/cube.min.js'></script>
+      <!-- cube_loader.js 直接由cube内置路由支持，在静态资源的根目录下(虚拟的，build的时候会产出), 请根据情况调整起访问路径 -->
+      <script type="text/javascript" src='/cube_loader.js'></script>
       <script type="text/javascript">
         (function () {
           // main config for this page

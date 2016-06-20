@@ -1,9 +1,19 @@
 规则列表
 
-## 文件类型
-cube 定义3种类型的文件: script, style, tpl
+## cube看文件的规则
 
-同类型内，一般不会出现重名的现象
+  文件名.suffix
+  文件名 + 类型寻址
+
+
+## 文件类型
+cube 定义几种类型的文件:
+
+  * script
+  * style
+  * tpl
+  * raw
+
 
 ## 文件规则
 
@@ -20,11 +30,30 @@ cube 定义3种类型的文件: script, style, tpl
 
 ** url直接访问的时候，尽可能使用 基本类型访问: .js  .css
 
-## 编译寻址
+## 服务寻址规则
 
-网页直接引用时，不需要更改地址
+* 当浏览器直接访问文件时，Literal
+* 当浏览器访问带  query.m == true,   transfer
 
-1. js -> .js, coffee -> .js
-2. css -> css,  less -> css,  styl -> css,...
-          css.js        less.js       styl.js
-3. jade -> jade.js, ejs -> ejs.js
+##
+
+
+### 处理逻辑
+
+  * flag wrap  表示需要对输出做wrap处理
+  * flag minify 表示需要压缩输出
+  * flag release 表示build输出，需要对文件名做静态化处理
+    * build输出不做文件名混淆
+    * build输出最下化
+
+
+两种模式
+  * dev:
+    用户请求 -> 检查缓存 -> 文件寻址 -> 进入processors(pipe) -> 输出 -> 缓存
+      缓存策略采用:
+        cache所有的单文件，启动时分析文件依赖树
+      加载
+
+  * release:
+
+###

@@ -10,6 +10,9 @@ release:
 publish: release tag
 	@npm publish
 
+doc:
+	@jsdoc . -r -t ./node_modules/minami -c ./jsdoc.json
+
 tag:
 	@cat package.json | awk -F '"' '/version" *: *"/{print "v"$$4}' | xargs -I {} git tag {}
 
@@ -20,4 +23,4 @@ test-cov:
 	@npm run testcov
 
 .PHONY: \
-	install release publish test test-cov tag
+	install release publish test test-cov tag doc
