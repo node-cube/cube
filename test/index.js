@@ -17,6 +17,9 @@ var cubeInst = testMod.init({
   router: '/',
   middleware: false,
   resBase: '/resouce_path',
+  skip: [
+    /^\/skip_router/
+  ],
   processors: [
     require('cube-ejs'),
     require('cube-jade'),
@@ -127,6 +130,11 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(/exports\.run/)
         .expect(/^(?!Cube\()/, done);
+    });
+    it.only('should return regular js file', function (done) {
+      request.get('/skip_router')
+        .expect('x-cube-skip', 'true')
+        .end(done);
     });
     it('should ignore file parse when file in .cubeignore list', function (done) {
       request.get('/test/test_ignore.js?m')

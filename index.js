@@ -45,6 +45,7 @@ function loadDefaultProcessor(cube) {
  *        - built {Boolean}
  *        - moduleMap {Object} 映射模块寻址路径
  *        - forceRequire {Boolean} 是否强制 require, 即使require的内容不存在
+ *        - skip {Array<String>} 需要跳过的路径
  */
 function Cube(config) {
   // remove the last slash(\|/) in config.root
@@ -114,9 +115,13 @@ function Cube(config) {
     'style': 'text/css',
     'template': 'text/html'
   };
+  // 静态资源build标志
+  var flagStatic = config.middleware && (config.built || config.cached);
 
-  debug('loading default process');
-  loadDefaultProcessor(this);
+  if (!flagStatic) {
+    debug('loading default process');
+    loadDefaultProcessor(this);
+  }
   var self = this;
   if (config.processors) {
     debug('loading custom processors from config', config.processors);
@@ -124,7 +129,9 @@ function Cube(config) {
       if (!processor) {
         return ;
       }
-      self.register(processor);
+      if (!flagStatic) {
+        self.register(processor);
+      }
     });
   }
   // load ignore
@@ -147,7 +154,9 @@ function Cube(config) {
       switch (key) {
         case 'processors':
           Object.keys(cfg).forEach(function (p) {
-            self.register(cfg[p], p);
+            if (!flagStatic) {
+              self.register(cfg[p], p);
+            }
           });
           break;
         case 'build':
