@@ -165,9 +165,32 @@ exports.init = function (cube) {
 
   config.maxAge = config.maxAge && config.cached ? config.maxAge : 0;
 
-  serveStatic = connectStatic(config.cached ? config.cached : config.root, {
-    maxAge: config.maxAge
-  });
+  var staticMiddleware = connectStatic(
+    config.cached ? config.cached : config.root,
+    {
+      maxAge: config.maxAge
+    }
+  );
+  var skip = cube.config.skip;
+  function checkSkip(url) {
+    if (!skip) {
+      return false;
+    }
+
+    for (let i =0, len = skip.length; i < len; i++) {
+      if (skip[i].test(url)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  serveStatic = function (req, res, next) {
+    if (checkSkip(req.url)) {
+      return next();
+    }
+    staticMiddleware(req, res, next);
+  };
 
   function processQuery(req, res, next) {
     var q = url.parse(req.url, true);
@@ -177,6 +200,11 @@ exports.init = function (cube) {
     var flagCompress;
     if (qpath === '/') {
       req.url = '/index.html';
+    }
+    // check if skip
+    if (checkSkip(req.url)) {
+      res.setHeader('x-cube-skip', 'true');
+      return next();
     }
     // parse query object
     if (!req.query) {
