@@ -131,7 +131,7 @@ describe('index.js', function () {
         .expect(/exports\.run/)
         .expect(/^(?!Cube\()/, done);
     });
-    it.only('should return regular js file', function (done) {
+    it('should return regular js file', function (done) {
       request.get('/skip_router')
         .expect('x-cube-skip', 'true')
         .end(done);

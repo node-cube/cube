@@ -479,6 +479,9 @@ var builtModules = {};
 
 function processRequireModules2(cube, arr, callback) {
   var res = [];
+  if (!arr || !arr.length) {
+    return callback(null, res);
+  }
   var done = Pedding(arr.length, function () {
     callback(null, res);
   });
