@@ -338,17 +338,17 @@
 
   /* debug */
   Cube.debug = function () {
-    if (window.localStorage) {
+    if (window.localStorage && window.addEventListener) {
       localStorage.cube = 'debug';
       location.reload();
     } else {
-      console.error('Cube Error: Cannot debug, your browser does not support localStorage');
+      console.error('Cube Error: Cannot debug, your browser does not support localStorage or addEventListener');
     }
   };
 
   if (window.localStorage && localStorage.cube === 'debug') {
     settings.debug = true;
-    window.onload = function () {
+    window.addEventListener('load', function () {
       var unloaded = {}, unfired = {}, i, m;
 
       for (i in installedModules) {
@@ -366,7 +366,7 @@
       console.info('modules:', installedModules);
       console.info('unloaded:', unloaded);
       console.info('unfired:', unfired);
-    };
+    });
   }
 
 
