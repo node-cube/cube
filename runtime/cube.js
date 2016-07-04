@@ -348,9 +348,18 @@
 
 
   /* debug */
+  Cube.debug = function () {
+    if (window.localStorage) {
+      localStorage.cube = 'debug';
+      location.reload();
+    } else {
+      console.error('Cube Error: Cannot debug, your browser does not support localStorage');
+    }
+  };
+
   if (window.localStorage && localStorage.cube === 'debug') {
     settings.debug = true;
-    Cube.info = function () {
+    window.onload = function () {
       var unloaded = {}, unfired = {}, i, m;
 
       for (i in installedModules) {
