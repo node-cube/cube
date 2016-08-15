@@ -380,7 +380,7 @@
 
   alias = alias || 'Cube';
   if (global[alias]) {
-    console.error('Cube Error: win.' + alias + ' already in using, replace the last "null" param in cube.js');
+    console.error('Cube Error: window.' + alias + ' already in using, replace the last "null" param in cube.js');
   } else {
     global[alias] = Cube;
   }
