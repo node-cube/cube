@@ -197,30 +197,19 @@
    * @param callback
    */
   function Cube(name, requires, callback) {
-    //var requiresLoaded = false;
-
-    // if (arguments.length === 3) {
     if (!installedModules[name]) {
       installedModules[name] = {
         exports: {},
         loaded: false,
         fired: false
       };
-      /*
-      requiresLoaded = true;
-      if (requires.length && settings.debug) {
-        console.info('Cube Info: Module ' + '\'' + requires + '\'' + ' should exist');
-      }
-      */
     }
+
     var module = installedModules[name];
     module.fn = callback;
     module.loaded = true;
     delete loading[name];
-    //if (!requiresLoaded) {
     helpers.load(requires, name);
-    //}
-    // }
   }
 
   /** version, will replace in `make release` **/
@@ -348,9 +337,18 @@
 
 
   /* debug */
+  Cube.debug = function () {
+    if (window.localStorage && window.addEventListener) {
+      localStorage.cube = 'debug';
+      location.reload();
+    } else {
+      console.error('Cube Error: Cannot debug, your browser does not support localStorage or addEventListener');
+    }
+  };
+
   if (window.localStorage && localStorage.cube === 'debug') {
     settings.debug = true;
-    Cube.info = function () {
+    window.addEventListener('load', function () {
       var unloaded = {}, unfired = {}, i, m;
 
       for (i in installedModules) {
@@ -368,7 +366,7 @@
       console.info('modules:', installedModules);
       console.info('unloaded:', unloaded);
       console.info('unfired:', unfired);
-    };
+    });
   }
 
 
