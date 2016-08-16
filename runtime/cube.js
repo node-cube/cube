@@ -12,6 +12,7 @@
   /* short global val */
   var win = window;
   var doc = document;
+  var log = console;
   
   /* settings */
   var base = '';
@@ -172,7 +173,7 @@
       try {
         return fire();
       } catch (e) {
-        console.error(e);
+        log.error(e);
         return {};
       }
     }
@@ -313,7 +314,7 @@
    */
   Cube.register = function (module, exports) {
     if (installedModules[module]) {
-      return console.error('Cube Error: Module ' + '\'' + module + '\'' + ' already registered');
+      return log.error('Cube Error: Module ' + '\'' + module + '\'' + ' already registered');
     }
     installedModules[module] = {
       exports: exports,
@@ -367,7 +368,7 @@
       localStorage.cube = 'debug';
       location.reload();
     } else {
-      console.error('Cube Error: Cannot debug, your browser does not support localStorage or addEventListener');
+      log.error('Cube Error: Cannot debug, your browser does not support localStorage or addEventListener');
     }
   };
 
@@ -388,16 +389,16 @@
         }
       }
 
-      console.info('modules:', installedModules);
-      console.info('unloaded:', unloaded);
-      console.info('unfired:', unfired);
+      log.info('modules:', installedModules);
+      log.info('unloaded:', unloaded);
+      log.info('unfired:', unfired);
     });
   }
 
 
   alias = alias || 'Cube';
   if (global[alias]) {
-    console.error('Cube Error: window.' + alias + ' already in using, replace the last "null" param in cube.js');
+    log.error('Cube Error: window.' + alias + ' already in using, replace the last "null" param in cube.js');
   } else {
     global[alias] = Cube;
   }
