@@ -12,6 +12,7 @@
   /* short global val */
   var win = window;
   var doc = document;
+  var log = console;
   
   /* settings */
   var base = '';
@@ -19,6 +20,7 @@
   var remoteSeparator = ':';
   var charset = 'utf-8';
   var version = +new Date();
+  var strict = true;
   var debug = false;
   var entrances = {};  // Cube.use's cb
   
@@ -149,19 +151,32 @@
    * @returns {*}
    */
   function fireModule(module) {
-    var m = installedModules[module];
+    function fire() {
+      var m = installedModules[module];
 
-    // sometimes, module in server side not found,
-    // m is undefined
-    if (!m) {
-      return console.error('Cube Error: Cannot find module ' + '\'' + module + '\'');
-    }
-    if (!m.fired) {
-      m.fired = true;
-      m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load__]);
+      // sometimes, module in server side not found,
+      // m is undefined
+      if (!m) {
+        throw new Error('Cube Error: Cannot find module ' + '\'' + module + '\'');
+      }
+      if (!m.fired) {
+        m.fired = true;
+        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load__]);
+      }
+
+      return m.exports;
     }
 
-    return m.exports;
+    if (strict) {
+      return fire();
+    } else {
+      try {
+        return fire();
+      } catch (e) {
+        log.error(e);
+        return {};
+      }
+    }
   }
 
   /**
@@ -247,6 +262,9 @@
     if (config.version) {
       version = config.version;
     }
+    if (config.strict) {
+      strict = config.strict;
+    }
     return this;
   };
   /**
@@ -296,7 +314,7 @@
    */
   Cube.register = function (module, exports) {
     if (installedModules[module]) {
-      return console.error('Cube Error: Module ' + '\'' + module + '\'' + ' already registered');
+      return log.error('Cube Error: Module ' + '\'' + module + '\'' + ' already registered');
     }
     installedModules[module] = {
       exports: exports,
@@ -350,7 +368,7 @@
       localStorage.cube = 'debug';
       location.reload();
     } else {
-      console.error('Cube Error: Cannot debug, your browser does not support localStorage or addEventListener');
+      log.error('Cube Error: Cannot debug, your browser does not support localStorage or addEventListener');
     }
   };
 
@@ -371,16 +389,16 @@
         }
       }
 
-      console.info('modules:', installedModules);
-      console.info('unloaded:', unloaded);
-      console.info('unfired:', unfired);
+      log.info('modules:', installedModules);
+      log.info('unloaded:', unloaded);
+      log.info('unfired:', unfired);
     });
   }
 
 
   alias = alias || 'Cube';
   if (global[alias]) {
-    console.error('Cube Error: window.' + alias + ' already in using, replace the last "null" param in cube.js');
+    log.error('Cube Error: window.' + alias + ' already in using, replace the last "null" param in cube.js');
   } else {
     global[alias] = Cube;
   }
