@@ -173,6 +173,7 @@
         return fire();
       } catch (e) {
         console.error(e);
+        return {};
       }
     }
   }
