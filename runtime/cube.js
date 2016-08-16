@@ -19,6 +19,7 @@
   var remoteSeparator = ':';
   var charset = 'utf-8';
   var version = +new Date();
+  var strict = true;
   var debug = false;
   var entrances = {};  // Cube.use's cb
   
@@ -149,19 +150,31 @@
    * @returns {*}
    */
   function fireModule(module) {
-    var m = installedModules[module];
+    function fire() {
+      var m = installedModules[module];
 
-    // sometimes, module in server side not found,
-    // m is undefined
-    if (!m) {
-      return console.error('Cube Error: Cannot find module ' + '\'' + module + '\'');
-    }
-    if (!m.fired) {
-      m.fired = true;
-      m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load__]);
+      // sometimes, module in server side not found,
+      // m is undefined
+      if (!m) {
+        throw new Error('Cube Error: Cannot find module ' + '\'' + module + '\'');
+      }
+      if (!m.fired) {
+        m.fired = true;
+        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load__]);
+      }
+
+      return m.exports;
     }
 
-    return m.exports;
+    if (strict) {
+      return fire();
+    } else {
+      try {
+        return fire();
+      } catch (e) {
+        console.error(e);
+      }
+    }
   }
 
   /**
@@ -246,6 +259,9 @@
     }
     if (config.version) {
       version = config.version;
+    }
+    if (config.strict) {
+      strict = config.strict;
     }
     return this;
   };
