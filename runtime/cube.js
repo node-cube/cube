@@ -27,7 +27,6 @@
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
   var loading = {};
   var head = doc.querySelector('head');
-  var runLock = false;
   function noop() {}
 
   /**
@@ -183,11 +182,6 @@
    * 从Cube.use的文件开始自上而下运行,并调用回调函数
    */
   function startAppAndCallback() {
-    if (runLock) {  // 确保只有一个实例会执行, 解决fireModule可能导致同时多次执行该函数的问题
-      return;
-    }
-
-    runLock = true;
     var key, arr;
 
     for (key in entrances) {
@@ -208,8 +202,6 @@
         });
       }
     }
-
-    runLock = false;
   }
 
 
@@ -286,7 +278,6 @@
     if (!noFix) {
       mods = fixUseModPath(mods);
     }
-    load(mods, 'Cube.use');
 
     if (!entrances[mods]) {
       entrances[mods] = [];
@@ -294,17 +285,22 @@
     entrances[mods].push(function () {
       var apps = [];
       var length = mods.length;
-      return function (entrance) {
-        apps.push(entrance);
+      var firing = false;
+
+      return function (exports) {
+        if (firing) {
+          return;
+        }
+        apps.push(exports);
         if (apps.length === length) {
+          firing = true;
           cb.apply(global, apps);
           return true;
         }
       };
     }());
-    if (checkAllDownloaded()) {  // 解决load已存在的模块时,不会进startAppAndCallback
-      startAppAndCallback();
-    }
+
+    load(mods, 'Cube.use');
     return this;
   };
   /**
