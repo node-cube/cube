@@ -8,6 +8,8 @@
       "modulemap": "lib/index.js"
     },
     "processors": {
+      ".vert": "cube-text",
+      ".frag": "cube-text",
       ".less": "cube-less",
       ".jsx": ["cube-react", ""],
       ".coffee": "cube-coffee",

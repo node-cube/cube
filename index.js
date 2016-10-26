@@ -125,14 +125,23 @@ function Cube(config) {
   var self = this;
   if (config.processors) {
     debug('loading custom processors from config', config.processors);
-    config.processors.forEach(function (processor) {
-      if (!processor) {
-        return ;
-      }
-      if (!flagStatic) {
-        self.register(processor);
-      }
-    });
+
+    if (Array.isArray(config.processors)) {
+      config.processors.forEach(function (processor) {
+        if (!processor) {
+          return ;
+        }
+        if (!flagStatic) {
+          self.register(processor);
+        }
+      });
+    } else {
+      Object.keys(config.processors).forEach(function (p) {
+        if (!flagStatic) {
+          self.register(config.processors[p], p);
+        }
+      });
+    }
   }
   // load ignore
   this.ignoresRules = utils.loadIgnore(config.root);
