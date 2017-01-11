@@ -254,7 +254,7 @@
     if (config.version) {
       version = config.version;
     }
-    if (config.strict) {
+    if (config.strict !== undefined) {
       strict = config.strict;
     }
     return this;
@@ -368,27 +368,29 @@
     }
   };
 
-  if (win.localStorage && localStorage.cube === 'debug') {
-    debug = true;
-    win.addEventListener('load', function () {
-      var unloaded = {}, unfired = {}, i, m;
+  Cube.cache = function () {
+    var unloaded = {}, unfired = {}, i, m;
 
-      for (i in installedModules) {
-        if (installedModules.hasOwnProperty(i)) {
-          m = installedModules[i];
-          if (!m.loaded) {
-            unloaded[i] = m;
-          }
-          if (!m.fired) {
-            unfired[i] = m;
-          }
+    for (i in installedModules) {
+      if (installedModules.hasOwnProperty(i)) {
+        m = installedModules[i];
+        if (!m.loaded) {
+          unloaded[i] = m;
+        }
+        if (!m.fired) {
+          unfired[i] = m;
         }
       }
+    }
 
-      log.info('modules:', installedModules);
-      log.info('unloaded:', unloaded);
-      log.info('unfired:', unfired);
-    });
+    log.info('modules:', installedModules);
+    log.info('unloaded:', unloaded);
+    log.info('unfired:', unfired);
+  };
+
+  if (win.localStorage && localStorage.cube === 'debug') {
+    debug = true;
+    win.addEventListener('load', Cube.cache);
   }
 
 
