@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+'use strict';
 
 const fs = require('xfs');
 const path = require('path');
@@ -8,6 +9,7 @@ const Cube = require('../index');
 function getCwd() {
   return process.cwd();
 }
+
 function isAbsPath(p) {
   if (process.platform.indexOf('win') === 0) {
     return /^\w:/.test(p);
@@ -15,6 +17,7 @@ function isAbsPath(p) {
     return /^\//.test(p);
   }
 }
+
 function buildOutput(err, info) {
   // cube.printFileShortNameMap();
   console.log('==================');
