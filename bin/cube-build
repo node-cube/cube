@@ -71,6 +71,7 @@ cmd
   .option('--without-compress', 'do not compress code')
   .option('--without-wrap', 'do not wraper code')
   .option('-t, --transform', 'transform es2015 codes')
+  .option('--speedup', 'optmize build speed')
   .option('--smart', 'smart build, only build necessary')
   .parse(process.argv);
 
@@ -96,6 +97,10 @@ if (args.transform) {
 
 if (args.customExportFiles) {
   args.customExportFiles = args.customExportFiles.split(',');
+}
+
+if (args.speedup && args.smart) {
+  throw new Error('--speedup or --smart');
 }
 
 var cwd = getCwd();
@@ -138,7 +143,7 @@ if (fstat.isFile()) {
     mangleFileName: args.mangleFileName,
     mangleFileNameIgnore: ['/main.js'],
     customExportFiles: args.customExportFiles,
-    lazyWrap: args.smart
+    lazyWrap: args.smart || args.speedup
   });
   tool = Cube.getTool();
   tool.processFile(cube, {
@@ -160,10 +165,18 @@ if (fstat.isFile()) {
     mangleFileName: args.mangleFileName,
     mangleFileNameIgnore: ['/main.js'],
     customExportFiles: args.customExportFiles,
-    lazyWrap: args.smart
+    lazyWrap: args.smart || args.speedup
   });
   tool = Cube.getTool();
-  tool[args.smart ? 'processDirSmart2' : 'processDir'](cube, {src: inputPath, dest:outputPath}, buildOutput);
+  let targetProcessor;
+  if (args.smart) {
+    targetProcessor = 'processDirSmart2';
+  } else if (args.speedup) {
+    targetProcessor = 'processDirSmart1';
+  } else {
+    targetProcessor = 'processDir';
+  }
+  tool[targetProcessor](cube, {src: inputPath, dest:outputPath}, buildOutput);
 } else {
   console.log('unknow type input source', source);
 }

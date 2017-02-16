@@ -72,6 +72,118 @@ function processDir(cube, data, cb) {
   // });
 }
 
+function processDirSmart1(cube, data, cb) {
+  var source = data.src;
+  var dest = data.dest;
+  if (!dest) {
+    return console.log('[ERROR] param missing! dest');
+  }
+  if (!cb) {
+    cb = function () {};
+  }
+  var ignores = cube.ignoresRules;
+  var errors = [];
+  var root = cube.config.root;
+  var requiredModuleFile = {}; // 依赖的node_modules文件
+  var files = [];
+
+  let st = new Date().getTime();
+
+  console.time('process app file');
+
+  // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
+  xfs.walk(source, function check(p) {
+    var relFile = fixWinPath(p.substr(root.length));
+    if (/^\/node_modules\//.test(relFile)) {
+      return false;
+    }
+    return true;
+  }, function (err, sourceFile, done) {
+    if (err) {
+      return done(err);
+    }
+
+    var relFile = fixWinPath(sourceFile.substr(root.length));
+    var destFile = path.join(dest, relFile);
+    var checked = utils.checkIgnore(relFile, ignores);
+
+    if (checked.ignore) {
+      console.log('[ignore file]:', relFile.substr(1));
+      return done();
+    } else if (checked.skip) {
+      xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
+      console.log('[copy file]:', relFile.substr(1));
+      return done();
+    }
+
+    try {
+      processFile(cube, {
+        src: sourceFile
+      }, function (err, res) {
+        if (err) {
+          if (err === 'unknow_type') {
+            xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
+            console.log('[copy file]:', relFile.substr(1));
+            return done();
+          } else if (!err.file) {
+            err.file = sourceFile;
+          }
+          errors.push(err);
+        }
+        var originRequire;
+        if (res && res.result) {
+          if (res.result.type === 'style') {
+            xfs.sync().save(destFile.replace(/\.\w+$/, '.css'), res.result.code);
+          }
+          files.push(res.result);
+          originRequire = res.result.requiresOrigin;
+          originRequire && originRequire.forEach(function (v) {
+            if (/^\/node_modules/.test(v)) {
+              requiredModuleFile[v] = true;
+            }
+          });
+        }
+        done();
+      });
+    } catch (e) {
+      if (/node_modules/.test(sourceFile)) {
+        // should ignore the error
+        e.file = sourceFile;
+        errors.push(e);
+      } else {
+        throw e;
+      }
+      done();
+    }
+  }, function () {
+    console.timeEnd('process app file');
+    let requireModules = Object.keys(requiredModuleFile);
+    console.log(requireModules);
+    console.time('process node_modules file');
+    processRequireModules2(cube, requireModules, function (err, modFiles) {
+      console.timeEnd('process node_modules file');
+      files = files.concat(modFiles);
+      let actions = [];
+      files.forEach(function (tmp) {
+        actions.push(function (done) {
+          let targetPath = path.join(dest, tmp.queryPath.replace(/^\w+:/, ''));
+          console.log('> gen code:', targetPath);
+          tmp.genCode(function (err, res) {
+            if (res) {
+              tmp.codeWraped = res.codeWraped;
+            }
+            xfs.sync().save(targetPath, res.codeWraped);
+            done(err);
+          });
+        });
+      });
+      async.waterfall(actions, function (err) {
+        console.log('file total', files.length);
+        console.log('done', err ? err : 'success');
+      });
+    });
+  });
+}
 
 /**
  * 选择性编译
@@ -659,5 +771,5 @@ function fixWinPath(fpath) {
 exports.mergeNode = mergeNode;
 exports.processFile = processFile;
 exports.processDir = processDir;
-// exports.processDirSmart = processDirSmart;
+exports.processDirSmart1 = processDirSmart1;
 exports.processDirSmart2 = processDirSmart2;
