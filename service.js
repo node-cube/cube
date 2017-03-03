@@ -69,11 +69,14 @@ function mergeRequire(cube, result, arr, parents, done) {
     };
     async.waterfall([
       function (done) {
-        done(null, cube, data);
+        done(null, data);
       },
       cube.seekFile.bind(cube),
       cube.readFile.bind(cube),
-      cube.processFile.bind(cube)
+      cube.transferCode.bind(cube),
+      function (data, done) {
+        data.genCode(done);
+      }
     ], function (err, result) {
       arr.unshift(result);
       let p = parents.slice(0);
@@ -130,7 +133,8 @@ function createMiddleware(cube, serveStatic, checkSkip) {
           sourceMap: null,    // 源码的sourceMap
           modifyTime: null,   // 修改时间，检测缓存用
           mime: null,         // mime 类型
-          wrap: flagWrap      // 是否wrap代码
+          wrap: flagWrap,      // 是否wrap代码
+          compress: flagCompress
         };
         done(null, data);
       },
@@ -151,7 +155,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
           var mtime = new Date(stats.mtime).getTime();
           if (cache.modifyTime >= mtime) { // target the cache, just return
             debug('hint cache', cachePath, data.queryPath);
-            return done({code: 'CACHED'}, cache);
+            return done(null, cache);
           }
           data.modifyTime = mtime;
           callback(null, data);
@@ -175,21 +179,22 @@ function createMiddleware(cube, serveStatic, checkSkip) {
 
     function done(err, result) {
       if (err) {
-        if (err.code === 'STATIC_FILE') {
-          return serveStatic(req, res, next);
-        }
-        if (err.code !== 'CACHED') {
-          return errorMsg(err, result);
+        switch(err.code) {
+          case 'STATIC_FILE':
+            return serveStatic(req, res, next);
+          case 'FILE_NOT_FOUND':
+            err.statusCode = 404;
+            return errorMsg(err, result);
+          default:
+            return errorMsg(err, result);
         }
       }
       var code = flagWrap ? result.codeWraped : result.code;
-      // var parent = [result.queryPath];
 
       if (flagWrap && !result.merged) {
-        // 级联合并
-        // let depsMods = [];
-        output();
-        /*
+        // 级联合并, 目前只合并 node_modules中的文件
+        let depsMods = [];
+        let parent = [result.queryPath];
         mergeRequire(cube, result, depsMods, parent, function () {
           let map = {};
           let codesDeps = [];
@@ -203,7 +208,6 @@ function createMiddleware(cube, serveStatic, checkSkip) {
           code = (codesDeps.length ? codesDeps.join('\n') + '\n' : '') + code;
           output();
         });
-        */
       } else {
         output();
       }

@@ -97,6 +97,7 @@ function processDir(cube, options, cb) {
 function processDirSmart(cube, data, cb) {
   var source = data.src;
   var dest = data.dest;
+  var st = new Date();
   if (!dest) {
     return console.log('[ERROR] param missing! dest');
   }
@@ -200,7 +201,11 @@ function processDirSmart(cube, data, cb) {
         );
         console.log('file total', files.length);
         console.log('done', err ? err : 'success');
-        cb();
+        let end = new Date();
+        cb(errors, {
+          total: files.length,
+          time: Math.ceil((end - st) / 1000)
+        });
       });
     });
   });
@@ -409,7 +414,6 @@ function processFile(cube, options, cb) {
  * @param  {Object}   options
  *                       - queryPath
  *                       - compress
- *                       - enterCode {String}
  *                       - code
  * @param  {Function} callback [description]
  * @return {[type]}            [description]
@@ -428,11 +432,10 @@ function allInOneCode(cube, options, callback) {
       codeWraped: null,
       source: options.code || '',
       sourceMap: null,
-      wrap: true,
+      wrap: (options.ignoreFirstCodeWrap) ? false : true,
       compress: options.compress !== undefined ? options.compress : cube.config.compress
     };
   }
-
   function process(cube, data, cb) {
     async.waterfall([
       function prepare(done) {
@@ -471,11 +474,10 @@ function allInOneCode(cube, options, callback) {
         if (err) {
           return done(err);
         }
-        arr.unshift(data.codeWraped);
+        arr.unshift(data.wrap ? data.codeWraped : data.code);
         done(null);
       });
     }, function (err) {
-      arr.push('Cube.use(' + JSON.stringify(options.queryPath) + `,function(mod){${options.initCode}});`);
       callback(err, arr);
     });
   });
