@@ -52,6 +52,7 @@ function processDir(cube, options, cb) {
         dest: dest
       }, function (err) {
         if (err) {
+          if (typeof err == 'string') err = new Error(err);
           if (!err.file) err.file = sourceFile;
           errors.push(err);
         }
