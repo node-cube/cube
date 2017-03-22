@@ -180,6 +180,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
     function done(err, result) {
       if (err) {
         switch(err.code) {
+          case 'PASS_UNKNOW_EXT':
           case 'STATIC_FILE':
             return serveStatic(req, res, next);
           case 'FILE_NOT_FOUND':
