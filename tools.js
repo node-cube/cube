@@ -184,6 +184,7 @@ function processDirSmart(cube, data, cb) {
     processRequireModules(cube, requireModules, function (err, modFiles) {
       console.timeEnd('process node_modules file');
       files = files.concat(modFiles);
+      processMerge(files);
       let actions = [];
       files.forEach(function (tmp) {
         actions.push(function (done) {
@@ -295,6 +296,167 @@ function processFileWithRequires(cube, data, callback) {
 }
 
 /**
+ * 合并文件
+ * @param  {Array} files         处理完的文件列表
+ * @param  {Array} exportModules 人肉设定的root文件
+ * @return {[type]}               [description]
+ */
+function processMerge(files, exportModules) {
+  /**
+   * root文件Map
+   * @type {Object}
+   */
+  let rootMap = {};
+  /**
+   * 文件名Map
+   */
+  let fileMap = {};
+  /**
+   * 被依赖Map
+   */
+  let requiredMap = {};
+  console.log('prepare files');
+  files.forEach(function (file) {
+    let reqs = file.requires;
+    let qpath = file.queryPath;
+    if (!qpath) {
+      console.log(file);
+    }
+    if (!requiredMap[qpath]) {
+      requiredMap[qpath] = {};
+    }
+    fileMap[qpath] = file;
+    if (reqs && reqs.length) {
+      reqs.forEach(function (req) {
+        if (/^\w+:/.test(req)) {
+          // remote require, ignore
+          return;
+        }
+        if (!requiredMap[req]) {
+          requiredMap[req] = {};
+        }
+        requiredMap[req][qpath] = true;
+      });
+    }
+  });
+  /** 标记root  */
+  function markRoot(list, root) {
+    let sub = [];
+    list.forEach(function (modName) {
+      let mod = fileMap[modName];
+      // 模块不存在，则忽略
+      if (!mod) {
+        return;
+      }
+      // 还没初始化，则初始化
+      if (!mod.__roots) {
+        mod.__roots = {};
+      }
+      // 已经标记过该root， 则返回， 解循环依赖的问题
+      if (mod.__roots[root]) {
+        return;
+      }
+      // 标记该root
+      mod.__roots[root] = true;
+      /*
+      if (Object.keys(mod.__roots).length > 1) {
+        return;
+      }
+      */
+      let reqs = mod.requires;
+      if (reqs) {
+        sub = sub.concat(reqs);
+      }
+    });
+    // 返回下一层模块
+    return sub;
+  }
+  // 去重
+  function unique(arr) {
+    arr.forEach(function (f) {
+      rootMap[f] = true;
+    });
+    return Object.keys(rootMap);
+  }
+
+  // 合并文件
+  function mergeFile(list, nodes, root) {
+    let sub = [];
+    nodes.forEach((node) => {
+      list.unshift(node.queryPath);
+      delete node.__roots[root];
+      if (!Object.keys(node.__roots).length) {
+        delete fileMap[node.queryPath];
+      }
+      node.requires && node.requires.forEach(function (reqPath) {
+        let req = fileMap[reqPath];
+        if (!req || !req.__roots[root]) {
+          return;
+        }
+        let len = Object.keys(req.__roots);
+        if (len === 0) {
+          // this is impossible
+        } else if (len === 1) {
+          sub.push(req);
+        } else {
+          delete req.__roots[root];
+        }
+      });
+    });
+    return sub;
+  }
+
+  function findRoot(mods) {
+    let root = [];
+    mods.forEach(function (k) {
+      let tmp = requiredMap[k];
+      let parents = Object.keys(tmp);
+      if (parents.length === 0) {
+        roots.push(k);
+      }
+    });
+    return root;
+  }
+
+  // 找出根节点
+  console.log('find root file');
+  let mods = Object.keys(requiredMap);
+  let roots = findRoot(mods);
+  // merge custom roots
+  if (exportModules && exportModules.length) {
+    roots = roots.concat(exportModules);
+  }
+  roots = unique(roots);
+
+  // 标记各文件的root
+  roots.forEach(function (root) {
+    let sub = [root];
+    while(sub.length) {
+      sub = markRoot(sub, root);
+    }
+  });
+
+  let res = {};
+  let noneRootFiles = [];
+  roots.forEach(function (root) {
+    let list = [];
+    let tmp = [fileMap[root]];
+    while (tmp.length) {
+      tmp = mergeFile(list, tmp, root);
+    }
+    res[root] = list;
+  });
+  // merge 第一步，入口文件，交叉文件入common
+  console.log(res);
+
+  let restFile = Object.keys(fileMap);
+  while (restFile) {
+
+  }
+  console.log(fileMap);
+
+}
+/**
  * processFile
  * @param  {Cube}   cube   cube instance
  * @param  {Object} data
@@ -373,7 +535,7 @@ function processFile(cube, options, cb) {
           /**
            * script type, write single js file
            */
-          wrapDestFile = destFile.replace(/(\.\w+)?$/, '.js');
+          wrapDestFile = destFile; // .replace(/(\.\w+)?$/, '.js');
           xfs.sync().save(wrapDestFile, flagWithoutWrap ? data.code : data.codeWraped);
           // var destSourceFile = destFile.replace(/\.js/, '.source.js');
           // withSource && xfs.sync().save(destSourceFile, result.source);
