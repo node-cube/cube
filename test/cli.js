@@ -52,11 +52,14 @@ describe('cli', function () {
         done();
       });
     });
+    // TODO work fine with --smart and --remote
     it.skip('should work fine with --smart', function (done) {
-      var cmd = 'node bin/cube build --smart example';
+      var cmd = 'node bin/cube build --smart example/deps --remote static';
       exec(cmd, function (err, stdout, stderr) {
         // console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
+        console.log(stdout);
+        console.error(stderr);
         var info = [];
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
@@ -67,19 +70,7 @@ describe('cli', function () {
           }
         });
         expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[info.length - 2]).match(/Total Errors: 5/);
-        // check require('css')
-        var cssNamespace = xfs.readFileSync(path.join(__dirname, '../example.release/test/test_css_namespace.js'));
-        // check if remain the module name when module is a exportModule
-        expect(cssNamespace.toString()).match(/\/test_css_namespace\.js/);
-        expect(xfs.existsSync(path.join(__dirname, '../example.release/test/test_ignore.js'))).to.be(false);
-        // node_modules relative file should be merged
-        expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test/lib/b.js'))).to.be(false);
-        // node_modules no rel file should not build
-        expect(xfs.existsSync(path.join(__dirname, '../example.release/node_modules/test_ignored_by_smartbuild.js'))).to.be(false);
-        // check auto merge
-        let mainScript = xfs.readFileSync(path.join(__dirname, '../example.release/main.js')).toString();
-        xfs.sync().rmdir(path.join(__dirname, '../example.release'));
+        expect(info[info.length - 2]).match('Build Successfully');
         done();
       });
     });

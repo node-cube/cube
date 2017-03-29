@@ -4,6 +4,7 @@ var xfs = require('xfs');
 var path = require('path');
 var async = require('async');
 var utils = require('./lib/utils');
+var _ = require('lodash');
 
 /**
  * 处理整个Dir的编译
@@ -96,6 +97,7 @@ function processDir(cube, options, cb) {
  */
 
 function processDirSmart(cube, data, cb) {
+  // merge 第一步，入口文件，交叉文件入common
   var source = data.src;
   var dest = data.dest;
   var st = new Date();
@@ -122,6 +124,9 @@ function processDirSmart(cube, data, cb) {
     }
     return true;
   }, function (err, sourceFile, done) {
+    // 遍历得到使用中的 node_modules 包 requiredModuleFile
+    // 所有文件放入 files
+    // code, codeWraped, absPath, requires, requiresOrigin, ast, queryPath, realPath
     if (err) {
       return done(err);
     }
@@ -149,6 +154,7 @@ function processDirSmart(cube, data, cb) {
             console.log('[copy file]:', relFile.substr(1));
             return done();
           } else if (!err.file) {
+            if (typeof err == 'string') err = new Error(err);
             err.file = sourceFile;
           }
           errors.push(err);
@@ -182,10 +188,11 @@ function processDirSmart(cube, data, cb) {
     console.timeEnd('process app file');
     let requireModules = Object.keys(requiredModuleFile);
     console.time('process node_modules file');
+    // 遍历依赖的 npm 包，并遍历包中的所有文件
     processRequireModules(cube, requireModules, function (err, modFiles) {
       console.timeEnd('process node_modules file');
       files = files.concat(modFiles);
-      processMerge(files);
+      files = processMerge(files);
       let actions = [];
       files.forEach(function (tmp) {
         actions.push(function (done) {
@@ -229,7 +236,7 @@ function processRequireModules(cube, arr, callback) {
   var root = cube.config.root;
   async.eachLimit(arr, 10, function (file, done) {
     if (cached[file]) {
-      done();
+      return done();
     }
     cached[file] = true;
     var sourceFile = path.join(root, file);
@@ -304,11 +311,6 @@ function processFileWithRequires(cube, data, callback) {
  */
 function processMerge(files, exportModules) {
   /**
-   * root文件Map
-   * @type {Object}
-   */
-  let rootMap = {};
-  /**
    * 文件名Map
    */
   let fileMap = {};
@@ -316,20 +318,37 @@ function processMerge(files, exportModules) {
    * 被依赖Map
    */
   let requiredMap = {};
+  /**
+   * 入口 root 和被标记为 cors 的文件都是 root，这个 map 将会在每次深层遍历 root 的时候清空
+   */
+  let roots = [];
+  /**
+   * 文件名Map
+   */
+  let restFile = {};
+  /**
+   * 最终的 root 表
+   */
+  let rootMap = {};
+
   console.log('prepare files');
+  // 建立 qpath -> file 的一对一映射关系
+  // 建立 child -> parent 的一对多映射关系
   files.forEach(function (file) {
     let reqs = file.requires;
+    let reqso = file.requiresOrigin;
     let qpath = file.queryPath;
     if (!qpath) {
-      console.log(file);
+      console.log('queryPath not Found:', file);
     }
     if (!requiredMap[qpath]) {
       requiredMap[qpath] = {};
     }
-    fileMap[qpath] = file;
+    restFile[qpath] = fileMap[qpath] = file;
     if (reqs && reqs.length) {
-      reqs.forEach(function (req) {
-        if (/^\w+:/.test(req)) {
+      reqs.forEach(function (req, index) {
+        // 带 --remote 参数时不能过滤，所以判断 reqso 而不是 reqs
+        if (/^\w+:/.test(reqso[index])) {
           // remote require, ignore
           return;
         }
@@ -340,11 +359,48 @@ function processMerge(files, exportModules) {
       });
     }
   });
+
+  // 找出根节点
+  console.log('find root file');
+  let mods = Object.keys(requiredMap);
+  roots = findRoot(mods);
+  // merge custom roots
+  if (exportModules && exportModules.length) {
+    roots = roots.concat(exportModules);
+  }
+
+  // 递归处理 root 和交叉节点
+  while (markSubIntoRoot()){};
+
+  var result = [];
+  _.each(rootMap, function(deps, qpath) {
+    var rootFile = fileMap[qpath];
+    rootFile.codeWraped = clearDepList(rootFile.codeWraped)
+    deps.forEach(function(sub){
+      if (sub == qpath) return true;
+      rootFile.codeWraped += ';'+clearDepList(fileMap[sub].codeWraped);
+      fileMap[sub].codeWraped = '' // 节约内存
+    });
+    result.push(rootFile);
+  });
+
+  return result;
+
+  function clearDepList(code) {
+    return code.replace(/^Cube\([^\[]+(\[[^\]]+\])/, function(whole, deps){
+      var Jdeps = JSON.parse(deps.replace(/'/g, "\""));
+      Jdeps = Jdeps.filter(function(dep){
+        return !!rootMap[dep]; // 删除非 root 的依赖
+      });
+      return whole.replace(deps, JSON.stringify(Jdeps));
+    });
+  }
+
   /** 标记root  */
   function markRoot(list, root) {
     let sub = [];
     list.forEach(function (modName) {
-      let mod = fileMap[modName];
+      let mod = restFile[modName];
       // 模块不存在，则忽略
       if (!mod) {
         return;
@@ -374,10 +430,11 @@ function processMerge(files, exportModules) {
   }
   // 去重
   function unique(arr) {
+    var map = {};
     arr.forEach(function (f) {
-      rootMap[f] = true;
+      map[f] = true;
     });
-    return Object.keys(rootMap);
+    return Object.keys(map);
   }
 
   // 合并文件
@@ -387,20 +444,23 @@ function processMerge(files, exportModules) {
       list.unshift(node.queryPath);
       delete node.__roots[root];
       if (!Object.keys(node.__roots).length) {
-        delete fileMap[node.queryPath];
+        delete restFile[node.queryPath];
       }
       node.requires && node.requires.forEach(function (reqPath) {
-        let req = fileMap[reqPath];
-        if (!req || !req.__roots[root]) {
+        let req = restFile[reqPath];
+        if (!req || !req.__roots[root]) { //  不存在的文件
           return;
         }
-        let len = Object.keys(req.__roots);
+        let len = Object.keys(req.__roots).length;
         if (len === 0) {
           // this is impossible
         } else if (len === 1) {
           sub.push(req);
         } else {
-          delete req.__roots[root];
+          // 多 root 的情况 
+          // 标记为下一轮的 root
+          roots.push(reqPath);
+          //delete req.__roots[root];
         }
       });
     });
@@ -413,49 +473,41 @@ function processMerge(files, exportModules) {
       let tmp = requiredMap[k];
       let parents = Object.keys(tmp);
       if (parents.length === 0) {
-        roots.push(k);
+        root.push(k);
       }
     });
     return root;
   }
 
-  // 找出根节点
-  console.log('find root file');
-  let mods = Object.keys(requiredMap);
-  let roots = findRoot(mods);
-  // merge custom roots
-  if (exportModules && exportModules.length) {
-    roots = roots.concat(exportModules);
+  function markSubIntoRoot(){
+    var cache = _.clone(unique(roots));
+    // 递归重置
+    roots = [];
+    _.each(restFile, function(mod){
+      mod.__roots = {};
+    })
+    // 标记各文件的root
+    // 将各个 root 下依赖的文件依次打上该 root 的标，包括 root 文件自己
+    cache.forEach(function (root) {
+      let sub = [root];
+      while(sub.length) {
+        sub = markRoot(sub, root);
+      }
+    });
+
+    // 找出只！！被该 root 引用的所有文件，也就是 __roots.length == 1
+    // 放入 rootMap[root] 中
+    cache.forEach(function (root) {
+      var list = [];
+      var tmp = [restFile[root]];
+      while (tmp.length) {
+        tmp = mergeFile(list, tmp, root); // will re-calculate the roots
+      }
+      rootMap[root] = unique(list);
+    });
+
+    return cache.length && cache.length != unique(roots).length; // 每次处理应该有变化
   }
-  roots = unique(roots);
-
-  // 标记各文件的root
-  roots.forEach(function (root) {
-    let sub = [root];
-    while(sub.length) {
-      sub = markRoot(sub, root);
-    }
-  });
-
-  let res = {};
-  let noneRootFiles = [];
-  roots.forEach(function (root) {
-    let list = [];
-    let tmp = [fileMap[root]];
-    while (tmp.length) {
-      tmp = mergeFile(list, tmp, root);
-    }
-    res[root] = list;
-  });
-  // merge 第一步，入口文件，交叉文件入common
-  console.log(res);
-
-  let restFile = Object.keys(fileMap);
-  while (restFile) {
-
-  }
-  console.log(fileMap);
-
 }
 /**
  * processFile
