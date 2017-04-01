@@ -379,7 +379,7 @@ function processMerge(files, exportModules) {
     deps.forEach(function(sub){
       if (sub == qpath) return true;
       rootFile.codeWraped += ';'+clearDepList(fileMap[sub].codeWraped);
-      fileMap[sub].codeWraped = '' // 节约内存
+      //fileMap[sub].codeWraped = ''; // 节约内存
     });
     result.push(rootFile);
   });

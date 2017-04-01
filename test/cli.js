@@ -53,7 +53,7 @@ describe('cli', function () {
       });
     });
     // TODO work fine with --smart and --remote
-    it.skip('should work fine with --smart', function (done) {
+    it.only('should work fine with --smart', function (done) {
       var cmd = 'node bin/cube build --smart example/deps --remote static';
       exec(cmd, function (err, stdout, stderr) {
         // console.log(stdout.toString(), stderr.toString());
