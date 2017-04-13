@@ -53,13 +53,11 @@ describe('cli', function () {
       });
     });
     // TODO work fine with --smart and --remote
-    it.only('should work fine with --smart', function (done) {
+    it('should work fine with --smart', function (done) {
       var cmd = 'node bin/cube build --smart example/deps --remote static';
       exec(cmd, function (err, stdout, stderr) {
         // console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
-        console.log(stdout);
-        console.error(stderr);
         var info = [];
         res.forEach(function (v) {
           if (/^=+$/.test(v)) {
@@ -70,7 +68,8 @@ describe('cli', function () {
           }
         });
         expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
-        expect(info[info.length - 2]).match('Build Successfully');
+        expect(info[info.length - 2]).match(/Build Successfully/);
+        xfs.sync().rmdir(path.join(__dirname, '../example/deps.release'));
         done();
       });
     });
