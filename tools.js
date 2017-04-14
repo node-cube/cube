@@ -331,6 +331,8 @@ function processMerge(files, exportModules) {
    */
   let rootMap = {};
 
+  let loads = [];
+
   console.log('prepare files');
   // 建立 qpath -> file 的一对一映射关系
   // 建立 child -> parent 的一对多映射关系
@@ -339,7 +341,10 @@ function processMerge(files, exportModules) {
     let reqso = file.requiresOrigin;
     let qpath = file.queryPath;
     if (!qpath) {
-      console.log('queryPath not Found:', file);
+      console.log('[ERROR] queryPath not Found:', file);
+    }
+    if (file.loads) {
+      loads = loads.concat(file.loads);
     }
     if (!requiredMap[qpath]) {
       requiredMap[qpath] = {};
@@ -368,27 +373,13 @@ function processMerge(files, exportModules) {
   if (exportModules && exportModules.length) {
     roots = roots.concat(exportModules);
   }
-
-  // 递归处理 root 和交叉节点
-  while (markSubIntoRoot()){};
-
-  var result = [];
-  _.each(rootMap, function(deps, qpath) {
-    var rootFile = fileMap[qpath];
-    rootFile.codeWraped = clearDepList(rootFile.codeWraped)
-    deps.forEach(function(sub){
-      if (sub == qpath) return true;
-      rootFile.codeWraped += ';'+clearDepList(fileMap[sub].codeWraped);
-      //fileMap[sub].codeWraped = ''; // 节约内存
-    });
-    result.push(rootFile);
-  });
-
-  return result;
+  if (loads.length) {
+    roots = roots.concat(unique(loads));
+  }
 
   function clearDepList(code) {
     return code.replace(/^Cube\([^\[]+(\[[^\]]+\])/, function(whole, deps){
-      var Jdeps = JSON.parse(deps.replace(/'/g, "\""));
+      var Jdeps = JSON.parse(deps.replace(/'/g, '\"'));
       Jdeps = Jdeps.filter(function(dep){
         return !!rootMap[dep]; // 删除非 root 的依赖
       });
@@ -457,7 +448,7 @@ function processMerge(files, exportModules) {
         } else if (len === 1) {
           sub.push(req);
         } else {
-          // 多 root 的情况 
+          // 多 root 的情况
           // 标记为下一轮的 root
           roots.push(reqPath);
           //delete req.__roots[root];
@@ -485,7 +476,7 @@ function processMerge(files, exportModules) {
     roots = [];
     _.each(restFile, function(mod){
       mod.__roots = {};
-    })
+    });
     // 标记各文件的root
     // 将各个 root 下依赖的文件依次打上该 root 的标，包括 root 文件自己
     cache.forEach(function (root) {
@@ -506,8 +497,32 @@ function processMerge(files, exportModules) {
       rootMap[root] = unique(list);
     });
 
-    return cache.length && cache.length != unique(roots).length; // 每次处理应该有变化
+    return cache.length && cache.length !== unique(roots).length; // 每次处理应该有变化
   }
+
+
+    // 递归处理 root 和交叉节点
+  while (markSubIntoRoot()) {
+    // do nothing
+  }
+
+  var result = [];
+  _.each(rootMap, function(deps, qpath) {
+    var rootFile = fileMap[qpath];
+    var mergeList = [clearDepList(rootFile.codeWraped)];
+    // rootFile.codeWraped = clearDepList(rootFile.codeWraped);
+    deps.forEach(function(sub){
+      if (sub == qpath) return true;
+
+      mergeList.unshift(clearDepList(fileMap[sub].codeWraped));
+      //rootFile.codeWraped += ';'+clearDepList(fileMap[sub].codeWraped);
+      //fileMap[sub].codeWraped = ''; // 节约内存
+    });
+    rootFile.codeWraped = mergeList.join(';');
+    result.push(rootFile);
+  });
+
+  return result;
 }
 /**
  * processFile

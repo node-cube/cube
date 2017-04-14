@@ -21,16 +21,16 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "async": "~1.5.2",
-    "clean-css": "3.4.9",
-    "commander": "^2.9.0",
-    "connect": "3.4.0",
+    "async": "^2.3.0",
+    "clean-css": "3.4.24",
+    "commander": "2.9.0",
+    "connect": "3.6.0",
     "debug": "2.1.0",
     "escope": "3.6.0",
     "esminify": "~2.1.0",
     "esprima": "2.7.2",
     "estraverse": "4.1.0",
-    "requires": "~1.0.2",
+    "lodash": "4.17.4",
     "serve-static": "1.10.0",
     "xfs": "~0.2.1"
   },
