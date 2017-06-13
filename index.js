@@ -20,10 +20,11 @@ const Cube = require('./lib/cube');
  * @return {cube}
  */
 Cube.middleware = function (config) {
-  var cube = new Cube(config);
-  var service = require('./service');
+  config.middleware = true;
+  let cube = new Cube(config);
+  let service = require('./service');
   service.init(cube);
-  return cube;
+  return cube.middleware;
 };
 /**
  * 启动一个cube服务
@@ -32,7 +33,7 @@ Cube.middleware = function (config) {
  */
 Cube.service = function (config) {
   let cube = new Cube(config);
-  var service = require('./service');
+  let service = require('./service');
   service.init(cube);
   return cube;
 };

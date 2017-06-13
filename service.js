@@ -113,6 +113,14 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       return xfs.createReadStream(path.join(__dirname, './runtime/cube.min.js')).pipe(res);
     }
 
+    let ext = path.extname(qpath);
+
+    /*
+    if (cube.extMap[ext]) {
+
+    }
+    */
+
     flagWrap = req.query.m === undefined ? false : true;
     flagCompress = req.query.c === undefined ? false : true;
 

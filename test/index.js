@@ -93,7 +93,7 @@ describe('index.js', function () {
       remoteRequest.get('/tpl/test.ejs?m&c')
         .expect(200)
         .expect('content-type', 'application/javascript')
-        .expect(/Cube\('REMOTE:\/tpl\/test\.ejs'/, done);
+        .expect(/Cube\("REMOTE:\/tpl\/test\.ejs"/, done);
     });
     it('should process require with vars ok with remote info', function (done) {
       remoteRequest.get('/test/test_require_with_var.js?m')
@@ -118,6 +118,16 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(/\["datav:\/coms\/abc"\]/)
         .expect(/^Cube\(/, done);
+    });
+
+    it('should work fine when require override', function (done) {
+      remoteRequest.get('/test/test_override.js?m')
+        .expect(200)
+        .expect('content-type', 'application/javascript')
+        .expect(/\'\.\/hello_def\'/)
+        .expect(/\'\.\/hello_test\'/)
+        .expect(/\'\.\/hello_abc\'/)
+        .end(done);
     });
   });
 
@@ -175,7 +185,7 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
-          expect(body).to.match(/\('\/css\/test_css\.css',''\)/);
+          expect(body).to.match(/\("\/css\/test_css\.css",""\)/);
         })
         .end(done);
     });
@@ -208,7 +218,7 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
-          expect(body).to.match(/Cube\('\/test\/test_main\.js/);
+          expect(body).to.match(/Cube\("\/test\/test_main\.js/);
           expect(body).not.match(/\/\*\!/);
         })
         .end(done);

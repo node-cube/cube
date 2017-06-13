@@ -234,16 +234,20 @@ function processRequireModules(cube, arr, callback) {
     return callback(null, res);
   }
   var root = cube.config.root;
-  async.eachLimit(arr, 10, function (file, done) {
+  async.eachSeries(arr, function (file, done) {
     if (cached[file]) {
       return done();
     }
     cached[file] = true;
     var sourceFile = path.join(root, file);
+    console.log('>>>>>>', file);
     processFileWithRequires(cube, {
       src: sourceFile,
       cached: cached
     }, function (err, data) {
+      if (err) {
+        return done(err);
+      }
       res = res.concat(data);
       done();
     });
@@ -273,25 +277,26 @@ function processFileWithRequires(cube, data, callback) {
       err.forEach(function (e) {
         console.log(e);
       });
-      return ;
+      return callback(err);
     }
     var result = res.data;
+    cached[result.realPath] = true;
     files.push(result);
     count --;
+
     if (result.requiresOrigin) {
       result.requiresOrigin.forEach(function (m) {
-        if (cached[m]) {
-          return;
-        }
-        cached[m] = true;
-        count ++;
-        processFile(cube, {
-          src: path.join(root, m)
-        }, function (err, data) {
-          process.nextTick(function () {
-            _cb(err, data);
+        if (!cached[m]) {
+          cached[m] = true;
+          count ++;
+          processFile(cube, {
+            src: path.join(root, m)
+          }, function (err, data) {
+            process.nextTick(function () {
+              _cb(err, data);
+            });
           });
-        });
+        }
       });
     }
     if (count === 0) {
@@ -299,6 +304,7 @@ function processFileWithRequires(cube, data, callback) {
     }
   }
   processFile(cube, data, function (err, res) {
+    console.log('require file done', data.src, err);
     _cb(err, res);
   });
 }
@@ -570,7 +576,7 @@ function processFile(cube, options, cb) {
   var ps = cube.processors[type];
   var processors = ps[ext];
 
-  console.log('[transfer ' + type + ']:', realFile.substr(1));
+  console.log('[transferring ' + type + ']:', realFile.substr(1));
 
   async.waterfall([
     function prepare(done) {
@@ -592,9 +598,11 @@ function processFile(cube, options, cb) {
     cube.readFile.bind(cube),
     cube.transferCode.bind(cube),
     function (data, done) {
+      console.log('>>>>>>>>> genCode');
       data.genCode(done);
     },
     function output(data, done) {
+      console.log('>>>>>>> do output');
       let flagWithoutWrap = !data.wrap;
       if (dest) {
         var finalFile, wrapDestFile;

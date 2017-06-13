@@ -25,5 +25,6 @@ Cube.service({
   resBase: args.resbase,
   remote: args.remote,
   service: true,
-  builded: args.builded
+  builded: args.builded,
+  passUnknowExt: true
 });

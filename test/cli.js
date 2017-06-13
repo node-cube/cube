@@ -46,7 +46,7 @@ describe('cli', function () {
         expect(info[info.length - 2]).match(/Total Errors: 5/);
         // check require('css')
         var cssNamespaceAutofill = xfs.readFileSync(path.join(__dirname, '../example.release/test/test_css_namespace.js'));
-        expect(cssNamespaceAutofill.toString()).match(/'\/css\/test_css.css.js',''/);
+        expect(cssNamespaceAutofill.toString()).match(/"\/css\/test_css.css.js",""/);
         expect(xfs.existsSync(path.join(__dirname, '../example.release/test/test_ignore.js'))).to.be(false);
         xfs.sync().rmdir(path.join(__dirname, '../example.release'));
         done();
@@ -110,7 +110,7 @@ describe('cli', function () {
         expect(info[info.length - 1]).match(/Files: \d+ Cost: \d+s/);
         expect(info[info.length - 2]).match(/Total Errors: 5/);
         expect(xfs.existsSync(path.join(__dirname, '../example.abs'))).to.be(true);
-        expect(xfs.readFileSync(path.join(__dirname, '../example.abs/main.js')).toString()).to.match(/Cube\('\/main\.js/);
+        expect(xfs.readFileSync(path.join(__dirname, '../example.abs/main.js')).toString()).to.match(/Cube\("\/main\.js/);
         xfs.sync().rmdir(path.join(__dirname, '../example.abs'));
         done();
       });
@@ -198,10 +198,10 @@ describe('cli', function () {
         expect(info[info.length - 2]).match(/Successfully/);
         var target = path.join(__dirname, '../example/test/test_require_with_var_dir/test/test_require_with_var.js');
         var fileCnt = xfs.readFileSync(target).toString();
-        expect(fileCnt).to.match(/'\/test\/'\+\w\+'\.js',function/ig);
-        expect(fileCnt).to.match(/'\/test\/'\+\w\+'_require_var\.js',function/ig);
-        expect(fileCnt).to.match(/'\/test\/'\+\w\,function/ig);
-        expect(fileCnt).to.match(/\w\+'\.js',function/ig);
+        expect(fileCnt).to.match(/"\/test\/"\+\w\+"\.js",function/ig);
+        expect(fileCnt).to.match(/"\/test\/"\+\w\+"_require_var\.js",function/ig);
+        expect(fileCnt).to.match(/"\/test\/"\+\w\,function/ig);
+        expect(fileCnt).to.match(/\w\+"\.js",function/ig);
         expect(fileCnt).to.match(/\w,function/ig);
         //expect(xfs.existsSync(path.join(__dirname, '../example/css/custom'))).to.be(true);
         //expect(xfs.existsSync(path.join(__dirname, '../example/css/custom.js'))).to.be(true);
@@ -251,11 +251,11 @@ describe('cli', function () {
         expect(info[info.length - 2]).match(/Successfully/);
         var target = path.join(__dirname, '../example/test/test_require_with_var/test/test_require_with_var.js');
         var fileCnt = xfs.readFileSync(target).toString();
-        expect(fileCnt).to.match(/Cube\('TEST:\/test\/test_require_with_var\.js'/);
-        expect(fileCnt).to.match(/'TEST:\/test\/'\+\w\+'\.js',function/ig);
-        expect(fileCnt).to.match(/'TEST:\/test\/'\+\w\+'_require_var\.js',function/ig);
-        expect(fileCnt).to.match(/'TEST:\/test\/'\+\w\,function/ig);
-        expect(fileCnt).to.match(/\w\+'\.js',function/ig);
+        expect(fileCnt).to.match(/Cube\("TEST:\/test\/test_require_with_var\.js"/);
+        expect(fileCnt).to.match(/"TEST:\/test\/"\+\w\+"\.js",function/ig);
+        expect(fileCnt).to.match(/"TEST:\/test\/"\+\w\+"_require_var\.js",function/ig);
+        expect(fileCnt).to.match(/"TEST:\/test\/"\+\w\,function/ig);
+        expect(fileCnt).to.match(/\w\+"\.js",function/ig);
         expect(fileCnt).to.match(/\w,function/ig);
         //expect(xfs.existsSync(path.join(__dirname, '../example/css/custom'))).to.be(true);
         //expect(xfs.existsSync(path.join(__dirname, '../example/css/custom.js'))).to.be(true);
