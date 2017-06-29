@@ -1,6 +1,9 @@
 @import url(./test_require_css.css);
+
 .test {
-  color: red\9;
+  color: red;
   *color: blue;
   _color: green;
+
+  background: url('../img/test.png');
 }

@@ -598,11 +598,9 @@ function processFile(cube, options, cb) {
     cube.readFile.bind(cube),
     cube.transferCode.bind(cube),
     function (data, done) {
-      console.log('>>>>>>>>> genCode');
       data.genCode(done);
     },
     function output(data, done) {
-      console.log('>>>>>>> do output');
       let flagWithoutWrap = !data.wrap;
       if (dest) {
         var finalFile, wrapDestFile;
