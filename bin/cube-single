@@ -167,7 +167,7 @@ function done() {
       });
       cc.requires = requiresNew;
 
-      cc.requiresRef && cc.requiresRef.forEach(function (node) {
+      cc.requiresArgsRefer && cc.requiresArgsRefer.forEach(function (node) {
         if (mergedCodes[node.value]) {
           return;
         }

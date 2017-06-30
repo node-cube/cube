@@ -3,7 +3,6 @@ describe 'test/test_css', ()->
   it 'expect loading wrap css module fine, compatible with IE hacks', (done) ->
     load '../css/test_css.css', '', (css) ->
       expect(css).to.match(/\.test\s*\{/)
-      expect(css).to.match(/color:\s*red\\9/)
       expect(css).to.match(/color:/)
       done()
 

@@ -12,7 +12,7 @@ var path = require('path');
 var fs = require('fs');
 var Request = require('supertest');
 
-describe.only('tools.js', function () {
+describe('tools.js', function () {
 
   describe('processMerge()', function () {
     it('should return a js module with remote info', function () {

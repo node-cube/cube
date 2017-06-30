@@ -206,7 +206,7 @@ function processDirSmart(cube, data, cb) {
             }
           }
           mergeNode(tmp);
-          xfs.sync().save(targetPath, codes.join('\n'));
+          xfs.sync().save(targetPath, codes.join(';'));
           done();
         });
       });

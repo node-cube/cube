@@ -1,7 +1,7 @@
 @import url(./test_require_css.css);
 
 .test {
-  color: red;
+  color: green;
   *color: blue;
   _color: green;
 

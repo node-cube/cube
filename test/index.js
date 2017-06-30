@@ -175,7 +175,7 @@ describe('index.js', function () {
         .expect('content-type', 'application/javascript')
         .expect(function (res) {
           var body = res.text;
-          expect(body).to.match(/require\(\"\/css\/test_css\.css\",\"\"\);/);
+          expect(body).to.match(/require\('\/css\/test_css\.css', ''\);/);
         })
         .end(done);
     });
