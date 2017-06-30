@@ -83,7 +83,6 @@ function processDir(cube, options, cb) {
   // });
 }
 
-
 /**
  * 选择性编译
  *   1. 当前目录下，除了node_modules目录，其他文件都编译
@@ -95,7 +94,6 @@ function processDir(cube, options, cb) {
  *         - withSource
  * @param  {Function} cb()
  */
-
 function processDirSmart(cube, data, cb) {
   // merge 第一步，入口文件，交叉文件入common
   var source = data.src;
@@ -192,13 +190,23 @@ function processDirSmart(cube, data, cb) {
     processRequireModules(cube, requireModules, function (err, modFiles) {
       console.timeEnd('process node_modules file');
       files = files.concat(modFiles);
-      files = processMerge(files);
+      let finalfiles = processMerge(files);
       let actions = [];
-      files.forEach(function (tmp) {
+      finalfiles.forEach(function (tmp) {
         actions.push(function (done) {
           let targetPath = path.join(dest, tmp.queryPath.replace(/^\w+:/, ''));
           console.log('> gen code:', targetPath);
-          xfs.sync().save(targetPath, tmp.codeWraped);
+          let codes = [];
+          function mergeNode(node) {
+            codes.unshift(node.codeWraped);
+            if (node.merges) {
+              node.merges.forEach(function (file) {
+                mergeNode(file);
+              });
+            }
+          }
+          mergeNode(tmp);
+          xfs.sync().save(targetPath, codes.join('\n'));
           done();
         });
       });
@@ -222,10 +230,9 @@ function processDirSmart(cube, data, cb) {
 
 /**
  * 处理依赖的node_modules中的文件，传入是个文件列表
- * @param  {Cube}   cube     [description]
+ * @param  {Cube}   cube  实例
  * @param  {Array}   arr     文件路径列表， 相对于root
- * @param  {Function} callback [description]
- * @return {[type]}            [description]
+ * @param  {Function} callback(err, Array)
  */
 function processRequireModules(cube, arr, callback) {
   var res = [];
@@ -240,7 +247,6 @@ function processRequireModules(cube, arr, callback) {
     }
     cached[file] = true;
     var sourceFile = path.join(root, file);
-    console.log('>>>>>>', file);
     processFileWithRequires(cube, {
       src: sourceFile,
       cached: cached
@@ -257,85 +263,67 @@ function processRequireModules(cube, arr, callback) {
 }
 /**
  * 处理文件并且递归其依赖关系合并以来
- * @param  {[type]}   cube [description]
- * @param  {[type]}   data
+ * @param  {Cube}   cube [description]
+ * @param  {Object}   data
  *                       - src
  *                       - cached 缓存标记，记录某模块是否已经被build过
  * @param  {Function} cb   [description]
- * @return {[type]}        [description]
  */
 function processFileWithRequires(cube, data, callback) {
   var root = cube.config.root;
-  var count = 1;
   var files = [];
   var cached = data.cached || {};
-  function _cb(err, res) {
+  processFile(cube, data, function (err, res) {
     if (err) {
       if (!Array.isArray(err)) {
         err = [err];
       }
-      err.forEach(function (e) {
-        console.log(e);
-      });
       return callback(err);
     }
     var result = res.data;
-    cached[result.realPath] = true;
     files.push(result);
-    count --;
-
     if (result.requiresOrigin) {
-      result.requiresOrigin.forEach(function (m) {
-        if (!cached[m]) {
-          cached[m] = true;
-          count ++;
-          processFile(cube, {
-            src: path.join(root, m)
-          }, function (err, data) {
-            process.nextTick(function () {
-              _cb(err, data);
-            });
-          });
+      async.eachSeries(result.requiresOrigin, function (m, done) {
+        if (cached[m]) {
+          return done();
         }
+        cached[m] = true;
+        processFileWithRequires(cube, {
+          src: path.join(root, m),
+          cached: cached
+        }, function (err, fileList) {
+          if (err) {
+            return done(err);
+          }
+          files = files.concat(fileList);
+          done(null);
+        });
+      }, function (err) {
+        callback(err, files);
       });
-    }
-    if (count === 0) {
+    } else {
       callback(null, files);
     }
-  }
-  processFile(cube, data, function (err, res) {
-    console.log('require file done', data.src, err);
-    _cb(err, res);
   });
 }
 
-/**
- * 合并文件
- * @param  {Array} files         处理完的文件列表
- * @param  {Array} exportModules 人肉设定的root文件
- * @return {[type]}               [description]
- */
-function processMerge(files, exportModules) {
+function processMerge(files) {
   /**
    * 文件名Map
    */
   let fileMap = {};
   /**
+   * 依赖Map
+   */
+  let requireMap = {};
+  /**
    * 被依赖Map
    */
   let requiredMap = {};
   /**
-   * 入口 root 和被标记为 cors 的文件都是 root，这个 map 将会在每次深层遍历 root 的时候清空
-   */
-  let roots = [];
-  /**
    * 文件名Map
    */
   let restFile = {};
-  /**
-   * 最终的 root 表
-   */
-  let rootMap = {};
 
   let loads = [];
 
@@ -356,9 +344,12 @@ function processMerge(files, exportModules) {
       requiredMap[qpath] = {};
     }
     restFile[qpath] = fileMap[qpath] = file;
+    requireMap[qpath] = {};
     if (reqs && reqs.length) {
       reqs.forEach(function (req, index) {
-        // 带 --remote 参数时不能过滤，所以判断 reqso 而不是 reqs
+        // reqs在加工之后，会带上remote标记, 而reqso则保持原样
+        // 所以在判断的时候，需要使用 reqso
+        // 带 --remote 参数时不能过滤
         if (/^\w+:/.test(reqso[index])) {
           // remote require, ignore
           return;
@@ -367,169 +358,55 @@ function processMerge(files, exportModules) {
           requiredMap[req] = {};
         }
         requiredMap[req][qpath] = true;
+        requireMap[qpath][req] = true;
       });
     }
   });
 
-  // 找出根节点
-  console.log('find root file');
-  let mods = Object.keys(requiredMap);
-  roots = findRoot(mods);
-  // merge custom roots
-  if (exportModules && exportModules.length) {
-    roots = roots.concat(exportModules);
-  }
-  if (loads.length) {
-    roots = roots.concat(unique(loads));
-  }
+  let tmpList;
+  let mergeFlag = true;
 
-  function clearDepList(code) {
-    return code.replace(/^Cube\([^\[]+(\[[^\]]+\])/, function(whole, deps){
-      var Jdeps = JSON.parse(deps.replace(/'/g, '\"'));
-      Jdeps = Jdeps.filter(function(dep){
-        return !!rootMap[dep]; // 删除非 root 的依赖
-      });
-      return whole.replace(deps, JSON.stringify(Jdeps));
-    });
-  }
+  while (mergeFlag) {
+    mergeFlag = false;
+    tmpList = [];
+    files.forEach(function (file) {
+      let qpath = file.queryPath;
+      let reqs = requireMap[qpath];
+      let reqeds = requiredMap[qpath];
+      let reqedList = Object.keys(reqeds);
 
-  /** 标记root  */
-  function markRoot(list, root) {
-    let sub = [];
-    list.forEach(function (modName) {
-      let mod = restFile[modName];
-      // 模块不存在，则忽略
-      if (!mod) {
-        return;
-      }
-      // 还没初始化，则初始化
-      if (!mod.__roots) {
-        mod.__roots = {};
-      }
-      // 已经标记过该root， 则返回， 解循环依赖的问题
-      if (mod.__roots[root]) {
-        return;
-      }
-      // 标记该root
-      mod.__roots[root] = true;
-      /*
-      if (Object.keys(mod.__roots).length > 1) {
-        return;
-      }
-      */
-      let reqs = mod.requires;
-      if (reqs) {
-        sub = sub.concat(reqs);
-      }
-    });
-    // 返回下一层模块
-    return sub;
-  }
-  // 去重
-  function unique(arr) {
-    var map = {};
-    arr.forEach(function (f) {
-      map[f] = true;
-    });
-    return Object.keys(map);
-  }
-
-  // 合并文件
-  function mergeFile(list, nodes, root) {
-    let sub = [];
-    nodes.forEach((node) => {
-      list.unshift(node.queryPath);
-      delete node.__roots[root];
-      if (!Object.keys(node.__roots).length) {
-        delete restFile[node.queryPath];
-      }
-      node.requires && node.requires.forEach(function (reqPath) {
-        let req = restFile[reqPath];
-        if (!req || !req.__roots[root]) { //  不存在的文件
-          return;
+      if (reqedList.length >= 2) {
+        tmpList.push(file);
+      } else if (reqedList.length === 0) {
+        tmpList.push(file);
+      } else {
+        console.log(`merge ${qpath} to ${reqedList[0]}`);
+        // 只被一个文件依赖，则合并入父级
+        let parent = fileMap[reqedList[0]];
+        if (!parent.merges) {
+          parent.merges = [];
         }
-        let len = Object.keys(req.__roots).length;
-        if (len === 0) {
-          // this is impossible
-        } else if (len === 1) {
-          sub.push(req);
-        } else {
-          // 多 root 的情况
-          // 标记为下一轮的 root
-          roots.push(reqPath);
-          //delete req.__roots[root];
+        parent.merges.push(file);
+        mergeFlag = true;
+        /**
+         * 修改 requireMap, requiredMap
+         */
+        let parentReqs = requireMap[parent.queryPath];
+        // 去除对合并节点的依赖
+        delete parentReqs[qpath];
+        // 被合并节点的依赖，变成父级节点的依赖
+        for (var i in reqs) {
+          parentReqs[i] = true;
+          delete requiredMap[i][qpath];
+          requiredMap[i][parent.queryPath] = true;
         }
-      });
-    });
-    return sub;
-  }
-
-  function findRoot(mods) {
-    let root = [];
-    mods.forEach(function (k) {
-      let tmp = requiredMap[k];
-      let parents = Object.keys(tmp);
-      if (parents.length === 0) {
-        root.push(k);
       }
     });
-    return root;
+    files = tmpList;
   }
-
-  function markSubIntoRoot(){
-    var cache = _.clone(unique(roots));
-    // 递归重置
-    roots = [];
-    _.each(restFile, function(mod){
-      mod.__roots = {};
-    });
-    // 标记各文件的root
-    // 将各个 root 下依赖的文件依次打上该 root 的标，包括 root 文件自己
-    cache.forEach(function (root) {
-      let sub = [root];
-      while(sub.length) {
-        sub = markRoot(sub, root);
-      }
-    });
-
-    // 找出只！！被该 root 引用的所有文件，也就是 __roots.length == 1
-    // 放入 rootMap[root] 中
-    cache.forEach(function (root) {
-      var list = [];
-      var tmp = [restFile[root]];
-      while (tmp.length) {
-        tmp = mergeFile(list, tmp, root); // will re-calculate the roots
-      }
-      rootMap[root] = unique(list);
-    });
-
-    return cache.length && cache.length !== unique(roots).length; // 每次处理应该有变化
-  }
-
-
-    // 递归处理 root 和交叉节点
-  while (markSubIntoRoot()) {
-    // do nothing
-  }
-
-  var result = [];
-  _.each(rootMap, function(deps, qpath) {
-    var rootFile = fileMap[qpath];
-    var mergeList = [clearDepList(rootFile.codeWraped)];
-    // rootFile.codeWraped = clearDepList(rootFile.codeWraped);
-    deps.forEach(function(sub){
-      if (sub == qpath) return true;
-
-      mergeList.unshift(clearDepList(fileMap[sub].codeWraped));
-      //rootFile.codeWraped += ';'+clearDepList(fileMap[sub].codeWraped);
-      //fileMap[sub].codeWraped = ''; // 节约内存
-    });
-    rootFile.codeWraped = mergeList.join(';');
-    result.push(rootFile);
-  });
-
-  return result;
+  return tmpList;
 }
+
 /**
  * processFile
  * @param  {Cube}   cube   cube instance
@@ -718,6 +595,11 @@ function allInOneCode(cube, options, callback) {
     });
   });
 }
+
+/**
+ * for test only
+ */
+exports._processMerge = processMerge;
 
 /**
  * portal API
