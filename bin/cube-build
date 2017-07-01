@@ -74,20 +74,17 @@ function findRoot(file) {
  * source , -o,--output, -b, --base 是基于cwd路径, 互相之间没有依赖关系
  */
 cmd
-  .usage('-p processor1,processor2 your_code_dir')
-  .description('build the hole project, including: less->css->min, script->wraped->min')
-  // .option('-p, --processors [value]', 'loading plugin processors, like `cube-coffee,cube-jsx`')
+  .usage(' your_code_dir')
+  .description('build the hole project')
   .option('-o, --output [value]', 'set the output dir')
   .option('--output-file [value]', 'set the output file')
   .option('-b, --base [value]', 'set the cube base')
   .option('-r, --resbase [value]', 'the http base for resouce')
-  .option('--merge', 'if merged dependences into a file')
   .option('--remote [value]', 'set the namespace for remote call')
+  .option('--export [value]', 'files will be exported, do not merge, example: /a.js,/b.js')
   .option('--mangle-file-name', 'mangle the file name into random name')
-  .option('--custom-export-files [value]', 'files which will be loaded in html, and should keep the original filename')
   .option('--without-compress', 'do not compress code')
   .option('--without-wrap', 'do not wraper code')
-  // .option('-t, --transform', 'transform es2015 codes')
   .option('--smart', 'smart build, only build necessary')
   .parse(process.argv);
 
@@ -113,9 +110,16 @@ if (args.transform) {
 }
 */
 
-if (args.customExportFiles) {
-  args.customExportFiles = args.customExportFiles.split(',');
+let map = {};
+
+if (args.export) {
+  let tmp = args.export.split(',');
+  tmp.forEach((key) => {
+    map[key] = true;
+  });
 }
+
+args.export = map;
 
 var cwd = getCwd();
 var fstat;
@@ -155,8 +159,7 @@ if (fstat.isFile()) {
     remote: args.remote,
     withoutWrap: args.withoutWrap,
     mangleFileName: args.mangleFileName,
-    mangleFileNameIgnore: ['/main.js'],
-    customExportFiles: args.customExportFiles,
+    export: args.export,
     lazyWrap: args.smart
   });
   tool = Cube.tools;
@@ -180,8 +183,7 @@ if (fstat.isFile()) {
     resBase: args.resbase,
     remote: args.remote,
     mangleFileName: args.mangleFileName,
-    mangleFileNameIgnore: ['/main.js'],
-    customExportFiles: args.customExportFiles,
+    export: args.export,
     lazyWrap: args.smart
   });
   tool = Cube.tools;

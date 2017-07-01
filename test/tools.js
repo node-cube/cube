@@ -115,7 +115,6 @@ describe('tools.js', function () {
 
       let res = testMod._processMerge(mockData);
       expect(res.length).eql(1);
-      console.log(res);
     });
   });
 
