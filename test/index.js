@@ -76,7 +76,7 @@ describe('index.js', function () {
     it('should return a js module with remote info', function (done) {
       remoteRequest.get('/main.js?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/Cube\("REMOTE:\/main\.js"/)
         .expect(/require\(['"]REMOTE:\/tests\.js/)
         .expect(/exports\.run/)
@@ -85,14 +85,14 @@ describe('index.js', function () {
     it('should return a style module with remote info', function (done) {
       remoteRequest.get('/css/test_css.css?m&c')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/Cube\("REMOTE:\/css\/test_css\.css"/, done);
 
     });
     it('should return a template module with remote info', function (done) {
       remoteRequest.get('/tpl/test.ejs?m&c')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/Cube\("REMOTE:\/tpl\/test\.ejs"/, done);
     });
     it('should process require with vars ok with remote info', function (done) {
@@ -115,7 +115,7 @@ describe('index.js', function () {
     it('should work fine', function (done) {
       request.get('/test/test_remote_module.js?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/\["datav:\/coms\/abc"\]/)
         .expect(/^Cube\(/, done);
     });
@@ -123,7 +123,7 @@ describe('index.js', function () {
     it('should work fine when require override', function (done) {
       remoteRequest.get('/test/test_override.js?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/\'\.\/hello_def\'/)
         .expect(/\'\.\/hello_test\'/)
         .expect(/\'\.\/hello_abc\'/)
@@ -135,33 +135,33 @@ describe('index.js', function () {
     it('should return regular js file', function (done) {
       request.get('/main.js')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/exports\.run/)
         .expect(/^(?!Cube\()/, done);
     });
     it('should ignore file parse when file in .cubeignore list', function (done) {
       request.get('/test/test_ignore.js?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/Cube\("\/test\/test_ignore\.js"/)
         .expect(/require\('ignores'\)/, done);
     });
     it('should return regular js file which name with dot', function (done) {
       request.get('/test/test_file.with.dot.js')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/^(?!Cube\()/, done);
     });
     it('should return regular js file which name with hyphen', function (done) {
       request.get('/test/test_file-with-hyphen.js?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/^Cube\(/, done);
     });
     it('should return transfered js file', function (done) {
       request.get('/main.js?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           var body = res.text;
           expect(body).to.match(/require\('\/tests\.js'\)/);
@@ -172,7 +172,7 @@ describe('index.js', function () {
     it('should return transfered js file auto fix css namespace', function (done) {
       request.get('/test/test_css_namespace.js?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           var body = res.text;
           expect(body).to.match(/require\('\/css\/test_css\.css', ''\);/);
@@ -182,7 +182,7 @@ describe('index.js', function () {
     it('should return transfered compressed js file auto fix css namespace', function (done) {
       request.get('/test/test_css_namespace.js?m&c')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           var body = res.text;
           expect(body).to.match(/\("\/css\/test_css\.css",""\)/);
@@ -192,7 +192,7 @@ describe('index.js', function () {
     it('should return transfered coffee file', function (done) {
       request.get('/test/test_coffee.coffee?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           var body = res.text;
           expect(body).to.match(/hello coffee-script/);
@@ -203,7 +203,7 @@ describe('index.js', function () {
     it('should return transfered coffee file call like a js file', function (done) {
       request.get('/test/test_coffee.js?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           var body = res.text;
           expect(body).to.match(/hello coffee-script/);
@@ -215,7 +215,7 @@ describe('index.js', function () {
     it('should return a compress file', function (done) {
       request.get('/test/test_main.js?m&c')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           var body = res.text;
           expect(body).to.match(/Cube\("\/test\/test_main\.js/);
@@ -350,7 +350,7 @@ describe('index.js', function () {
     it('should return a wraped & comressed css file, actually a js module', function (done) {
       request.get('/css/test_css.css?m&c')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           expect(res.text).match(/\.test\{/ig);
           expect(res.text).match(/^Cube\("\/css\/test_css\.css", *\[\]/);
@@ -370,7 +370,7 @@ describe('index.js', function () {
     it('should return the transfered less file', function (done) {
       request.get('/css/test_less.css')
         .expect(200)
-        .expect('content-type', 'text/css')
+        .expect('content-type', /text\/css/)
         .expect(function (res) {
           expect(res.text).match(/\.test \.box/ig);
         })
@@ -456,7 +456,7 @@ describe('index.js', function () {
     it('should return a regular html file', function (done) {
       request.get('/tpl/test.html')
         .expect(200)
-        .expect('content-type', 'text/html')
+        .expect('content-type', /text\/html/)
         .expect(function (res) {
           var code = res.text;
           expect(code).not.match(/^Cube\(/);
@@ -466,7 +466,7 @@ describe('index.js', function () {
     it('should return a wraped html file', function (done) {
       request.get('/tpl/test.html?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           var code = res.text;
           expect(code).match(/^Cube\(/);
@@ -511,7 +511,7 @@ describe('index.js', function () {
     it.skip('resolve filepath', function (done) {
       hookRequest.get('/test_hook.js?m')
         .expect(200)
-        .expect('content-type', 'application/javascript')
+        .expect('content-type', /application\/javascript/)
         .expect(/Cube\("\/test_hook\.js"/)
         .expect(/require\(['"]remote:path\/to\/file/)
         .expect(/require\(['"]\/tests\.js/)

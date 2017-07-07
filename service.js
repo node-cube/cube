@@ -88,6 +88,8 @@ function mergeRequire(cube, result, arr, parents, done) {
 
 function createMiddleware(cube, serveStatic, checkSkip) {
   let config = cube.config;
+  let cubeLoaderPath = config.loaderPath || '/cube.js';
+  let charset = config.charset || 'utf-8';
   return function (req, res, next) {
     debug('query path', req.url);
     let q = url.parse(req.url, true);
@@ -108,18 +110,20 @@ function createMiddleware(cube, serveStatic, checkSkip) {
     /**
      * for cube loader
      */
-    if (qpath === '/cube.js') {
+    if (qpath === cubeLoaderPath) {
       res.setHeader('content-type', 'text/javascript');
-      return xfs.createReadStream(path.join(__dirname, './runtime/cube.min.js')).pipe(res);
+      xfs.readFile(path.join(__dirname, './runtime/cube.min.js'), (err, data) => {
+        res.write(data);
+        res.write('\n');
+        cube.caches.getNodeModules(function (code) {
+          res.write(code);
+        }, function () {
+          res.end('');
+        });
+
+      });
+      return;
     }
-
-    let ext = path.extname(qpath);
-
-    /*
-    if (cube.extMap[ext]) {
-
-    }
-    */
 
     flagWrap = req.query.m === undefined ? false : true;
     flagCompress = req.query.c === undefined ? false : true;
@@ -148,9 +152,8 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       },
       /** 检查cache，以便下次快速返回 */
       function checkCache(data, callback) {
-        let cache = cube.caches.get[cachePath];
+        let cache = cube.caches.get(cachePath);
         if (!cache) {
-          data.modifyTime = new Date().getTime();
           return callback(null, data);
         }
         xfs.lstat(cache.absPath, function (err, stats) {
@@ -161,7 +164,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
             });
           }
           var mtime = new Date(stats.mtime).getTime();
-          if (cache.modifyTime >= mtime) { // target the cache, just return
+          if (cache.modifyTime === mtime) { // target the cache, just return
             debug('hint cache', cachePath, data.queryPath);
             return done(null, cache);
           }
@@ -176,7 +179,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       function cacheData(data, callback) {
         data.genCode(function (err, data) {
           if (config.devCache) {
-            debug('cache processed file: %s, %s', data.queryPath, data.mtime);
+            debug('cache processed file: %s, %s', data.queryPath, data.modifyTime);
             delete data.ast;
             cube.caches.set(cachePath, data);
           }
@@ -226,7 +229,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
           code = result.source;
         }
         res.statusCode = 200;
-        res.setHeader('content-type', result.mime);
+        res.setHeader('content-type', result.mime + ';charset=' + charset);
         res.end(code);
       }
     }
@@ -319,10 +322,10 @@ exports.init = function (cube) {
     cube.connect = app;
     config.port && app.listen(config.port, function (err) {
       if (err) {
-        console.error('[Cube] server fail to start,', err.message);
+        cube.log.error('server fail to start,', err.message);
       } else {
-        console.log('[Cube] server started, listen:', config.port);
-        console.log('[Cube] now you can visit: http://localhost:' + config.port + config.router);
+        cube.log.info('server started, listen:', config.port);
+        cube.log.info('[Cube] now you can visit: http://localhost:' + config.port + config.router);
       }
     });
   }
