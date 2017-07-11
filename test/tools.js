@@ -13,6 +13,9 @@ var fs = require('fs');
 var Request = require('supertest');
 
 describe('tools.js', function () {
+  var mockCube = {
+    log: require('../lib/cube/log')
+  };
 
   describe('processMerge()', function () {
     it('should return a js module with remote info', function () {
@@ -43,7 +46,7 @@ describe('tools.js', function () {
         }
       ];
 
-      let res = testMod._processMerge(mockData);
+      let res = testMod._processMerge(mockCube, mockData);
       expect(res.length).eql(1);
     });
 
@@ -81,7 +84,7 @@ describe('tools.js', function () {
         }
       ];
 
-      let res = testMod._processMerge(mockData);
+      let res = testMod._processMerge(mockCube, mockData);
       expect(res.length).eql(4);
     });
 
@@ -113,7 +116,7 @@ describe('tools.js', function () {
         },
       ];
 
-      let res = testMod._processMerge(mockData);
+      let res = testMod._processMerge(mockCube, mockData);
       expect(res.length).eql(1);
     });
   });

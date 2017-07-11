@@ -169,7 +169,7 @@ if (fstat.isFile()) {
     destFile: args.outputFile
   }, function (err, data) {
     buildOutput(err, data);
-    process.exit(err ? 1 : 0);
+    process.exit(err && err.length ? 1 : 0);
   });
 } else if (fstat.isDirectory()) {
   outputPath = args.output ? (isAbsPath(args.output) ? args.output : path.join(cwd, args.output)) : (source.replace(/(\/|\\)$/, '') + '.release');

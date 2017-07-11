@@ -4,7 +4,7 @@ var xfs = require('xfs');
 var path = require('path');
 var async = require('async');
 var utils = require('./lib/utils');
-var _ = require('lodash');
+// var _ = require('lodash');
 
 /**
  * 处理整个Dir的编译
@@ -17,7 +17,7 @@ function processDir(cube, options, cb) {
   let source = options.src;
   let dest = options.dest;
   if (!dest) {
-    return console.log('[ERROR] param missing! dest');
+    return cube.log.error('param missing! dest');
   }
   if (!cb) {
     cb = function () {};
@@ -39,11 +39,11 @@ function processDir(cube, options, cb) {
     var checked = cube.checkIgnore(relFile);
 
     if (checked.ignore) {
-      console.log('[ignore file]:', relFile.substr(1));
+      cube.log.warn('ignore file:', relFile.substr(1));
       return done();
     } else if (checked.skip) {
       xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
-      console.log('[copy file]:', relFile.substr(1));
+      cube.log.info('skip process, copy file:', relFile.substr(1));
       return done();
     }
 
@@ -99,8 +99,10 @@ function processDirSmart(cube, data, cb) {
   var source = data.src;
   var dest = data.dest;
   var st = new Date();
+  var tmpStartTime = new Date();
+  var tmpEndTime;
   if (!dest) {
-    return console.log('[ERROR] param missing! dest');
+    return cube.log.error('param missing! dest');
   }
   if (!cb) {
     cb = function () {};
@@ -112,7 +114,7 @@ function processDirSmart(cube, data, cb) {
 
   // let st = new Date().getTime();
 
-  console.time('process app file');
+  // console.time('process app file');
 
   // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
   xfs.walk(source, function check(p) {
@@ -134,11 +136,11 @@ function processDirSmart(cube, data, cb) {
     var checked = cube.checkIgnore(relFile);
 
     if (checked.ignore) {
-      console.log('[ignore file]:', relFile.substr(1));
+      cube.log.warn('ignore file:', relFile.substr(1));
       return done();
     } else if (checked.skip) {
       xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
-      console.log('[copy file]:', relFile.substr(1));
+      cube.log.info('skip, copy file:', relFile.substr(1));
       return done();
     }
 
@@ -150,7 +152,7 @@ function processDirSmart(cube, data, cb) {
         if (err) {
           if (err === 'unknow_type') {
             xfs.sync().save(destFile, xfs.readFileSync(sourceFile));
-            console.log('[copy file]:', relFile.substr(1));
+            cube.log.info('unknow file type, copy file:', relFile.substr(1));
             return done();
           } else if (!err.file) {
             if (typeof err == 'string') err = new Error(err);
@@ -184,14 +186,18 @@ function processDirSmart(cube, data, cb) {
       done();
     }
   }, function () {
-    console.timeEnd('process app file');
+    tmpEndTime = new Date();
+    cube.log.info('process app\'s file done, cost:', (tmpEndTime - tmpStartTime) + 'ms');
+    tmpStartTime = new Date();
     let requireModules = Object.keys(requiredModuleFile);
-    console.time('process node_modules file');
     // 遍历依赖的 npm 包，并遍历包中的所有文件
     processRequireModules(cube, requireModules, true, function (err, modFiles) {
-      console.timeEnd('process node_modules file');
+      tmpEndTime = new Date();
+      cube.log.info('process node_modules file done, cost:', (tmpEndTime - tmpStartTime) + 'ms');
+      tmpStartTime = new Date();
+
       files = files.concat(modFiles);
-      let finalfiles = processMerge(files, cube.config.export);
+      let finalfiles = processMerge(cube, files, cube.config.export);
       let actions = [];
       finalfiles.forEach(function (tmp) {
         cube.setMangleFileNameSaveFlag(tmp.queryPath);
@@ -236,7 +242,7 @@ function processDirSmart(cube, data, cb) {
               return done(err);
             }
             let targetPath = path.join(dest, tmp.queryPath.replace(/^\w+:/, ''));
-            console.log('> gen code:', targetPath);
+            cube.log.info('> gen code:', targetPath);
             xfs.sync().save(targetPath, codes.join('\n'));
             done();
           });
@@ -350,7 +356,7 @@ function processFileWithRequires(cube, data, callback) {
  * @param  {Object} exportFiles 排除文件，无需合并
  * @return {Array}  合并之后的文件列表
  */
-function processMerge(files, exportFiles) {
+function processMerge(cube, files, exportFiles) {
   /**
    * 文件名Map
    */
@@ -371,7 +377,7 @@ function processMerge(files, exportFiles) {
 
   exportFiles = exportFiles || {};
 
-  console.log('prepare files');
+  cube.log.info('prepare files');
   // 建立 qpath -> file 的一对一映射关系
   // 建立 child -> parent 的一对多映射关系
   files.forEach(function (file) {
@@ -511,19 +517,19 @@ function processFile(cube, options, cb) {
   var type =  cube.extMap[ext];
   if (type === undefined) {
     if (destFile) {
-      console.log('[copying file]:', realFile.substr(1));
+      cube.log.info('copying file:', realFile.substr(1));
       destFile && xfs.sync().save(destFile, xfs.readFileSync(source));
       return cb();
     } else {
       // unknow type, copy file
-      console.log('[unknow file type]', realFile.substr(1));
+      // console.log('[unknow file type]', realFile.substr(1));
       return cb('unknow_type');
     }
   }
   var ps = cube.processors[type];
   var processors = ps[ext];
 
-  console.log('[transferring ' + type + ']:', realFile.substr(1));
+  cube.log.info('transferring ' + type + ' file:', realFile.substr(1));
 
   async.waterfall([
     function prepare(done) {
