@@ -203,7 +203,8 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       }
       var code = flagWrap ? result.codeWraped : result.code;
 
-      if (flagWrap && !result.merged) {
+      /*
+      if (flagWrap && !result.merged && !/\/node_modules\//.test(result.queryPath)) {
         // 级联合并, 目前只合并 node_modules中的文件
         let depsMods = [];
         let parent = [result.queryPath];
@@ -223,6 +224,8 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       } else {
         output();
       }
+      */
+      output();
 
       function output() {
         if (result.ext === '.html' && !flagWrap) {

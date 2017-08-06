@@ -15,12 +15,10 @@
       ".jade": "cube-jade",
       ".styl": "cube-stylus"
     },
-    "build": {
+    "ignoreRules": {
       "skip":[],
-      "ignore": [],
-      "exportModules": [
-        "/css/test_css.css.js"
-      ]
-    }
+      "ignore": []
+    },
+    "export": []
   }
 }

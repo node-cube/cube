@@ -298,7 +298,7 @@ describe('index.js', function () {
         })
         .end(done);
     });
-    it('should merge query when enter file is an node_modules, and cycle require is also fine', function (done) {
+    it.skip('should merge query when enter file is an node_modules, and cycle require is also fine', function (done) {
       request.get('/node_modules/cycle_server/a.js?m')
         .expect(200)
         .expect(function (res) {

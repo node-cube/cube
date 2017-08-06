@@ -22,32 +22,55 @@ Cube管理着前端三种类型的资源:
 
 ## Getting Start
 
-初始化cube，通过cube命令，生成工程结构，包含 `cube.min.js`，`index.html`
+初始化cube，通过cube命令，生成工程结构，包含一个示例代码
 
 ```sh
 > cd your_project_dir
 > cube init
 ```
-### 初始化前端代码
-查看`index.html`, cube 客户端的部署大致如下
+### 浏览器端初始化
 
+查看`index.html`, cube 客户端的部署大致如下
 ```
-<script src='cube.min.js'></script>
+<!-- 引入的cube文件，在window里注入全局的Cube对象, 其API参考下文 -->
+<script src='/cube.js'></script>
 <script>
   Cube.init({
+    /**
+     * script charset
+     */
     charset: 'utf-8',
-    base: '/',                // virtual path, base can be a http path,
-                              // like: http://domain.com/project/static
-    debug: true,              // online module ,you should turn off this switch
-    version: 12345,           // the code version, used for flushing client side script
-    timeout: 15000            // loading script timeout setup
+    /**
+     * http virtual path, base should be a http path
+     * like: http://domain.com/project/static
+     */
+    base: '/',
+    /**
+     * debug flag, online module ,you should turn off this switch
+     */
+    debug: true,
+    /**
+     * file version in querystring, used for flushing client side
+     * @type {Number}
+     */
+    version: 12345,
+    /**
+     * setup loading script timeout setup
+     */
+    timeout: 15000,
+    /**
+     * 远程模块，支持多个站点共享模块
+     * 高级用法，请参考文档
+     */
+    remoteBase: {
+      a: 'http://abc.js/modules/'
+    }
   });
   Cube.use('/main.js', function (App) {
     console.log(App.run(appConfig));
   });
 </script>
 ```
-
 Cube.use 还可以支持多模块加载:
 ```
 Cube.use(['/a.js', '/b.js'], function (a, b) {
@@ -59,20 +82,140 @@ Cube.use(['/a.js', '/b.js'], function (a, b) {
 Cube.use 传入的参数寻址，基于当前 init的时候指定的base， 即跟目录下。
 
 ```
-Cube.use('/app.js');
-Cube.use('./app.js');
-Cube.use('app.js');
+Cube.use('/app.js', cb);
+Cube.use('./app.js', cb);
+Cube.use('app.js', cb);
 ```
 以上是等效的，都引用了主类目下的  app.js 模块
 
 
-### 启动cube服务
-```sh
-> cube start your_project_dir
-```
-好了，cube可以工作了， 修改`main.js`，开始编码。
+### 浏览器端API
 
-## Write code with cube
+```
+/**
+ * 开启debug模式, 会打印模块加载调试信息
+ * @static
+ */
+Cube.debug();
+
+/**
+ * 初始化
+ * @static
+ * @param options {Object}
+ *   charset {String} script标签
+ *   base {String} 服务器端模块的http前缀地址
+ *   debug {Boolean}
+ *   version {Number}
+ *   timeout {Number}
+ *   resBase {Object} 远程base
+ */
+Cube.init(options);
+
+/**
+ * 异步加载模块，带回调，页面的主入口一般就这个写法
+ * @static
+ * 注意module传入的寻址规则， 以下规则等效，都是基于 base 根目录下
+ *    /app.js
+ *    ./app.js
+ *    app.js
+ */
+Cube.use(module, cb);
+Cube.use([mod1, mod2], function(mod1, mod2) {
+  // TODO: your code here
+});
+
+/**
+ * 注册页面已通过script标签加载过的模块，避免重复加载
+ * @static
+ * 如下，注册 jquery， lodash
+ * 注意后端assets目录下，请不要安装这些模块
+ */
+Cube.register('jquery', $);
+Cube.register('lodash', _);
+```
+
+
+
+### 服务器端API
+
+服务器端cube提供两种模式： 1. middleware模式, 2. 独立初始化 3. 命令行工具
+
+* middlware 模式
+
+```
+const Cube = require('node-cube');
+let cube = Cube.middleware({
+  /**
+   * 静态资源的绝对路径
+   * @type {String}
+   */
+  root: ''
+  /**
+   * 端口
+   * @type {Number}
+   */
+  port: 8080,
+  /**
+   * 是否middleware模式
+   * @type {Boolean}
+   */
+  middleware: true,
+  /**
+   * 所有资源文件（如css中图片）的http前缀路径,
+   * 一般是一个站点的绝对路径`/`，或者`http://`完整路径
+   * @type {String}
+   */
+  resBase: '/',
+  /**
+   * 浏览器端文件缓存时间，最终会应用到http头：Cache-Control: public, maxAge=xxx
+   * @type {Number}
+   */
+  maxAge: 600
+  /**
+   * 配置文件的处理器 processors
+   * 这个配置更推荐在 package.json的 cube 属性中配置，这样build和debug的时候同时生效
+   * @type {Object}
+   */
+  processors: {
+    '.jsx': [
+      ['cube-react', {}],  // processor with config
+      'minify'
+    ], // multi-processor
+    '.jsw': 'jsw' // single processor
+  },
+  /**
+   * 开发模式下是否开启缓存， 默认开启
+   * @type {Boolean}
+   */
+  devCache: true
+});
+```
+
+* 独立初始化
+
+```
+const Cube = require('node-cube');
+let cube = new Cube(options);
+```
+
+* cli模式
+
+```sh
+# 本地开发的时候启动服务，指定静态文件目录，即可服务起来
+> cube start your_project_dir
+
+# 初始化工程, 初始化一个简单的case
+> cube init dir
+
+# 打包发布工程
+> cube build dir
+```
+
+好了，cube可以工作了， 编辑主入口文件 `main.js`，开始编码。
+
+###
+
+## 编写代码
 
 前面已经启动了服务，
 
@@ -93,7 +236,7 @@ function  init() {
 }
 init();
 // 异步加载css
-async('../css/module.css', nameSpace); // namespace: prefix for css selector
+load('../css/module.css', nameSpace); // namespace: prefix for css selector
 ```
 ok，一个很简单的一个模块，`index.html`加载了main.js，便开始执行：设置头部用户登录昵称
 
@@ -121,67 +264,29 @@ Cube的模块加载是支持像node一样寻址node_modules目录的，在wwwroo
         - package.json        # 后端所依赖的模块申明
 ```
 
-## command line usage
-
-```sh
-# init project
-cube init your_app_path
-
-# start an http server
-cube start your_app_path
-
-```
-
-## run with connect 集成到connect中
-
-  假如你的工程已经是connect工程，或者express工程，那么可以很方便的将cube集成到工程中
-  cube可以返回一个middleware方法 `middleware(req, res, next)`
-
-```
-  var Cube = require('node-cube');
-  var middleware = Cube.init({
-    root: '/wwwroot',  // static resource path, like wwwwroot below
-    middleware: true  // run as a service, not return a middleware
-  });js
-  app.use('/static', middleware);
-```
-  ok, 访问你的调试环境  `http://localhost:port/static/xxx`, 静态资源+模块化支持
-
-  `Cube.init(Object)` `Object` 可以包含以下参数
-```
-  {
-    root: // 静态资源路径
-    port: // 需要监听的端口
-    middleware:  // 是否中间件模式
-    base:  // 所有文件的前缀路径
-    resBase:  // css中图片等资源的前缀路径
-    scope:    // 模块的scope，like `@ali`, 暂未使用
-    maxAge:   // 浏览器端文件缓存时间，最终会应用到http头：Cache-Control: public, maxAge=xxx
-    processors: ['cube-ejs', 'cube-jade'] // load extra processors, 确保你的依赖中有这些模块
-    devCache: // boolean 开发模式下是否开启缓存， 默认开启
-  }
-```
 ## 打包发布
 
-进入生产环境之前，模块都会被预编译、压缩成一个个小文件，然后发布到线上(cdn服务器、云存储 或 其他)
+完成开发之后，模块都会被预编译、压缩成一个个小文件，合并，然后发布到线上(cdn服务器、云存储 或 其他)
 
+cube提供build命名来方便的完成这一任务
 ```sh
 # build static folder
-cube build resource_path
-
-# set up build_in_module ignore
-cube build -i jquery,d3 resource_path
+cube build $resource_path -o $resource_path.release --smart --mangle-file-name
 ```
 
-build参数:
+`cube build`的参数:
 ```
-  -h, --help                output usage information
-  -p, --processors [value]  build in modules, tell cube ignore them, 关插件
-  -o, --output [value]      set the output path  指定输出目录
-  -b, --base [value]        set the cube base 指定代码库base
-  --with-source             create source file 指定是否输出源文件
-  -r, --resbase [value]     the http base for resouce 指定css中的资源文件 http路径的base
-  --merge                   if merged dependences into on file 是否合并
+    -h, --help             output usage information
+    -o, --output [value]   set the output dir
+    --output-file [value]  set the output file
+    -b, --base [value]     setup project base dir, the root
+    -r, --resbase [value]  the http base for resouce
+    --remote [value]       set the namespace for remote call
+    --export [value]       files will be exported, do not merge, example: /a.js,/b.js
+    --mangle-file-name     mangle the file name into random name
+    --without-compress     do not compress code
+    --without-wrap         do not wraper code
+    --smart                smart build, only build necessary files
 ```
 
 在静态资源目录下，编写 `.cubeignore`来排除不需要被处理的文件，格式和.gitignore类似：
@@ -203,19 +308,42 @@ cube 在build的时候将直接copy文件，而不会build代码
 
 .cubeignore 文件的寻址 会从build目录开始逐级往上寻找，直到找到为止
 
-## Cube的结构：客户端、服务端。
+## package.json
 
-### Cube客户端  cube.min.js
+静态资源目录下的package.json， 增加cube熟悉可以为cube的运行配置参数。
+在开发模式和`cube build`时都会来读取这份配置，所以在这里配置cube是最好的选择
 
-就是一个loader，实现依赖按需加载。
-在目标页面，加入`cube.min.js`脚本，浏览器多了一个 `window.Cube`对象。
+```
+{
+  "cube": {
+    "moduleMap": {
+      "react": "dist/react.js",
+      "modulemap": "lib/index.js"
+    },
+    "processors": {
+      ".less": "cube-less",
+      ".jsx": ["cube-react"],
+      ".coffee": [["cube-coffee", {/* processor_config */}]],
+      ".ejs": "cube-ejs",
+      ".jade": "cube-jade",
+      ".styl": "cube-stylus"
+    },
+    "ignoreRules": {
+      "skip":[],
+      "ignore": []
+    },
+    "export": []
+  }
+}
+```
 
-### Cube服务端
+其中：
+* `moduleMap` 为一些已经build成single-file的模块提供filemap，以加速加载
+* `processors` 对象定义各种文件的处理器
+* `ignoreRules` 中定义build时的忽略规则，和`.cubeignore`功能类似
+* `export` 定义需要被导出的文件，补充自动识别导出文件的不足
 
-Cube服务端有两种形态，可以是一个独立的http服务，如上面的例子；
-也可以是一个中间件，组合到你的node程序中，指派路由，受理相应的静态资源请求
-
-在服务端， Cube总共受理三种类型的文件：script, style, template
+package.json 中的配置享有最高优先级
 
 ## Customize Cube Processors
 
@@ -246,27 +374,4 @@ Processor.prototype.process = function (relpath, options, callback) {
 
 	}
 };
-```
-
-## Hooks
-
-### beforeResolvePath(originPath) 
-
-支持处理require中原始的路径，如在特定的情况下将一个远程依赖改为本地依赖
-
-```
-Cube.init({
-  // ...
-  hooks: {
-    beforeResolvePath: function(originPath) {
-      if (/^\w+?:/.test(originPath)){
-        var _path = path.join(this.root, originPath.split(':')[1]);
-        if (fs.existsSync(_path)) {
-          return _path.replace(this.root, '');
-        }
-      }
-      return file;
-    }
-  }
-});
 ```
