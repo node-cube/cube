@@ -19,9 +19,11 @@ const Cube = require('./lib/cube');
  *
  * @return {cube}
  */
-Cube.middleware = function (config) {
-  config.middleware = true;
-  let cube = new Cube(config);
+Cube.middleware = function (cube, config) {
+  if (config === undefined) {
+    config = cube;
+    cube = new Cube(config);
+  }
   let service = require('./service');
   service.init(cube);
   return cube.middleware;

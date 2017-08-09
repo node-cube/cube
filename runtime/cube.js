@@ -19,9 +19,9 @@
   var remoteBase = {};
   var remoteSeparator = ':';
   var charset = 'utf-8';
-  var version = +new Date();
+  var version;
   var strict = true;
-  var debug = false;
+  var debug = true;
   var entrances = {};  // Cube.use's cb
 
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
@@ -125,12 +125,21 @@
       script.charset = charset;
 
       var rebaseName = reBase(require);
-      var srcPath = [rebaseName || (base + require), '?m=1&', version].join('');
-      if (debug) {
-        srcPath += '&ref=' + referer;
+      var srcPath = rebaseName || (base + require);
+      var q = [];
+      if (version) {
+        q.push(version);
       }
-      script.src = srcPath;
+      if (debug) {
+        q.push('m');
+        q.push('ref=' + referer);
+      }
 
+      if (q.length) {
+        script.src = srcPath + '?' + q.join('&');
+      } else {
+        script.src = srcPath;
+      }
       head.appendChild(script);
       installedModules[require] = {
         exports: {},
@@ -253,6 +262,9 @@
     }
     if (config.version) {
       version = config.version;
+    }
+    if (config.debug !== undefined) {
+      debug = config.debug;
     }
     if (config.strict !== undefined) {
       strict = config.strict;
