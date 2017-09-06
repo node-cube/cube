@@ -611,6 +611,7 @@ function processFile(cube, options, cb) {
  * @return {[type]}            [description]
  */
 function allInOneCode(cube, options, callback) {
+
   var result = {};
 
   function prepare(options) {
@@ -641,7 +642,10 @@ function allInOneCode(cube, options, callback) {
       }
       result[data.queryPath] = data;
       if (data.requires && data.requires.length) {
-        async.eachLimit(data.requires, 10, function (req, done) {
+        //可以过滤需要拉取文件的数组
+        let _requires = data.requires.slice(0);
+        if (options.processFilter) _requires = options.processFilter(_requires);
+        async.eachLimit(_requires, 10, function (req, done) {
           if (result[req]) {
             return done(null);
           }
@@ -661,7 +665,8 @@ function allInOneCode(cube, options, callback) {
     }
     let arr = [];
     async.eachSeries(result, function (data, done) {
-      data.requires = [];
+      //可以过滤出现在代码开头的依赖数组
+      data.requires = options.requireFilter ? options.requireFilter(data.requires) : [];
       data.genCode(function (err, data) {
         if (err) {
           return done(err);
