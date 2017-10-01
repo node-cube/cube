@@ -71,6 +71,7 @@ Cube管理着前端三种类型的资源:
   });
 </script>
 ```
+
 Cube.use 还可以支持多模块加载:
 ```
 Cube.use(['/a.js', '/b.js'], function (a, b) {
@@ -180,8 +181,8 @@ let cube = Cube.middleware({
     '.jsx': [
       ['cube-react', {}],  // processor with config
       'minify'
-    ], // multi-processor
-    '.jsw': 'jsw' // single processor
+    ],                     // multi-processor
+    '.jsw': 'jsw'          // single processor
   },
   /**
    * 开发模式下是否开启缓存， 默认开启
@@ -317,19 +318,41 @@ cube 在build的时候将直接copy文件，而不会build代码
 {
   "cube": {
     "moduleMap": {
+      /**
+       * 有些编译好的模块，可以通过映射来加速
+       */
       "react": "dist/react.js",
       "modulemap": "lib/index.js"
     },
     "processors": {
+      /**
+       * 单个process的情况，
+       */
       ".less": "cube-less",
-      ".jsx": ["cube-react"],
-      ".coffee": [["cube-coffee", {/* processor_config */}]],
+      /**
+       * 支持本地自定义processor, 其路径可以是相对路径（相对package.json的路径）
+       * 也可以是绝对路径
+       */
+      ".tpl": "../custom_processor",
+      /**
+       * 支持串行，多个处理器
+       */
+      ".jsx": ["cube-react", "babel-2017"],
+      /**
+       * 支持给处理器传递参数
+       */
+      ".coffee": [
+        ["cube-coffee", {/* processor_config */}]
+      ],
       ".ejs": "cube-ejs",
       ".jade": "cube-jade",
       ".styl": "cube-stylus"
     },
     "ignoreRules": {
-      "skip":[],
+      "skip":[
+        "/test/*.test.js"
+        "node_modules/"
+      ],
       "ignore": []
     },
     "export": []
@@ -343,7 +366,21 @@ cube 在build的时候将直接copy文件，而不会build代码
 * `ignoreRules` 中定义build时的忽略规则，和`.cubeignore`功能类似
 * `export` 定义需要被导出的文件，补充自动识别导出文件的不足
 
-package.json 中的配置享有最高优先级
+
+## 配置优先级
+
+
+构造函数传入 > package.json > cube内置配置
+
+* processors 优先级
+
+  构造函数传入  > package.json中配置 > cube默认配置
+
+* ignoreRule 优先级
+
+  ignoreRule的配置同等优先级，merge之后都会生效
+
+  构造函数 = .cubeignore = package.json
 
 ## Customize Cube Processors
 

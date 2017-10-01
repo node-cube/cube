@@ -24,6 +24,7 @@ Cube.middleware = function (cube, config) {
     config = cube;
     cube = new Cube(config);
   }
+  config.middleware = true;
   let service = require('./service');
   service.init(cube);
   return cube.middleware;

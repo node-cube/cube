@@ -105,7 +105,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
     }
     if (checkSkip(req.url)) {
       res.setHeader('x-cube-skip', 'true');
-      return next();
+      return serveStatic(req, res, next);
     }
     /**
      * for cube loader
@@ -278,13 +278,11 @@ exports.init = function (cube) {
     config.cached = false;
   }
 
-  let skip = cube.config.skip;
-
+  let skip = cube.ignoreRules.skip;
   function checkSkip(url) {
     if (!skip) {
       return false;
     }
-
     for (let i =0, len = skip.length; i < len; i++) {
       if (skip[i].test(url)) {
         return true;

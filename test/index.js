@@ -20,7 +20,7 @@ var cubeInst = testMod.service({
   processors: {
     '.ejs': require('cube-ejs'),
     '.jade': require('cube-jade'),
-    '.less': path.join(__dirname, '../node_modules/cube-less'),
+    '.less': [[path.join(__dirname, '../node_modules/cube-less'), {test: true}]],
     '.styl': 'cube-stylus'  // do not delete this comma, for branch test
   }
 });
