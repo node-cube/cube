@@ -1,8 +1,9 @@
 'use strict';
 
 class  EmptyProcessor {
-  constructor(cube) {
+  constructor(cube, config) {
     this.cube = cube;
+    this.config = config;
   }
   process(data, callback) {
     callback(null, data);

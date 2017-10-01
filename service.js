@@ -243,13 +243,13 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       res.setHeader('content-type', flagWrap ? 'text/javascript' : mime);
       var msg = flagWrap ?
         'console.error("[CUBE]",' +
-          (e.code ? '"'+ e.code.replace(/"/g, '\\"') + ': ' + e.message.replace(/"/g, '\\"') +  '",' : '') +
+          (e.code ? '"'+ e.code.replace(/"/g, '\\"') + ': ' + e.message.replace(/"/g, '\\"') +  '",' : e.message.replace(/"/g, '\\"')) +
           (e.file ? '"[File]: ' + e.file + '",' : '') +
           (e.line ? '"[Line]: ' + e.line + '",' : '') +
           (e.column ? '"[Column]: ' + e.column + '"' : '') +
           ');' :
         '[CUBE]\n' +
-          (e.code ? e.code + ': ' + e.message + '\n' : '') +
+          (e.code ? e.code + ': ' + e.message + '\n' : e.message) +
           (e.file ? 'File: ' + e.file + '\n' : '') +
           (e.line ? 'Line: ' + e.line + '\n' : '') +
           (e.column ? 'Column: ' + e.column + '\n' : '');

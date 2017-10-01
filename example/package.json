@@ -13,7 +13,15 @@
       ".coffee": "cube-coffee",
       ".ejs": "cube-ejs",
       ".jade": "cube-jade",
-      ".styl": "cube-stylus"
+      ".styl": "cube-stylus",
+      ".js": [
+        [
+          "cube-babel",
+          {
+            "presets": [["es2015"]]
+          }
+        ]
+      ]
     },
     "ignoreRules": {
       "skip":[],
