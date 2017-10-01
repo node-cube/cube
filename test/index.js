@@ -120,6 +120,13 @@ describe('index.js', function () {
         .expect(/^Cube\(/, done);
     });
 
+    it('should work fine with babel transfer', function (done) {
+      request.get('/es6.js?m')
+        .expect(200)
+        .expect('content-type', /application\/javascript/)
+        .expect(/^Cube\(/, done);
+    });
+
     it('should work fine when require override', function (done) {
       remoteRequest.get('/test/test_override.js?m')
         .expect(200)
@@ -241,7 +248,7 @@ describe('index.js', function () {
       request.get('/test/test_error.js?m')
         .expect(200)
         .expect(function (res) {
-          expect(res.text).match(/Js_Parse_Error/ig);
+          expect(res.text).match(/Unexpected token/ig);
         })
         .end(done);
     });
