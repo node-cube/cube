@@ -9,7 +9,7 @@
     },
     "processors": {
       ".less": "cube-less",
-      ".jsx": ["cube-react"],
+      ".jsx": ["cube-react", "./empty_processor.js"],
       ".coffee": "cube-coffee",
       ".ejs": "cube-ejs",
       ".jade": "cube-jade",
