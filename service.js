@@ -103,10 +103,6 @@ function createMiddleware(cube, serveStatic, checkSkip) {
     if (!req.query) {
       req.query = q.query;
     }
-    if (checkSkip(req.url)) {
-      res.setHeader('x-cube-skip', 'true');
-      return serveStatic(req, res, next);
-    }
     /**
      * for cube loader
      */
@@ -115,14 +111,23 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       xfs.readFile(path.join(__dirname, './runtime/cube.min.js'), (err, data) => {
         res.write(data);
         res.write('\n');
-        cube.caches.getNodeModules(function (code) {
-          res.write(code);
-        }, function () {
+        if (cube.config.optimize === false) {
           res.end('');
-        });
+        } else {
+          cube.caches.getNodeModules(function (code) {
+            res.write(code);
+          }, function () {
+            res.end('');
+          });
+        }
 
       });
       return;
+    }
+
+    if (checkSkip(req.url)) {
+      res.setHeader('x-cube-skip', 'true');
+      return serveStatic(req, res, next);
     }
 
     flagWrap = req.query.m === undefined ? false : true;
@@ -305,13 +310,13 @@ exports.init = function (cube) {
   cubeMiddleware = createMiddleware(cube, serveStatic, checkSkip);
 
   if (config.middleware) {
-    cube.middleware = config.cached ? serveStatic : cubeMiddleware;
+    cube.middleware = config.static || config.cached ? serveStatic : cubeMiddleware;
     cube.middleware.getCube = function () {
       return cube;
     };
   } else {
     app = connect();
-    app.use(config.router, config.cached ? serveStatic : cubeMiddleware);
+    app.use(config.router, config.static || config.cached ? serveStatic : cubeMiddleware);
     app.use(function(err, req, res, next) {
       if (/favicon\.ico$/.test(req.url)) {
         res.statusCode = 200;

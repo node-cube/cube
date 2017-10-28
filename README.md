@@ -188,7 +188,9 @@ let cube = Cube.middleware({
    * 开发模式下是否开启缓存， 默认开启
    * @type {Boolean}
    */
-  devCache: true
+  devCache: true,
+
+  optimize: true  // optimize file load, default is true
 });
 ```
 
