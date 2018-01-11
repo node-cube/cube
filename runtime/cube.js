@@ -29,6 +29,10 @@
   var head = doc.querySelector('head');
   function noop() {}
 
+  /* store requires before init */
+  var inited = false;
+  var loadQueue = [];
+
   /**
    * The require function
    * @param module
@@ -96,6 +100,9 @@
   }
 
   function checkAllDownloaded() {
+    if (loadQueue.length) {
+      return false;
+    }
     for (var i in loading) {
       if (loading.hasOwnProperty(i)) {
         return false;
@@ -114,6 +121,11 @@
     if (typeof requires === 'string') {
       requires = [requires];
     }
+    if (!inited) {
+      loadQueue.push([requires, referer]);
+      return;
+    }
+
     requires.forEach(function (require) {
       if (installedModules[require]) {
         return;
@@ -269,6 +281,14 @@
     if (config.strict !== undefined) {
       strict = config.strict;
     }
+
+    inited = true;
+
+    while (loadQueue.length) {
+      var deps = loadQueue.shift();
+      load(deps[0], deps[1]);
+    }
+
     return this;
   };
   /**
