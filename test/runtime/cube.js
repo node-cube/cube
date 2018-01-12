@@ -10,7 +10,6 @@ global.document = {
     return {
       appendChild: function (script) {
         document.scripts.push(script);
-        console.log(script);
       }
     };
   },
