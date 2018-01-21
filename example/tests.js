@@ -13,3 +13,5 @@ require('cycle_server/a');
 require('./test/test_json');
 require('./test/test_override');
 require('./test/test_main').run();
+
+console.log(1);

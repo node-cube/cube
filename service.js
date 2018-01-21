@@ -208,28 +208,6 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       }
       var code = flagWrap ? result.codeWraped : result.code;
 
-      /*
-      if (flagWrap && !result.merged && !/\/node_modules\//.test(result.queryPath)) {
-        // 级联合并, 目前只合并 node_modules中的文件
-        let depsMods = [];
-        let parent = [result.queryPath];
-        mergeRequire(cube, result, depsMods, parent, function () {
-          let map = {};
-          let codesDeps = [];
-          depsMods.forEach(function (data) {
-            if (map[data.queryPath]) {
-              return;
-            }
-            map[data.queryPath] = true;
-            codesDeps.push(flagWrap ? data.codeWraped : data.code);
-          });
-          code = (codesDeps.length ? codesDeps.join('\n') + '\n' : '') + code;
-          output();
-        });
-      } else {
-        output();
-      }
-      */
       output();
 
       function output() {
@@ -248,16 +226,19 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       res.setHeader('content-type', flagWrap ? 'text/javascript' : mime);
       var msg = flagWrap ?
         'console.error("[CUBE]",' +
-          (e.code ? '"'+ e.code.replace(/"/g, '\\"') + ': ' + e.message.replace(/"/g, '\\"') +  '",' : e.message.replace(/"/g, '\\"')) +
-          (e.file ? '"[File]: ' + e.file + '",' : '') +
-          (e.line ? '"[Line]: ' + e.line + '",' : '') +
-          (e.column ? '"[Column]: ' + e.column + '"' : '') +
+
+          JSON.stringify(
+            (e.code || e.name || 'UNKNOW_ERROR') + ':' + e.message +
+            ' [File]:' + e.file +
+            ' [Line]:' + (e.loc ? e.loc.line : e.line) +
+            ' [Column]: ' + (e.loc ? e.loc.column : e.column)
+          ) +
           ');' :
         '[CUBE]\n' +
-          (e.code ? e.code + ': ' + e.message + '\n' : e.message) +
-          (e.file ? 'File: ' + e.file + '\n' : '') +
-          (e.line ? 'Line: ' + e.line + '\n' : '') +
-          (e.column ? 'Column: ' + e.column + '\n' : '');
+          (e.code || e.name || 'UNKNOW_ERROR') + e.message +
+          ' [File]:' + e.file +
+          ' [Line]:' + (e.loc ? e.loc.line : e.line) +
+          ' [Column]: ' + (e.loc ? e.loc.column : e.column);
       res.end(msg);
     }
   };
