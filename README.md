@@ -168,6 +168,10 @@ let cube = Cube.middleware({
    */
   resBase: '/',
   /**
+   * 编辑模式下，缓存目录，默认在 $root/.cubecache
+   */
+  cacheDir： '',
+  /**
    * 浏览器端文件缓存时间，最终会应用到http头：Cache-Control: public, maxAge=xxx
    * @type {Number}
    */

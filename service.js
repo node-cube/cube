@@ -10,82 +10,6 @@ const connect = require('connect');
 const connectStatic = require('serve-static');
 const async = require('async');
 
-function Pedding(num, cb) {
-  var count = 0;
-  return function done() {
-    count ++;
-    if (count === num) {
-      cb();
-    }
-  };
-}
-/**
- * 动态合并请求，加速开发模式下的访问速度
- *   开发模式下影响访问效率的主要原因是：并发下载的模块太多导致浏览器下载队列排队现象严重
- *   需要合理的merge模块
- */
-function mergeRequire(cube, result, arr, parents, done) {
-  let qpath = result.queryPath;
-  if (!/^\/node_modules/.test(qpath)) {
-    return done();
-  }
-  debug('hint merge');
-  let requires = result.requires || [];
-  let basePath = path.dirname(qpath);
-  // find node_modules request
-  let list = [];
-  requires.forEach(function (reqfile) {
-    if (reqfile.indexOf(basePath) !== 0) {
-      return;
-    }
-    // cut off the cycle requires
-    if (parents.indexOf(reqfile) >= 0) {
-      return;
-    }
-
-    list.push(reqfile);
-  });
-
-  if (!list.length) {
-    return done();
-  }
-
-  done = Pedding(list.length, done);
-
-  list.forEach(function (reqfile) {
-    let data = {
-      queryPath: reqfile,
-      realPath: reqfile,
-      type: null,
-      code: null,
-      codeWraped: null,
-      source: null,
-      sourceMap: null,
-      processors: null,
-      modifyTime: null,
-      mime: null,
-      compress: result.compress,
-      wrap: result.wrap
-    };
-    async.waterfall([
-      function (done) {
-        done(null, data);
-      },
-      cube.seekFile.bind(cube),
-      cube.readFile.bind(cube),
-      cube.transferCode.bind(cube),
-      function (data, done) {
-        data.genCode(done);
-      }
-    ], function (err, result) {
-      arr.unshift(result);
-      let p = parents.slice(0);
-      p.push(result.queryPath);
-      mergeRequire(cube, result, arr, p, done);
-    });
-  });
-}
-
 function createMiddleware(cube, serveStatic, checkSkip) {
   let config = cube.config;
   let cubeLoaderPath = config.loaderPath || '/cube.js';
@@ -108,7 +32,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
      */
     if (qpath === cubeLoaderPath) {
       res.setHeader('content-type', 'text/javascript');
-      xfs.readFile(path.join(__dirname, './runtime/cube.min.js'), (err, data) => {
+      xfs.readFile(path.join(__dirname, './runtime/cube.js'), (err, data) => {
         res.write(data);
         res.write('\n');
         if (cube.config.optimize === false) {
@@ -116,6 +40,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
         } else {
           cube.caches.getNodeModules(function (code) {
             res.write(code);
+            res.write('\n');
           }, function () {
             res.end('');
           });
@@ -133,7 +58,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
     flagWrap = req.query.m === undefined ? false : true;
     flagCompress = req.query.c === undefined ? false : true;
 
-    let cachePath = qpath + ':' + flagWrap + ':' + flagCompress + ':' + config.remote;
+    let cachePath = qpath + ':' + flagWrap + ':' + flagCompress + ':' + (config.remote || '-');
     async.waterfall([
       function prepareData(done) {
         /**
