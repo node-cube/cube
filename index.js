@@ -13,6 +13,7 @@ const Cube = require('./lib/cube');
  *     - port       listen port [optional]
  *     - connect    the connect object
  *     - root       {Path} static root
+ *     - resBase    {Path} http prefix
  *     - processors {Array} extenal processors
  *     - cached     {Path} the cached path
  *     - built      {Boolean} if root path is built code

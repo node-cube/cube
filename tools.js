@@ -111,6 +111,8 @@ function processDirSmart(cube, data, cb) {
   var root = cube.config.root;
   var requiredModuleFile = {}; // 依赖的node_modules文件
   var files = [];
+  var filesRequired = {};
+  var filesLoad = {};
 
   // let st = new Date().getTime();
 
@@ -172,6 +174,12 @@ function processDirSmart(cube, data, cb) {
               requiredModuleFile[v] = true;
             }
           });
+          res.data.requires && res.data.requires.forEach((v) => {
+            filesRequired[v] = res.data.queryPath;
+          });
+          res.data.loads && res.data.loads.forEach((v) => {
+            filesLoad[v] = true;
+          });
         }
         done();
       });
@@ -190,6 +198,10 @@ function processDirSmart(cube, data, cb) {
     cube.log.info('process app\'s file done, cost:', (tmpEndTime - tmpStartTime) + 'ms');
     tmpStartTime = new Date();
     let requireModules = Object.keys(requiredModuleFile);
+    Object.keys(filesLoad).forEach((v) => {
+      delete filesRequired[v];
+    });
+
     // 遍历依赖的 npm 包，并遍历包中的所有文件
     processRequireModules(cube, requireModules, true, function (err, modFiles) {
       tmpEndTime = new Date();
@@ -197,7 +209,7 @@ function processDirSmart(cube, data, cb) {
       tmpStartTime = new Date();
 
       files = files.concat(modFiles);
-      let finalfiles = processMerge(cube, files, cube.config.export);
+      let finalfiles = processMerge(cube, files, cube.config.export, filesLoad);
       let actions = [];
       finalfiles.forEach(function (tmp) {
         cube.setMangleFileNameSaveFlag(tmp.queryPath);
@@ -215,12 +227,12 @@ function processDirSmart(cube, data, cb) {
           function genCode(callback) {
             let codes = [];
             async.eachSeries(nodes, function (node, done) {
-              node.queryPath = cube.mangleFileName(node.queryPath);
+              node.queryPath = cube.mangleFileName(node.queryPath, filesRequired);
               node.requiresArgsRefer && node.requiresArgsRefer.forEach((arg0) => {
-                arg0.value = cube.mangleFileName(arg0.value);
+                arg0.value = cube.mangleFileName(arg0.value, filesRequired);
               });
               node.requires && node.requires.forEach((v, i, a) => {
-                a[i] = cube.mangleFileName(v);
+                a[i] = cube.mangleFileName(v, filesRequired);
               });
               node.genCode(function (err, data) {
                 if (err) {
@@ -356,7 +368,8 @@ function processFileWithRequires(cube, data, callback) {
  * @param  {Object} exportFiles 排除文件，无需合并
  * @return {Array}  合并之后的文件列表
  */
-function processMerge(cube, files, exportFiles) {
+function processMerge(cube, files, exportFiles, loads) {
+  loads = loads || {};
   /**
    * 文件名Map
    */
@@ -370,10 +383,6 @@ function processMerge(cube, files, exportFiles) {
    */
   let requiredMap = {};
   let originRequiredMap = {};
-  /**
-   * 动态加载模块列表
-   */
-  let loads = [];
 
   exportFiles = exportFiles || {};
 
@@ -386,9 +395,6 @@ function processMerge(cube, files, exportFiles) {
     let qpath = file.queryPath;
     if (!qpath) {
       console.log('[ERROR] queryPath not Found:', file);
-    }
-    if (file.loads) {
-      loads = loads.concat(file.loads);
     }
     if (!requiredMap[qpath]) {
       requiredMap[qpath] = {};
@@ -431,7 +437,7 @@ function processMerge(cube, files, exportFiles) {
       let reqeds = requiredMap[qpath];
       let reqedList = Object.keys(reqeds);
 
-      if (reqedList.length === 1 && !exportFiles[qpath]) {
+      if (reqedList.length === 1 && !loads[qpath] && !exportFiles[qpath]) {
         /**
          * 只有一个模块依赖当前模块，则可以合并入父级
          */
