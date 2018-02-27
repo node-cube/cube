@@ -13,9 +13,7 @@ describe 'test/test_css', ()->
       done()
 
   it 'expect inject css fine with require(css, namespace)', () ->
-    require('../css/test_require_css.css');
-    node = $('style[mod="/css/test_require_css.css"]');
-    if !node.length
-      node = $('style[mod="/css/test_require_css.css.js"]');
+    mname = require('../css/test_require_css.css', '.ns');
+    node = $('style[mod="' + mname + '"][ns=".ns"]');
     expect(node.length).to.be(1);
     expect(node.html()).to.match(/\.test_require/)

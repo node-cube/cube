@@ -111,9 +111,6 @@ function processDirSmart(cube, data, cb) {
   var root = cube.config.root;
   var requiredModuleFile = {}; // 依赖的node_modules文件
   var files = [];
-  var filesRequired = {};
-  var filesLoad = {};
-
   // let st = new Date().getTime();
 
   // console.time('process app file');
@@ -122,6 +119,9 @@ function processDirSmart(cube, data, cb) {
   xfs.walk(source, function check(p) {
     var relFile = utils.fixWinPath(p.substr(root.length));
     if (/^\/node_modules\//.test(relFile)) {
+      return false;
+    }
+    if (/^\/\./.test(relFile)) {
       return false;
     }
     return true;
@@ -174,12 +174,6 @@ function processDirSmart(cube, data, cb) {
               requiredModuleFile[v] = true;
             }
           });
-          res.data.requires && res.data.requires.forEach((v) => {
-            filesRequired[v] = res.data.queryPath;
-          });
-          res.data.loads && res.data.loads.forEach((v) => {
-            filesLoad[v] = true;
-          });
         }
         done();
       });
@@ -198,9 +192,6 @@ function processDirSmart(cube, data, cb) {
     cube.log.info('process app\'s file done, cost:', (tmpEndTime - tmpStartTime) + 'ms');
     tmpStartTime = new Date();
     let requireModules = Object.keys(requiredModuleFile);
-    Object.keys(filesLoad).forEach((v) => {
-      delete filesRequired[v];
-    });
 
     // 遍历依赖的 npm 包，并遍历包中的所有文件
     processRequireModules(cube, requireModules, true, function (err, modFiles) {
@@ -209,6 +200,23 @@ function processDirSmart(cube, data, cb) {
       tmpStartTime = new Date();
 
       files = files.concat(modFiles);
+
+      var filesRequired = {};
+      var filesLoad = {};
+      files.forEach((f) => {
+        f.requires && f.requires.forEach((v) => {
+          filesRequired[v] = f.queryPath;
+        });
+        f.loads && f.loads.forEach((v) => {
+          filesLoad[v] = true;
+        });
+      });
+      // ignore load file from filesRequired
+      // because load file should be exported
+      Object.keys(filesLoad).forEach((v) => {
+        delete filesRequired[v];
+      });
+
       let finalfiles = processMerge(cube, files, cube.config.export, filesLoad);
       let actions = [];
       finalfiles.forEach(function (tmp) {

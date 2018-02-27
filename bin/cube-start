@@ -7,7 +7,7 @@ const Cube = require('../index');
 cmd
   .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-p, --port [value]', 'server port')
-  .option('-r, --resbase [value]', 'set the http base path for resourcs')
+  .option('-c, --clean-cache', 'clean .cubecache')
   .option('-R, --remote [value]', 'set remote option')
   .option('-o, --output [value]', 'output dir')
   .option('--built', 'if code in root path already built, set this flag')
@@ -23,11 +23,12 @@ Cube.service({
   root: path.join(process.cwd(), rootPath || ''),
   port: args.port ? args.port : 9999,
   router: args.router || '/',
-  resBase: args.resbase,
+  resBase: args.base || args.resbase,
   remote: args.remote,
   service: true,
   built: args.built,
   static: args.static,
   passUnknowExt: true,
-  optimize: args.optimize
+  optimize: args.optimize,
+  cleanCache: args.cleanCache
 });

@@ -166,7 +166,7 @@ let cube = Cube.middleware({
    * 一般是一个站点的绝对路径`/`，或者`http://`完整路径
    * @type {String}
    */
-  resBase: '/',
+  base: '/',
   /**
    * 编辑模式下，缓存目录，默认在 $root/.cubecache
    */

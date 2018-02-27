@@ -10,13 +10,10 @@ const Cube = require('./lib/cube');
  * 初始化一个middleware
  * @param  {Object} config config object
  *
- *     - port       listen port [optional]
- *     - connect    the connect object
  *     - root       {Path} static root
- *     - resBase    {Path} http prefix
+ *     - base       {Path} http prefix
  *     - processors {Array} extenal processors
  *     - cached     {Path} the cached path
- *     - built      {Boolean} if root path is built code
  *
  * @return {cube}
  */
@@ -31,9 +28,16 @@ Cube.middleware = function (cube, config) {
   return cube.middleware;
 };
 /**
- * 启动一个cube服务
+ * 初始化一个服务
  * @param  {Object} config config object
- * @return {Cube}  cube
+ *
+ *     - port       listen port [optional]
+ *     - connect    the connect object
+ *     - root       {Path} static root
+ *     - base       {Path} http prefix
+ *     - processors {Array} extenal processors
+ *     - cached     {Path} the cached path
+ * @return {cube}
  */
 Cube.service = function (config) {
   let cube = new Cube(config);

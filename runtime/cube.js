@@ -46,6 +46,7 @@
     } else {
       var css = fireModule(module);
       Cube.css(css, namespace, module);
+      return module;
     }
   }
 
