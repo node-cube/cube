@@ -50,25 +50,29 @@
   }
 
   /**
-   * The load function
-   * @param module
-   * @param namespace
-   * @param cb
-   * @private
+   * This function creates the load function
    */
-  function __cube_load__(module, namespace, cb) {
-    if (arguments.length === 2 && typeof namespace === 'function') {
-      cb = namespace;
-      namespace = null;
-      Cube.use(module, cb);
-    } else {
-      Cube.use(module, function (css) {
-        css = Cube.css(css, namespace, module);
-        cb && cb(css);
-      });
+  function __cube_load_creator__(referer) {
+    /**
+     * The load function
+     * @param module
+     * @param namespace
+     * @param cb
+     * @private
+     */
+    return function __cube_load__(module, namespace, cb) {
+      if (arguments.length === 2 && typeof namespace === 'function') {
+        cb = namespace;
+        namespace = null;
+        Cube.use(module, referer, cb);
+      } else {
+        Cube.use(module, referer, function (css) {
+          css = Cube.css(css, namespace, module);
+          cb && cb(css);
+        });
+      }
     }
   }
-
 
   /**
    * If mod is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
@@ -181,7 +185,7 @@
       }
       if (!m.fired) {
         m.fired = true;
-        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load__]);
+        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load_creator__(module)]);
       }
 
       return m.exports;
@@ -298,9 +302,17 @@
    * @param  {Function} cb  callback function, usually with module.exports as it's first param
    * @param  {Boolean}  noFix used only in single mode
    */
-  Cube.use = function (mods, cb, noFix) {
+  Cube.use = function (mods, referer, cb, noFix) {
     if (!mods) {
       throw new Error('Cube.use(moduleName) moduleName is undefined!');
+    }
+    if (typeof referer === 'function') {
+      noFix = cb;
+      cb = referer;
+      referer = undefined;
+    }
+    if (!referer) {
+      referer = 'Cube.use';
     }
     cb = cb || noop;
 
@@ -332,7 +344,7 @@
       };
     }());
 
-    load(mods, 'Cube.use');
+    load(mods, referer);
     return this;
   };
   /**
