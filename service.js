@@ -35,19 +35,34 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       xfs.readFile(path.join(__dirname, './runtime/cube.js'), (err, data) => {
         res.write(data);
         res.write('\n');
-        if (cube.config.optimize === false) {
-          res.end('');
-        } else {
-          cube.caches.getNodeModules(function (code) {
-            res.write(code);
-            res.write('\n');
-          }, function () {
+        xfs.readFile(path.join(__dirname, './runtime/cube_clean_cache.js'), (err, data) => {
+          res.write(data);
+          res.write('\n');
+          if (cube.config.optimize === false) {
             res.end('');
-          });
-        }
-
+          } else {
+            cube.caches.getNodeModules(function (code) {
+              res.write(code);
+              res.write('\n');
+            }, function () {
+              res.end('');
+            });
+          }
+        });
       });
       return;
+    } else if (qpath === '/__clean_cache__') {
+      return cube.caches.clean((err) => {
+        res.setHeader('content-type', 'image/png');
+        if (err) {
+          res.statusCode = 500;
+          res.end(err.message);
+        } else {
+          res.statusCode = 200;
+
+          res.end('');
+        }
+      });
     }
 
     if (checkSkip(req.url)) {
@@ -108,7 +123,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       /** cache结果，以便下次快速返回 */
       function cacheData(data, callback) {
         data.genCode(function (err, data) {
-          if (config.devCache) {
+          if (!err && config.devCache) {
             debug('cache processed file: %s, %s', data.queryPath, data.modifyTime);
             delete data.ast;
             cube.caches.set(cachePath, data);
