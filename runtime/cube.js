@@ -24,6 +24,11 @@
   var debug = true;
   var entrances = {};  // Cube.use's cb
 
+  var mockedProcess = {
+    env: {NODE_ENV: 'production'}
+  };
+  var mockedGlobal = undefined;
+
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
   var loading = {};
   var head = doc.querySelector('head');
@@ -186,7 +191,7 @@
       }
       if (!m.fired) {
         m.fired = true;
-        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load_creator__(module)]);
+        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load_creator__(module), mockedProcess, mockedGlobal]);
       }
 
       return m.exports;
@@ -285,6 +290,12 @@
     }
     if (config.strict !== undefined) {
       strict = config.strict;
+    }
+    if (config.env) {
+      mockedProcess.env.NODE_ENV = config.env;
+    }
+    if (config.global) {
+      mockedGlobal = config.global;
     }
 
     inited = true;
