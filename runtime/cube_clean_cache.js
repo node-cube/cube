@@ -16,28 +16,28 @@
   if (base) {
     base = base.src.replace(/[^/]+\.js/, '__clean_cache__');
   }
-  document.body.appendChild(a);
-  a.onmouseover = function () {
-    this.style.opacity = '0.8';
-  };
-  a.onmouseout = function () {
-    this.style.opacity = '0.2';
-  };
-  a.onclick = function () {
-    if (!base) {
-      return;
-    }
-    let img = document.createElement('img');
-    img.src = base;
-    img.onerror = function () {
-      delete img.onerror;
-      delete img;
-      location.reload();
+  document.addEventListener('DOMContentLoaded', function () {
+    document.body.appendChild(a);
+    a.onmouseover = function () {
+      this.style.opacity = '0.8';
     };
-    img.onload = function () {
-      delete img.onerror;
-      delete img;
-      location.reload();
+    a.onmouseout = function () {
+      this.style.opacity = '0.2';
     };
-  };
+    a.onclick = function () {
+      if (!base) {
+        return;
+      }
+      let img = document.createElement('img');
+      img.src = base;
+      img.onerror = function () {
+        delete img.onerror;
+        location.reload();
+      };
+      img.onload = function () {
+        delete img.onerror;
+        location.reload();
+      };
+    };
+  });
 })();

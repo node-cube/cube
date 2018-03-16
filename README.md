@@ -108,7 +108,10 @@ Cube.debug();
  *   debug {Boolean}
  *   version {Number}
  *   timeout {Number}
- *   minify {Object} config for esminify's options config
+ *   minify {Object} config for esminify's options.config
+ *           mangle:
+ *           builtIns:
+ *           ......
  */
 Cube.init(options);
 
