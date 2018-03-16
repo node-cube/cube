@@ -108,7 +108,7 @@ Cube.debug();
  *   debug {Boolean}
  *   version {Number}
  *   timeout {Number}
- *   resBase {Object} 远程base
+ *   minify {Object} config for esminify's options config
  */
 Cube.init(options);
 
