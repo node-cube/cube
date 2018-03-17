@@ -70,16 +70,14 @@ function findRoot(file) {
   }
   return res;
 }
-/**
- * source , -o,--output, -b, --base 是基于cwd路径, 互相之间没有依赖关系
- */
+
 cmd
   .usage(' your_code_dir')
   .description('build the hole project')
   .option('-o, --output [value]', 'set the output dir')
+  .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
+  .option('-r, --root [value]', 'the code root dir')
   .option('--output-file [value]', 'set the output file')
-  .option('-b, --base [value]', 'set the cube base')
-  .option('-r, --resbase [value]', 'the http base for resouce')
   .option('--remote [value]', 'set the namespace for remote call')
   .option('--export [value]', 'files will be exported, do not merge, example: /a.js,/b.js')
   .option('--mangle-file-name', 'mangle the file name into random name')
@@ -95,20 +93,6 @@ if (!args || !source) {
   this.help();
   return;
 }
-/*
-if (args.processors) {
-  args.processors = args.processors.split(',');
-  args.processors.forEach(function (v, i, a) {
-    a[i] = v.trim();
-  });
-}
-if (args.transform) {
-  if (!args.processors) {
-    args.processors = [];
-  }
-  args.processors.push('cube-es2015');
-}
-*/
 
 let map = {};
 
@@ -126,7 +110,7 @@ var fstat;
 var inputPath, outputPath, cube, tool, root;
 var compress = args.withoutCompress ? false : true;
 
-root = args.base ? args.base : '';
+root = args.root ? args.root : '';
 if (root) {
   root = isAbsPath(root) ? root : path.join(cwd, root);
 }
@@ -155,12 +139,15 @@ if (fstat.isFile()) {
     compress: compress,
     middleware: false,
     // processors: args.processors,
-    resBase: args.resbase,
+    resBase: args.base,
     remote: args.remote,
     withoutWrap: args.withoutWrap,
     mangleFileName: args.mangleFileName,
     export: args.export,
-    lazyWrap: args.smart
+    lazyWrap: args.smart,
+    minify: {
+      builtIns: false
+    }
   });
   tool = Cube.tools;
   tool.processFile(cube, {
@@ -180,11 +167,14 @@ if (fstat.isFile()) {
     compress: compress,
     middleware: false,
     // processors: args.processors,
-    resBase: args.resbase,
+    resBase: args.base,
     remote: args.remote,
     mangleFileName: args.mangleFileName,
     export: args.export,
-    lazyWrap: args.smart
+    lazyWrap: args.smart,
+    minify: {
+      builtIns: false
+    }
   });
   tool = Cube.tools;
   tool[args.smart ? 'processDirSmart' : 'processDir'](cube, {src: inputPath, dest:outputPath}, function (err, data) {

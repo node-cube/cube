@@ -182,7 +182,7 @@ describe('cli', function () {
       });
     });
     it('should work fine when build single file with var 2', function (done) {
-      var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var_dir';
+      var cmd = 'node bin/cube build -p cube-less,cube-ejs,cube-stylus ./example/test/test_require_with_var.coffee -r ./example -o ./example/test/test_require_with_var_dir';
       exec(cmd, function (err, stdout) {
         var res = stdout.toString().split('\n');
         var info = [];
@@ -210,7 +210,7 @@ describe('cli', function () {
       });
     });
     it('should work fine when build with --resbase option', function (done) {
-      var cmd = 'node bin/cube build -r /resouce_path example/css/test_less_img.less -o example/css/custom';
+      var cmd = 'node bin/cube build -b /resouce_path example/css/test_less_img.less -o example/css/custom';
       exec(cmd, function (err, stdout) {
         // console.log(stdout.toString());
         var res = stdout.toString().split('\n');
@@ -234,7 +234,7 @@ describe('cli', function () {
     });
 
     it('should work fine with --remote option', function (done) {
-      var cmd = 'node bin/cube build --remote TEST ./example/test/test_require_with_var.coffee -b ./example -o ./example/test/test_require_with_var';
+      var cmd = 'node bin/cube build --remote TEST ./example/test/test_require_with_var.coffee -r ./example -o ./example/test/test_require_with_var';
       exec(cmd, function (err, stdout, stderr) {
         var res = stdout.toString().split('\n');
         // console.log(stdout.toString(), stderr.toString());
