@@ -18,9 +18,16 @@ cmd
 
 let args = cmd;
 let rootPath = cmd.args[0];
+let root;
+
+if (/^(\/|\w:\\)/.test(rootPath)) {
+  root = rootPath;
+} else {
+  root = path.join(process.cwd(), rootPath || '');
+}
 
 Cube.service({
-  root: path.join(process.cwd(), rootPath || ''),
+  root: root,
   port: args.port ? args.port : 9999,
   router: args.router || '/',
   resBase: args.base || args.resbase,
