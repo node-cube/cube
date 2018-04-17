@@ -91,6 +91,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
           modifyTime: null,   // 修改时间，检测缓存用
           mime: null,         // mime 类型
           wrap: flagWrap,      // 是否wrap代码
+          skip: !flagWrap,    // 是否跳过解析
           compress: flagCompress
         };
         done(null, data);

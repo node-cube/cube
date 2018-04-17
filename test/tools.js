@@ -8,6 +8,7 @@
 
 var expect = require('expect.js');
 var testMod = require('../tools');
+var Cube = require('../');
 var path = require('path');
 var fs = require('fs');
 var Request = require('supertest');
@@ -121,4 +122,35 @@ describe('tools.js', function () {
     });
   });
 
+  describe.only('test allInOneCode()', () => {
+    let cube = new Cube({
+      root: path.join(__dirname, '../example')
+    });
+    it('should work fine', (done) => {
+      testMod.allInOneCode(cube, {
+        queryPath: '/simple.js',
+        compress: true,
+        ignoreFirstCodeWrap: true
+      }, (err, data) => {
+        expect(err).to.be(null);
+        expect(data.length).to.eql(2);
+        expect(data[0]).match(/^Cube/);
+        expect(data[1]).match(/^(?!Cube)/);
+        done();
+      });
+    });
+    it('should work fine', (done) => {
+      testMod.allInOneCode(cube, {
+        queryPath: '/simple.js',
+        compress: true,
+        ignoreFirstCodeWrap: false
+      }, (err, data) => {
+        expect(err).to.be(null);
+        expect(data.length).to.eql(2);
+        expect(data[0]).match(/^Cube/);
+        expect(data[1]).match(/^Cube/);
+        done();
+      });
+    });
+  });
 });
