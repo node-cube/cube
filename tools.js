@@ -639,7 +639,8 @@ function allInOneCode(cube, options, callback) {
       codeWraped: null,
       source: options.code || '',
       sourceMap: null,
-      wrap: (options.ignoreFirstCodeWrap) ? false : true,
+      wrap: true,
+      ignoreCubeWrap: options.ignoreFirstCodeWrap,
       compress: options.compress !== undefined ? options.compress : cube.config.compress
     };
   }
