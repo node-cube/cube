@@ -98,6 +98,9 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       },
       /** 检查cache，以便下次快速返回 */
       function checkCache(data, callback) {
+        if (!config.devCache) {
+          return callback(null, data);
+        }
         let cache = cube.caches.get(cachePath);
         if (!cache) {
           return callback(null, data);

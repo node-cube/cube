@@ -16,6 +16,7 @@ var cubeInst = testMod.service({
   port: 7777,
   router: '/',
   middleware: false,
+  devCache: false,
   resBase: '/resouce_path',
   processors: {
     '.ejs': require('cube-ejs'),
@@ -30,6 +31,7 @@ testMod.service({
   port: 8888,
   router: '/',
   middleware: false,
+  devCache: false,
   remote: 'REMOTE',
   resBase: '/resouce_path',
   processors: {

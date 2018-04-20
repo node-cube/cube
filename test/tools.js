@@ -122,9 +122,10 @@ describe('tools.js', function () {
     });
   });
 
-  describe.only('test allInOneCode()', () => {
+  describe('test allInOneCode()', () => {
     let cube = new Cube({
-      root: path.join(__dirname, '../example')
+      root: path.join(__dirname, '../example'),
+      devCache: false
     });
     it('should work fine', (done) => {
       testMod.allInOneCode(cube, {

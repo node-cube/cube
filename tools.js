@@ -615,18 +615,20 @@ function processFile(cube, options, cb) {
 }
 
 /**
- * [allInOneCode description]
+ * allInOneCode
  * @param  {Cube}   cube     [description]
  * @param  {Object}   options
  *                       - queryPath
  *                       - compress
  *                       - code
- * @param  {Function} callback [description]
- * @return {[type]}            [description]
+ *                       - concurrent default is 10
+ * @param  {Function} callback(err, arr)
  */
+/*
 function allInOneCode(cube, options, callback) {
 
   var result = {};
+  let concurrent = options.concurrent || 10;
 
   function prepare(options) {
     return {
@@ -644,26 +646,33 @@ function allInOneCode(cube, options, callback) {
       compress: options.compress !== undefined ? options.compress : cube.config.compress
     };
   }
+  function genCode(data, done) {
+    data._requires = data.requires.slice(0);
+    data.requires = options.requireFilter ? options.requireFilter(data.requires) : [];
+    data.genCode(done);
+  }
   function process(cube, data, cb) {
+    if (result[data.queryPath]) {
+      return cb();
+    }
+    result[data.queryPath] = true;
     async.waterfall([
       function prepare(done) {
         done(null, data);
       },
       cube.readFile.bind(cube),
-      cube.transferCode.bind(cube)
+      cube.transferCode.bind(cube),
+      genCode
     ], function (err, data) {
       if (err) {
         return cb(err);
       }
-      result[data.queryPath] = data;
-      if (data.requires && data.requires.length) {
+      result[data.queryPath] = data.wrap ? data.codeWraped : data.code;
+      if (data._requires && data._requires.length) {
         //可以过滤需要拉取文件的数组
-        let _requires = data.requires.slice(0);
+        let _requires = data._requires.slice(0);
         if (options.processFilter) _requires = options.processFilter(_requires);
-        async.eachLimit(_requires, 10, function (req, done) {
-          if (result[req]) {
-            return done(null);
-          }
+        async.eachLimit(_requires, concurrent, function (req, done) {
           process(cube, prepare({
             queryPath: req,
             compress: options.compress
@@ -679,20 +688,128 @@ function allInOneCode(cube, options, callback) {
       return callback(err);
     }
     let arr = [];
-    async.eachSeries(result, function (data, done) {
-      //可以过滤出现在代码开头的依赖数组
-      data.requires = options.requireFilter ? options.requireFilter(data.requires) : [];
-      data.genCode(function (err, data) {
-        if (err) {
-          return done(err);
-        }
-        arr.unshift(data.wrap ? data.codeWraped : data.code);
-        done(null);
-      });
+    async.eachSeries(result, function (code, done) {
+      arr.unshift(code);
+      done();
     }, function (err) {
       callback(err, arr);
     });
   });
+}
+*/
+
+/**
+ * allInOneCode, 给定入口文件，返回一个包含所有依赖代码的数组
+ * 广度优先遍历，并解决递归stack overflow
+ * @param  {Cube}   cube     [description]
+ * @param  {Object}   options
+ *                       - queryPath
+ *                       - compress
+ *                       - code
+ *                       - concurrent default is 10
+ * @param  {Function} callback(err, arr)
+ */
+function allInOneCode(cube, options, callback) {
+
+  var result = {};
+  let concurrent = options.concurrent || 10;
+
+  function prepare(options) {
+    return {
+      queryPath: options.queryPath,
+      realPath: options.queryPath,
+      type: 'script',
+      ext: '.js',
+      targetExt: '.js',
+      code: options.code || null,
+      codeWraped: null,
+      source: options.code || '',
+      sourceMap: null,
+      wrap: true,
+      ignoreCubeWrap: options.ignoreFirstCodeWrap,
+      compress: options.compress !== undefined ? options.compress : cube.config.compress
+    };
+  }
+  function genCode(data, done) {
+    data._requires = data.requires ? data.requires.slice(0) : [];
+    data.requires = options.requireFilter ? options.requireFilter(data.requires) : [];
+    data.genCode(done);
+  }
+  function getResult() {
+    let arr = [];
+    Object.keys(result).forEach((key) => {
+      arr.unshift(result[key]);
+    });
+    return arr;
+  }
+  /**
+   * 处理单个文件
+   * @param  {Cube}   cube
+   * @param  {Object}   data
+   * @param  {Function} cb(null, requires)
+   */
+  function processSingle(cube, data, cb) {
+    if (result[data.queryPath]) {
+      return cb();
+    }
+    result[data.queryPath] = true;
+    async.waterfall([
+      function prepare(done) {
+        done(null, data);
+      },
+      cube.readFile.bind(cube),
+      cube.transferCode.bind(cube),
+      genCode
+    ], function (err, data) {
+      if (err) {
+        return cb(err);
+      }
+      result[data.queryPath] = data.wrap ? data.codeWraped : data.code;
+      cb(null, data._requires);
+    });
+  }
+  /**
+   * 处理数组
+   */
+  function processArr(arr, cb) {
+    let requires = [];
+    async.eachLimit(arr, concurrent, (item, done) => {
+      if (typeof item === 'string') {
+        item = prepare({
+          queryPath: item,
+          compress: options.compress
+        });
+      }
+      processSingle(cube, item, (err, reqs) => {
+        if (err) {
+          return cb(err);
+        }
+        if (reqs && reqs.length) {
+          requires = requires.concat(reqs);
+          console.log(reqs, requires);
+        }
+        done(null);
+      });
+    }, (err) => {
+      if (err) {
+        return cb(err);
+      }
+      cb(null, requires);
+    });
+  }
+
+  function done(err, requires) {
+    if (err) {
+      return callback(err);
+    }
+    if (!requires.length) {
+      return callback(null, getResult());
+    }
+    process.nextTick(() => {
+      processArr(requires, done);
+    });
+  };
+  processArr([prepare(options)], done);
 }
 
 /**
