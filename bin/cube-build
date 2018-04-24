@@ -146,9 +146,7 @@ if (fstat.isFile()) {
     mangleFileName: args.mangleFileName,
     export: args.export,
     lazyWrap: args.smart,
-    minify: {
-      builtIns: false
-    }
+    minify: {}
   });
   tool = Cube.tools;
   if (args.allInOne) {
@@ -184,9 +182,7 @@ if (fstat.isFile()) {
     mangleFileName: args.mangleFileName,
     export: args.export,
     lazyWrap: args.smart,
-    minify: {
-      builtIns: false
-    }
+    minify: {}
   });
   tool = Cube.tools;
   tool[args.smart ? 'processDirSmart' : 'processDir'](cube, {src: inputPath, dest:outputPath}, function (err, data) {
