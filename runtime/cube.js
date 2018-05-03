@@ -28,6 +28,7 @@
     env: {NODE_ENV: 'production'}
   };
   var mockedGlobal = undefined;
+  var esModule = true;
 
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
   var loading = {};
@@ -297,6 +298,10 @@
     if (config.global) {
       mockedGlobal = config.global;
     }
+    // support ES6 module, default is true
+    if (config.esModule !== undefined) {
+      esModule = config.esModule
+    }
 
     inited = true;
 
@@ -348,6 +353,14 @@
           return;
         }
         apps.push(exports);
+        if (esModule) {
+          apps = apps.map(function esModulePolyfill(dep) {
+            if (dep && typeof dep === 'object' && dep.__esModule) {
+              return dep.default;
+            }
+            return dep;
+          });
+        }
         if (apps.length === length) {
           firing = true;
           cb.apply(global, apps);
