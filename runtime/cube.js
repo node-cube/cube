@@ -84,7 +84,7 @@
    * If mod is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
    */
   function reBase(mod) {
-    var offset = mod.indexOf(remoteSeparator);
+    var offset = mod.indexOf ? mod.indexOf(remoteSeparator) : 0;
     if (offset > 0) {
       return remoteBase[mod.substr(0, offset)] + mod.substr(offset + 1);
     } else {

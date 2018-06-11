@@ -13,6 +13,7 @@ cmd
   .option('--built', 'if code in root path already built, set this flag')
   .option('-s --static', 'run as a pure simple static server')
   .option('--router [value]', 'url prefix')
+  .option('--no-cache', 'forbidden cache')
   .option('--no-optimize', 'do not optimize loading file, no more file will merged to cube.js')
   .parse(process.argv);
 
@@ -37,5 +38,6 @@ Cube.service({
   static: args.static,
   passUnknowExt: true,
   optimize: args.optimize,
+  devCache: args.cache,
   cleanCache: args.cleanCache
 });
