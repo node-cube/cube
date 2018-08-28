@@ -145,6 +145,11 @@
       script.type = 'text/javascript';
       script.async = 'true';
       script.charset = charset;
+      script.onerror = () => {
+        Cube(require, [], () => {
+          console.error(`load module: ${require} failed.`);
+        });
+      };
 
       var rebaseName = reBase(require);
       var srcPath = rebaseName || (base + require);
