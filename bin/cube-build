@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --stack_size=65535 --max_old_space_size=4096
 'use strict';
 const fs = require('xfs');
 const path = require('path');
