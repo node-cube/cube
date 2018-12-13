@@ -445,7 +445,7 @@ function processMerge(cube, files, exportFiles, loads) {
       let reqeds = requiredMap[qpath];
       let reqedList = Object.keys(reqeds);
 
-      if (reqedList.length === 1 && !loads[qpath] && !exportFiles[qpath]) {
+      if (reqedList.length === 1 && !loads[qpath] && !exportFiles[qpath.replace(/^.*?:/, '')]) {
         /**
          * 只有一个模块依赖当前模块，则可以合并入父级
          */
