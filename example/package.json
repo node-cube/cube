@@ -16,6 +16,12 @@
       ".styl": "cube-stylus",
       ".js": [
         [
+          "cube-lazy-parse",
+          {
+            "match": "\\.min\\.js$"
+          }
+        ],
+        [
           "cube-babel",
           {
             "presets": [["env"]]
