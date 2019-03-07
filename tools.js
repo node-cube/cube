@@ -785,8 +785,8 @@ function allInOneCode(cube, options, callback) {
           return cb(err);
         }
         if (reqs && reqs.length) {
+          if (options.processFilter) reqs = options.processFilter(reqs);
           requires = requires.concat(reqs);
-          console.log(reqs, requires);
         }
         done(null);
       });
