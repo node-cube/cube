@@ -345,7 +345,7 @@ function processFileWithRequires(cube, data, callback) {
     }
     var result = res.data;
     files.push(result);
-    if (result.requiresOrigin) {
+    if (result.requiresOrigin && result.requiresOrigin.length) {
       async.eachSeries(result.requiresOrigin, function (m, done) {
         if (cached[m]) {
           return done();
