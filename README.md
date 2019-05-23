@@ -383,9 +383,9 @@ var path = require('path');
 function CustomProcessor(cube) {
 	this.cube = cube;
 }
-Processor.type = 'style';
-Processor.ext = ['.sass'];
-Processor.prototype.process = function (data, options, callback) {
+CustomProcessor.type = 'style';
+CustomProcessor.ext = ['.sass'];
+CustomProcessor.prototype.process = function (data, options, callback) {
 	/**
    * 在这个函数中处理data对象，data.code已经拿到了源文件，例如less的处理
    * 就是将data.code编译成css，然后重新赋值回data.code。
