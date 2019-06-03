@@ -14,8 +14,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "test": "node_modules/.bin/mocha --recursive --timeout 50000 -R spec test",
-    "testcov": "node_modules/.bin/mocha --recursive -r jscoverage --timeout 5000 --coverage 90,80,70 -R spec --covout=html test"
+    "test": "node_modules/.bin/mocha --recursive --timeout 120000 -R spec test",
+    "testcov": "node_modules/.bin/mocha --recursive -r jscoverage --timeout 120000 --coverage 90,80,70 -R spec --covout=html test"
   },
   "engines": {
     "node": ">=4.0.0"
