@@ -4,7 +4,7 @@ var xfs = require('xfs');
 var path = require('path');
 var async = require('async');
 var utils = require('./lib/utils');
-// var _ = require('lodash');
+var _ = require('lodash');
 
 /**
  * 处理整个Dir的编译
@@ -201,23 +201,17 @@ function processDirSmart(cube, data, cb) {
 
       files = files.concat(modFiles);
 
-      var filesRequired = {};
-      var filesLoad = {};
+      let filesLoad = {};
+
+      // TODO 优化这个遍历，可以合并入processMerge， 但需要续订processMerge的测试
       files.forEach((f) => {
-        f.requires && f.requires.forEach((v) => {
-          filesRequired[v] = f.queryPath;
-        });
         f.loads && f.loads.forEach((v) => {
-          filesLoad[v] = true;
+          filesLoad[v.replace(/^[^:]+:/, '')] = true;
         });
-      });
-      // ignore load file from filesRequired
-      // because load file should be exported
-      Object.keys(filesLoad).forEach((v) => {
-        delete filesRequired[v];
       });
 
-      let finalfiles = processMerge(cube, files, cube.config.export, filesLoad);
+      let rootFiles = _.merge({}, cube.config.export, filesLoad);
+      let finalfiles = processMerge(cube, files, rootFiles);
       let actions = [];
       finalfiles.forEach(function (tmp) {
         cube.setMangleFileNameSaveFlag(tmp.queryPath);
@@ -235,12 +229,12 @@ function processDirSmart(cube, data, cb) {
           function genCode(callback) {
             let codes = [];
             async.eachSeries(nodes, function (node, done) {
-              node.queryPath = cube.mangleFileName(node.queryPath, filesRequired);
+              node.queryPath = cube.mangleFileName(node.queryPath, rootFiles);
               node.requiresArgsRefer && node.requiresArgsRefer.forEach((arg0) => {
-                arg0.value = cube.mangleFileName(arg0.value, filesRequired);
+                arg0.value = cube.mangleFileName(arg0.value, rootFiles);
               });
               node.requires && node.requires.forEach((v, i, a) => {
-                a[i] = cube.mangleFileName(v, filesRequired);
+                a[i] = cube.mangleFileName(v, rootFiles);
               });
               node.genCode(function (err, data) {
                 if (err) {
@@ -261,7 +255,8 @@ function processDirSmart(cube, data, cb) {
             if (err) {
               return done(err);
             }
-            let targetPath = path.join(dest, tmp.queryPath.replace(/^\w+:/, ''));
+            // TODO  理论上 queryPath 不会绑定remote, remote只会在文件中的require中存在
+            let targetPath = path.join(dest, tmp.queryPath.replace(/^[^:]+:/, ''));
             cube.log.info('> gen code:', targetPath);
             xfs.sync().save(targetPath, codes.join('\n'));
             done();
@@ -373,11 +368,10 @@ function processFileWithRequires(cube, data, callback) {
 /**
  * 合并文件
  * @param  {Array} files   文件对象列表
- * @param  {Object} exportFiles 排除文件，无需合并
+ * @param  {Object} rootFiles 排除文件，无需合并
  * @return {Array}  合并之后的文件列表
  */
-function processMerge(cube, files, exportFiles, loads) {
-  loads = loads || {};
+function processMerge(cube, files, rootFiles) {
   /**
    * 文件名Map
    */
@@ -391,13 +385,13 @@ function processMerge(cube, files, exportFiles, loads) {
    */
   let requiredMap = {};
   let originRequiredMap = {};
-
-  exportFiles = exportFiles || {};
+  /** 已合并文件列表 */
+  let mergedFile = {};
 
   cube.log.info('prepare files');
   // 建立 qpath -> file 的一对一映射关系
   // 建立 child -> parent 的一对多映射关系
-  files.forEach(function (file) {
+  files.forEach((file) => {
     let reqs = file.requires;
     let reqso = file.requiresOrigin;
     let qpath = file.queryPath;
@@ -414,8 +408,8 @@ function processMerge(cube, files, exportFiles, loads) {
     }
     if (reqs && reqs.length) {
       reqs.forEach(function (req, index) {
-        // reqs在加工之后，会带上remote标记, 而reqso则保持原样
-        // 所以在判断的时候，需要使用 reqso
+        // reqs在加工之后，会带上remote标记, 而reqs origin则保持原样
+        // 所以在判断的时候，需要使用 reqs origin
         // 带 --remote 参数时不能过滤
         if (/^\w+:/.test(reqso[index])) {
           // remote require, ignore
@@ -444,8 +438,7 @@ function processMerge(cube, files, exportFiles, loads) {
       let reqs = requireMap[qpath];
       let reqeds = requiredMap[qpath];
       let reqedList = Object.keys(reqeds);
-
-      if (reqedList.length === 1 && !loads[qpath] && !exportFiles[qpath.replace(/^.*?:/, '')]) {
+      if (reqedList.length === 1 && !rootFiles[qpath.replace(/^[^:]+:/, '')]) {
         /**
          * 只有一个模块依赖当前模块，则可以合并入父级
          */
@@ -456,6 +449,7 @@ function processMerge(cube, files, exportFiles, loads) {
           parent.merges = [];
         }
         parent.merges.push(file);
+        mergedFile[qpath] = true;
 
         // 清理原始依赖链上的require
         let originRequired = originRequiredMap[qpath];
@@ -494,7 +488,167 @@ function processMerge(cube, files, exportFiles, loads) {
     files = tmpList;
     count ++;
   }
-  return files;
+  /**
+   * TODO: 优化多依赖的文件合并
+   *
+   * 最佳方案A：
+   * 对非rootFile分组，并比对各组的差异，建立分级公共文件，并将公共文件的加载，压入依赖栈中
+   * 
+   * 快速方案B：
+   * 抽取非root文件，合并成一个文件，并在rootFiles中增加该公共文件的依赖
+   *
+   * 以下B方案快速实现
+   */
+  // 搜寻出来的根节点，将比定义出来需要保留名字的根节点多
+  let allRootDeps = {};
+  files.forEach((file) => {
+    let qpath = file.queryPath;
+    // 文件已合并，无需处理
+    if (mergedFile[qpath]) {
+      return;
+    }
+    // 如果是rootFile,默认就需要导出，跳过
+    if (rootFiles[qpath]) {
+      return;
+    }
+    let rootParents = findRoot(qpath, originRequiredMap);
+    Object.keys(rootParents).forEach((root) => {
+      if (!rootFiles[root]) {
+        return;
+      }
+      if (!allRootDeps[root]) {
+        allRootDeps[root] = {};
+      }
+      allRootDeps[root][qpath] = true;
+    });
+  });
+  // 各root文件
+  console.log('> rootfiles:', rootFiles);
+  // create common file
+  let allGroups = Object.keys(allRootDeps);
+  let oneRoot = allRootDeps[allGroups[0]];
+  let commonFiles = {};
+
+  /* get common files 
+  Object.keys(oneRoot).forEach((file) => {
+    let c = 0;
+    allGroups.forEach((k) => {
+      if (allRootDeps[k][file]) {
+        c++;
+      }
+    });
+    if (c === allGroups.length) {
+      commonFiles[file] = true;
+    }
+  });
+  **/
+  // merge all common files
+  allGroups.forEach((k) => {
+    let rootF = allRootDeps[k];
+    _.merge(commonFiles, rootF);
+  });
+  // console.log('> common', commonFiles);
+  // create virtual common file
+  let cmfile = {
+    queryPath: '/__common__.js',
+    realPath: '/__common__.js',
+    type: 'script',
+    code: '',
+    codeWraped: '',
+    source: '',
+    sourceMap: '',
+    wrap: true,
+    compress: true,
+    requires: [],
+    requiresOrigin: [],
+    merges: []
+  };
+  Object.keys(commonFiles).forEach((f) => {
+    let file = fileMap[f];
+    cmfile.merges.push(file);
+    mergedFile[f] = true;
+  });
+  cmfile.genCode = function (cb) {
+    cmfile.codeWraped = `Cube('${this.queryPath}',[],function(m){return m.exports});`;
+    cb && cb(null, cmfile);
+  };
+
+  allGroups.forEach((f) => {
+    let file = fileMap[f];
+    file.requires.push('/__common__.js');
+  });
+  files.push(cmfile);
+
+  let finalfiles = [];
+  files.forEach((file) => {
+    if (file.requires) {
+      file.requires = file.requires.filter((req) => {
+        if (commonFiles[req]) {
+          return false
+        }
+        return true;
+      });
+    }
+    if (mergedFile[file.queryPath]) {
+      return;
+    }
+    finalfiles.push(file);
+  });
+
+  return finalfiles;
+}
+
+function findRoot(file, reqedMap) {
+  console.log('> find file require root:', file);
+  let count = 0;
+  let maxCount = 50000;
+  let checkList = [[file, {}]];
+  let startNode = file;
+  let roots = {};
+  while (checkList.length) {
+    let tmp = {};
+    checkList.forEach((node) => {
+      let q = node[0];
+      let map = node[1];
+      let parents = _.clone(reqedMap[q]);
+      // 如果parents不存在，说明到顶了
+      if (!parents) {
+        roots[q] = true;
+        return;
+      }
+      // 父节点包含起始节点，说明循环了，删除掉该节点，避免死循环
+      if (parents[startNode]) {
+        delete parents[startNode];
+      }
+      // parents为空，说明到顶了
+      let list = Object.keys(parents);
+      if (!list.length) {
+        roots[q] = true;
+        return;
+      }
+      list.forEach((key) => {
+        if (map[key]) {
+          // console.log('>> 循环依赖', map);
+          return;
+        }
+        map[key] = true;
+        tmp[key] = _.clone(map);
+      });
+    });
+    let list = [];
+    Object.keys(tmp).forEach((k) => {
+      list.push([k, tmp[k]]);
+    });
+    
+    checkList = list;
+    count++;
+    /*
+    if (count > maxCount) {
+      throw new Error('processMerge > findRoot too many recursion, at:' + file);
+    }*/
+  }
+  delete roots[startNode];
+  return roots;
 }
 
 /**

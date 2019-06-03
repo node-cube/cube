@@ -47,8 +47,8 @@ describe('tools.js', function () {
         }
       ];
 
-      let res = testMod._processMerge(mockCube, mockData);
-      expect(res.length).eql(1);
+      let res = testMod._processMerge(mockCube, mockData, {});
+      expect(res.length).eql(2);
     });
 
     it('should return a js module with remote info', function () {
@@ -85,8 +85,8 @@ describe('tools.js', function () {
         }
       ];
 
-      let res = testMod._processMerge(mockCube, mockData);
-      expect(res.length).eql(4);
+      let res = testMod._processMerge(mockCube, mockData, {});
+      expect(res.length).eql(5);
     });
 
     it('should return a js module with remote info', function () {
@@ -117,8 +117,8 @@ describe('tools.js', function () {
         },
       ];
 
-      let res = testMod._processMerge(mockCube, mockData);
-      expect(res.length).eql(1);
+      let res = testMod._processMerge(mockCube, mockData, {});
+      expect(res.length).eql(2);
     });
   });
 
