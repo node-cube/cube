@@ -29,7 +29,10 @@ describe('cli', function () {
   });
   describe('build', function () {
     it.only('should work fine', function (done) {
-      var cmd = 'node ./bin/cube build example';
+      var cmd = './bin/cube build example';
+      exec(`which node`, function (err, stdout, stderr) {
+        console.log('>>>>', err, stdout.toString(), stderr.toString());
+      });
       console.log(cmd);
       exec(cmd, function (err, stdout, stderr) {
         console.log(err, stdout.toString(), stderr.toString());
@@ -55,7 +58,7 @@ describe('cli', function () {
     });
     // TODO work fine with --smart and --remote
     it('should work fine with --smart', function (done) {
-      var cmd = 'node bin/cube build --smart example/deps --remote static';
+      var cmd = './bin/cube build --smart example/deps --remote static';
       exec(cmd, function (err, stdout, stderr) {
         // console.log(stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
