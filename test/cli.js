@@ -29,9 +29,10 @@ describe('cli', function () {
   });
   describe('build', function () {
     it.only('should work fine', function (done) {
-      var cmd = 'node bin/cube build example';
+      var cmd = 'node ./bin/cube build example';
+      console.log(cmd);
       exec(cmd, function (err, stdout, stderr) {
-        console.log(stdout.toString(), stderr.toString());
+        console.log(err, stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
         var info = [];
         res.forEach(function (v) {
