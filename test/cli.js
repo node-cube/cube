@@ -30,10 +30,10 @@ describe('cli', function () {
   describe('build', function () {
     it.only('should work fine', function (done) {
       var cmd = './bin/cube build example';
-      exec(`which node`, function (err, stdout, stderr) {
+      exec(`pwd`, function (err, stdout, stderr) {
         console.log('>>>>', err, stdout.toString(), stderr.toString());
       });
-      console.log(cmd);
+      console.log(cmd, process.cwd());
       exec(cmd, function (err, stdout, stderr) {
         console.log(err, stdout.toString(), stderr.toString());
         var res = stdout.toString().split('\n');
