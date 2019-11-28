@@ -1,5 +1,6 @@
 .cubecache
 /node_modules
+/static
 example.release
 covreporter.html
 .idea/

@@ -15,7 +15,12 @@ var Request = require('supertest');
 
 describe('tools.js', function () {
   var mockCube = {
-    log: require('../lib/cube/log')
+    log: require('../lib/cube/log'),
+    config: {
+      release: true,
+      compress: true,
+      remote: null
+    }
   };
 
   describe('processMerge()', function () {

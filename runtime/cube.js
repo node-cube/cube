@@ -252,17 +252,19 @@
    * @param callback
    */
   function Cube(name, requires, callback) {
+    var module;
     if (!installedModules[name]) {
-      installedModules[name] = {
+      module = installedModules[name] = {
         exports: {},
-        loaded: false,
+        loaded: true,
         fired: false
       };
+    } else {
+      module = installedModules[name];
     }
 
-    var module = installedModules[name];
     module.fn = callback;
-    module.loaded = true;
+    // module.loaded = true;
     delete loading[name];
     load(requires, name);
   }
