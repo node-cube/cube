@@ -10,6 +10,9 @@ release:
 publish: release tag
 	@npm publish
 
+beta: release
+	@npm publish --tag beta
+
 doc:
 	@jsdoc . -r -t ./node_modules/minami -c ./jsdoc.json
 
@@ -23,4 +26,4 @@ test-cov:
 	@npm run testcov
 
 .PHONY: \
-	install release publish test test-cov tag doc
+	install release publish test test-cov tag doc beta

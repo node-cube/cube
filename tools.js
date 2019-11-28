@@ -419,8 +419,11 @@ function processMerge(cube, files, rootFiles) {
           requiredMap[req] = {};
           originRequiredMap[req] = {};
         }
-        requiredMap[req][qpath] = true;
-        originRequiredMap[req][qpath] = true;
+        // 被设置为rootFile之后，就需要斩断依赖，没有parent required
+        if (!rootFiles[req]) {
+          requiredMap[req][qpath] = true;
+          originRequiredMap[req][qpath] = true;
+        }
         requireMap[qpath][req] = true;
       });
     }
@@ -430,10 +433,12 @@ function processMerge(cube, files, rootFiles) {
   let count = 1;
   let mergeFlag = true;
 
+  let tmpFiles = _.clone(files);
+
   while (mergeFlag) {
     mergeFlag = false;
     tmpList = [];
-    files.forEach(function (file) {
+    tmpFiles.forEach(function (file) {
       let qpath = file.queryPath;
       let reqs = requireMap[qpath];
       let reqeds = requiredMap[qpath];
@@ -485,9 +490,10 @@ function processMerge(cube, files, rootFiles) {
         tmpList.push(file);
       }
     });
-    files = tmpList;
+    tmpFiles = tmpList;
     count ++;
   }
+  tmpFiles = null;
   /**
    * TODO: 优化多依赖的文件合并
    *
@@ -524,6 +530,10 @@ function processMerge(cube, files, rootFiles) {
   });
   // 各root文件
   console.log('> rootfiles:', rootFiles);
+  console.log('> allRootDeps:', Object.keys(allRootDeps));
+  // console.log('> deps:', originRequiredMap['/node_modules/lodash/get.js'], originRequiredMap['/common/share.js']);
+  // console.log('> findRoot', findRoot('/node_modules/lodash/get.js', originRequiredMap));
+  // require('fs').writeFileSync('dump.json', JSON.stringify(allRootDeps, null, 2));
   // create common file
   let allGroups = Object.keys(allRootDeps);
   let oneRoot = allRootDeps[allGroups[0]];
@@ -549,8 +559,10 @@ function processMerge(cube, files, rootFiles) {
   });
   // console.log('> common', commonFiles);
   // create virtual common file
+  let realName = '/__common__.js';
+  let queryPath = utils.moduleName(realName, 'script', cube.config.release, cube.config.remote);
   let cmfile = {
-    queryPath: '/__common__.js',
+    queryPath: queryPath,
     realPath: '/__common__.js',
     type: 'script',
     code: '',
@@ -569,13 +581,13 @@ function processMerge(cube, files, rootFiles) {
     mergedFile[f] = true;
   });
   cmfile.genCode = function (cb) {
-    cmfile.codeWraped = `Cube('${this.queryPath}',[],function(m){return m.exports});`;
+    cmfile.codeWraped = `Cube('${cmfile.queryPath}',[],function(m){return m.exports});`;
     cb && cb(null, cmfile);
   };
 
   allGroups.forEach((f) => {
     let file = fileMap[f];
-    file.requires.push('/__common__.js');
+    file.requires.push(queryPath);
   });
   files.push(cmfile);
 
@@ -583,7 +595,7 @@ function processMerge(cube, files, rootFiles) {
   files.forEach((file) => {
     if (file.requires) {
       file.requires = file.requires.filter((req) => {
-        if (commonFiles[req]) {
+        if (mergedFile[req]) {
           return false
         }
         return true;
@@ -599,7 +611,7 @@ function processMerge(cube, files, rootFiles) {
 }
 
 function findRoot(file, reqedMap) {
-  console.log('> find file require root:', file);
+  // console.log('> find file require root:', file);
   let count = 0;
   let maxCount = 50000;
   let checkList = [[file, {}]];
