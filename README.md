@@ -22,6 +22,16 @@ npm install -g node-cube
 
 安装完成之后，命令行增加一个命令 `cube`
 
+clone本工程到本地
+
+```
+cd cube
+cube start example
+```
+
+cube的样板工程就启动了，example中有cube支持的功能测试case
+也是web页面侧的测试用例
+
 ## Getting Start (6 steps)
 
 1. 初始化cube:
@@ -282,9 +292,22 @@ Cube.init({
 
 ```
 const Cube = require('node-cube');
-let cube = Cube.middleware({
+let cube = Cube.middleware(options);
+```
+
+* 独立初始化
+
+```
+const Cube = require('node-cube');
+let cube = new Cube(options);
+```
+
+#### 配置对象 options <Object>
+
+```
+{
   /**
-   * 静态资源的绝对路径
+   * 静态资源的绝对路径, 工程前端代码的根目录
    * @type {String}
    */
   root: ''
@@ -331,15 +354,27 @@ let cube = Cube.middleware({
    */
   devCache: true,
 
-  optimize: true  // optimize file load, default is true
-});
-```
-
-* 独立初始化
-
-```
-const Cube = require('node-cube');
-let cube = new Cube(options);
+  /**
+   * optimize file load on dev mode, default is true
+   * @type {Boolean}
+   * 开启加上之后，dev模式下会
+   */
+  optimize: true,
+  /**
+   * 模块映射, 主要是加速加载用, 大部分的模块其实已经有构建好的 ./dest/$mod.js
+   * {
+   *    react: './dest/react.min.js'
+   * }
+   */
+  moduleMap: {}
+  /**
+   * 忽略依赖解析，主要是配合前端的 Cube.register()用
+   * 在前端页面已经加载的公共资源，可以通过设置服务端的这个ignore来实现共享
+   */
+  ignoreModule: {
+    react: true
+  }
+}
 ```
 
 * cli模式
