@@ -37,7 +37,7 @@
   /* store requires before init */
   var inited = false;
   var loadQueue = [];
-
+  console.time('cube load');
   /**
    * The require function
    * @param module
@@ -122,8 +122,8 @@
         return false;
       }
     }
-
-    return true;
+    console.timeEnd('cube load');
+    startAppAndCallback();
   }
 
   /**
@@ -179,9 +179,7 @@
       };
       loading[require] = true;
     });
-    if (checkAllDownloaded()) {
-      startAppAndCallback();
-    }
+    checkAllDownloaded();
   }
 
   /**
@@ -190,32 +188,29 @@
    * @returns {*}
    */
   function fireModule(module) {
-    function fire() {
-      var m = installedModules[module];
-
-      // sometimes, module in server side not found,
-      // m is undefined
-      if (!m) {
+    var m = installedModules[module];
+    if (!m) {
+      if (strict) {
         throw new Error('Cube Error: Cannot find module ' + '\'' + module + '\'');
-      }
-      if (!m.fired) {
-        m.fired = true;
-        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load_creator__(module), mockedProcess, mockedGlobal]);
-      }
-
-      return m.exports;
-    }
-
-    if (strict) {
-      return fire();
-    } else {
-      try {
-        return fire();
-      } catch (e) {
+      } else {
         log.error(e);
         return {};
       }
     }
+    if (!m.fired) {
+      m.fired = true;
+      if (strict){
+        m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load_creator__(module), mockedProcess, mockedGlobal]);
+      } else {
+        try {
+          m.exports = m.fn.apply(global, [m, m.exports, __cube_require__, __cube_load_creator__(module), mockedProcess, mockedGlobal]);
+        } catch (e) {
+          log.error(e);
+          m.exports = {};
+        }
+      }
+    }
+    return m.exports;
   }
 
   /**
@@ -223,7 +218,7 @@
    */
   function startAppAndCallback() {
     var key, arr;
-
+    console.time('cube exec');
     for (key in entrances) {
       if (entrances.hasOwnProperty(key)) {
         arr = key.split(',');
@@ -242,6 +237,7 @@
         });
       }
     }
+    console.timeEnd('cube exec');
   }
 
 
@@ -252,21 +248,21 @@
    * @param callback
    */
   function Cube(name, requires, callback) {
-    var module;
-    if (!installedModules[name]) {
-      module = installedModules[name] = {
+    var mod = installedModules[name];
+    if (!mod) {
+      mod = installedModules[name] = {
         exports: {},
-        loaded: true,
         fired: false
       };
-    } else {
-      module = installedModules[name];
     }
-
-    module.fn = callback;
-    // module.loaded = true;
-    delete loading[name];
-    load(requires, name);
+    mod.loaded = true;
+    mod.fn = callback;
+    if (loading[name]) {
+      delete loading[name];
+      load(requires, name);
+    } else if (requires.length) {
+      load(requires, name);
+    }
   }
 
   /** version, will replace in `make release` **/

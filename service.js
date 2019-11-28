@@ -73,7 +73,8 @@ function createMiddleware(cube, serveStatic, checkSkip) {
     flagWrap = req.query.m === undefined ? false : true;
     flagCompress = req.query.c === undefined ? false : true;
 
-    let cachePath = qpath + ':' + flagWrap + ':' + flagCompress + ':' + (config.remote || '-');
+    let useCache = flagWrap && !flagCompress;
+    let cachePath = qpath + ':' + (config.remote || '-');
     async.waterfall([
       function prepareData(done) {
         /**
@@ -101,7 +102,10 @@ function createMiddleware(cube, serveStatic, checkSkip) {
         if (!config.devCache) {
           return callback(null, data);
         }
-        let cache = cube.caches.get(cachePath);
+        let cache;
+        if (useCache) {
+          cache = cube.caches.get(cachePath);
+        } 
         if (!cache) {
           return callback(null, data);
         }
@@ -130,7 +134,9 @@ function createMiddleware(cube, serveStatic, checkSkip) {
           if (!err && config.devCache) {
             debug('cache processed file: %s, %s', data.queryPath, data.modifyTime);
             delete data.ast;
-            cube.caches.set(cachePath, data);
+            if (useCache) {
+              cube.caches.set(cachePath, data);
+            }
           }
           callback(err, data);
         });
