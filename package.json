@@ -31,7 +31,7 @@
     "connect": "^3.6.3",
     "debug": "4.1.0",
     "esminify": "3.0.5",
-    "lodash": "4.17.11",
+    "lodash": "4.17.15",
     "serve-static": "1.12.4",
     "xfs": "~0.2.2"
   },
