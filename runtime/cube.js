@@ -80,6 +80,10 @@
     };
   }
 
+  Cube.setRemoteBase = function (_remoteBase) {
+    Object.assign(remoteBase, _remoteBase);
+  };
+
   /**
    * If mod is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
    */
