@@ -85,6 +85,7 @@ cmd
   .option('--without-compress', 'do not compress code')
   .option('--without-wrap', 'do not wraper code')
   .option('--smart', 'smart build, only build necessary')
+  .option('--merge-factor [value]', 'merge factor, it\'s a number, default is 3, means when module with 3 common refer will be merge to __common__.js ')
   .parse(process.argv);
 
 var source = cmd.args[0];
@@ -147,6 +148,7 @@ if (fstat.isFile()) {
     mangleFileName: args.mangleFileName,
     export: args.export,
     lazyWrap: args.smart,
+    mergeFactor: args.mergeFactor || 3,
     minify: {}
   });
   tool = Cube.tools;
@@ -183,6 +185,7 @@ if (fstat.isFile()) {
     mangleFileName: args.mangleFileName,
     export: args.export,
     lazyWrap: args.smart,
+    mergeFactor: args.mergeFactor || 3,
     minify: {}
   });
   tool = Cube.tools;

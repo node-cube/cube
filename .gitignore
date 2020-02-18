@@ -9,3 +9,4 @@ example.out/
 /test_merge*
 /out/
 example/deps.release
+cube_info.*.json

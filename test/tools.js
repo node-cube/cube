@@ -19,7 +19,8 @@ describe('tools.js', function () {
     config: {
       release: true,
       compress: true,
-      remote: null
+      remote: null,
+      root: __dirname
     }
   };
 

@@ -1,5 +1,5 @@
 #!/bin/sh
 
-BASE=$(cd "$(dirname "$0")"; pwd)
+BASE=$(cd "$(dirname ${0})"; pwd)
 
 node --stack_size=65535 --max_old_space_size=4096 $BASE/build.js $*

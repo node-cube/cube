@@ -5,7 +5,11 @@ var path = require('path');
 var async = require('async');
 var utils = require('./lib/utils');
 var _ = require('lodash');
+var debug = require('debug')('cube:merge');
 
+function dump(file, obj) {
+  require('fs').writeFileSync(file, JSON.stringify(obj, null, 2));
+}
 /**
  * 处理整个Dir的编译
  * @param {Cube} cube instance
@@ -229,6 +233,11 @@ function processDirSmart(cube, data, cb) {
           function genCode(callback) {
             let codes = [];
             async.eachSeries(nodes, function (node, done) {
+              if (node.flagMangled) {
+                codes.unshift(node.codeWraped);
+                return done();
+              }
+              node.flagMangled = true;
               node.queryPath = cube.mangleFileName(node.queryPath, rootFiles);
               node.requiresArgsRefer && node.requiresArgsRefer.forEach((arg0) => {
                 arg0.value = cube.mangleFileName(arg0.value, rootFiles);
@@ -377,11 +386,11 @@ function processMerge(cube, files, rootFiles) {
    */
   let fileMap = {};
   /**
-   * 依赖Map
+   * 依赖Map: key:文件引用了谁，寻找child用
    */
   let requireMap = {};
   /**
-   * 被依赖Map
+   * 被依赖Map:  key:文件  被谁引用了，寻找parent用
    */
   let requiredMap = {};
   let originRequiredMap = {};
@@ -429,6 +438,9 @@ function processMerge(cube, files, rootFiles) {
     }
   });
 
+  dump(path.join(cube.config.root, 'cube_info.require_map.json'), requireMap);
+  dump(path.join(cube.config.root, 'cube_info.required_map.json'), requiredMap);
+
   let tmpList;
   let count = 1;
   let mergeFlag = true;
@@ -468,7 +480,7 @@ function processMerge(cube, files, rootFiles) {
           });
         });
 
-        console.log(`[${count}] merge ${qpath} to ${reqedList[0]}`);
+        debug(`[${count}] merge ${qpath} > ${reqedList[0]}`);
 
         /**
          * 修改 requireMap, requiredMap
@@ -506,7 +518,13 @@ function processMerge(cube, files, rootFiles) {
    * 以下B方案快速实现
    */
   // 搜寻出来的根节点，将比定义出来需要保留名字的根节点多
+  // 原因：比如一些废弃的文件
+  // 现在的逻辑，rootFile都是有构建的 export参数指定的列表 + 动态load的模块列表
+  // 扁平化的依赖关系， root -> 节点
   let allRootDeps = {};
+  // 扁平化的节点的root关系， 节点 -> root
+  let allFileRoot = {};
+
   files.forEach((file) => {
     let qpath = file.queryPath;
     // 文件已合并，无需处理
@@ -517,8 +535,13 @@ function processMerge(cube, files, rootFiles) {
     if (rootFiles[qpath]) {
       return;
     }
-    let rootParents = findRoot(qpath, originRequiredMap);
-    Object.keys(rootParents).forEach((root) => {
+    // 找到当前文件的所有root
+    let fileRoots = Object.keys(findRoot(qpath, originRequiredMap));
+    
+    allFileRoot[qpath] = fileRoots;
+    fileRoots.forEach((root) => {
+      // 如果不在定义的入口文件列表中，则跳过
+      // 因为可能是废弃的根文件
       if (!rootFiles[root]) {
         return;
       }
@@ -528,41 +551,76 @@ function processMerge(cube, files, rootFiles) {
       allRootDeps[root][qpath] = true;
     });
   });
+
+  dump(path.join(cube.config.root, 'cube_info.root_module_deps.json'), allRootDeps);
   // 各root文件
-  console.log('> rootfiles:', rootFiles);
-  console.log('> allRootDeps:', Object.keys(allRootDeps));
-  // console.log('> deps:', originRequiredMap['/node_modules/lodash/get.js'], originRequiredMap['/common/share.js']);
-  // console.log('> findRoot', findRoot('/node_modules/lodash/get.js', originRequiredMap));
-  // require('fs').writeFileSync('dump.json', JSON.stringify(allRootDeps, null, 2));
-  // create common file
-  let allGroups = Object.keys(allRootDeps);
-  let oneRoot = allRootDeps[allGroups[0]];
+  console.log('> export root files:', rootFiles);
+  console.log('> all root files (include dynamic load):', Object.keys(allRootDeps));
+  console.log('> total files:', files.length);
+  console.log('> first class merge reduce files:', Object.keys(mergedFile).length);
+  // build common file
+  let allRoots = Object.keys(allRootDeps);
+  let commonFilesTmp = {};
   let commonFiles = {};
 
-  /* get common files 
-  Object.keys(oneRoot).forEach((file) => {
-    let c = 0;
-    allGroups.forEach((k) => {
-      if (allRootDeps[k][file]) {
-        c++;
+  // 经过一轮合并之后，剩下的文件
+  // 统计文件被root文件引用的次数
+  allRoots.forEach((k) => {
+    let rootF = allRootDeps[k];
+    Object.keys(rootF).forEach((k) => {
+      if (commonFilesTmp[k] === undefined) {
+        commonFilesTmp[k] = 0;
       }
+      commonFilesTmp[k] ++;
     });
-    if (c === allGroups.length) {
-      commonFiles[file] = true;
+  });
+
+  // 超过 mergeFactor 的root引用了文件，则合并为公共引用
+  let mergeFactor = cube.config.mergeFactor;
+  Object.keys(commonFilesTmp).forEach((k) => {
+    if (commonFilesTmp[k] >= mergeFactor) {
+      commonFiles[k] = true;
+    } else {
+      // 非公共依赖，则合并到引用的root文件
+      let fileRoots = allFileRoot[k];
+      let file = fileMap[k];
+      let qpath = file.queryPath;
+      fileRoots.forEach((root) => {
+        if (!rootFiles[root]) {
+          return;
+        }
+        let parent = fileMap[root];
+        if (!parent.merges) {
+          parent.merges = [];
+        }
+        parent.merges.push(file);
+        mergedFile[qpath] = true;
+
+        // 清理原始依赖链上的require
+        let originRequired = originRequiredMap[qpath];
+        Object.keys(originRequired).forEach((key) => {
+          let tmp = fileMap[key];
+          tmp.requires = tmp.requires.filter((v) => {
+            if (v === qpath) {
+              return false;
+            }
+            return true;
+          });
+        });
+
+        debug(`[-] merge ${qpath} > ${root}`);
+      });
     }
   });
-  **/
-  // merge all common files
-  allGroups.forEach((k) => {
-    let rootF = allRootDeps[k];
-    _.merge(commonFiles, rootF);
-  });
+
+  console.log('> second class merge reduce files:', Object.keys(mergedFile).length);
+
   // console.log('> common', commonFiles);
   // create virtual common file
   let realName = '/__common__.js';
-  let queryPath = utils.moduleName(realName, 'script', cube.config.release, cube.config.remote);
+  let commonQueryPath = utils.moduleName(realName, 'script', cube.config.release, cube.config.remote);
   let cmfile = {
-    queryPath: queryPath,
+    queryPath: commonQueryPath,
     realPath: '/__common__.js',
     type: 'script',
     code: '',
@@ -585,13 +643,14 @@ function processMerge(cube, files, rootFiles) {
     cb && cb(null, cmfile);
   };
 
-  allGroups.forEach((f) => {
+  allRoots.forEach((f) => {
     let file = fileMap[f];
-    file.requires.push(queryPath);
+    file.requires.push(commonQueryPath);
   });
   files.push(cmfile);
 
   let finalfiles = [];
+
   files.forEach((file) => {
     if (file.requires) {
       file.requires = file.requires.filter((req) => {
@@ -610,6 +669,12 @@ function processMerge(cube, files, rootFiles) {
   return finalfiles;
 }
 
+/**
+ * 寻找某模块的Root
+ * @param  {[type]} file     [description]
+ * @param  {[type]} reqedMap [description]
+ * @return {[type]}          [description]
+ */
 function findRoot(file, reqedMap) {
   // console.log('> find file require root:', file);
   let count = 0;
