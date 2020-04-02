@@ -74,6 +74,7 @@ function findRoot(file) {
 cmd
   .usage(' your_code_dir')
   .description('build the hole project')
+  .option('-p, --processors [value]', 'process list, "a,b,c"')
   .option('-o, --output [value]', 'set the output dir')
   .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-r, --root [value]', 'the code root dir')
@@ -127,6 +128,10 @@ try {
   return;
 }
 
+if (args.processors) {
+  args.processors = args.processors.split(',');
+}
+
 if (fstat.isFile()) {
   if (!args.output && !args.outputFile) {
     console.error('`-o or --output-file`options missing, should tell cube the output');
@@ -141,7 +146,7 @@ if (fstat.isFile()) {
     root: root,
     compress: compress,
     middleware: false,
-    // processors: args.processors,
+    processors: args.processors,
     resBase: args.base,
     remote: args.remote,
     withoutWrap: args.withoutWrap,
@@ -179,7 +184,7 @@ if (fstat.isFile()) {
     root: root,
     compress: compress,
     middleware: false,
-    // processors: args.processors,
+    processors: args.processors,
     resBase: args.base,
     remote: args.remote,
     mangleFileName: args.mangleFileName,

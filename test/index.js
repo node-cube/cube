@@ -19,10 +19,8 @@ var cubeInst = testMod.service({
   devCache: false,
   resBase: '/resouce_path',
   processors: {
-    '.ejs': require('cube-ejs'),
-    '.jade': require('cube-jade'),
     '.less': [[path.join(__dirname, '../node_modules/cube-less'), {test: true}]],
-    '.styl': 'cube-stylus'  // do not delete this comma, for branch test
+    '.styl': require('cube-stylus')  // do not delete this comma, for branch test
   }
 });
 
@@ -35,8 +33,6 @@ testMod.service({
   remote: 'REMOTE',
   resBase: '/resouce_path',
   processors: {
-    '.ejs': require('cube-ejs'),
-    '.jade': require('cube-jade'),
     '.less': require('cube-less'),
     '.styl': require('cube-stylus')  // do not delete this comma, for branch test
   }
@@ -61,8 +57,6 @@ testMod.service({
     }
   },
   processors: {
-    '.ejs': require('cube-ejs'),
-    '.jade': require('cube-jade'),
     '.less': require('cube-less'),
     '.styl': require('cube-stylus')  // do not delete this comma, for branch test
   }
@@ -92,10 +86,10 @@ describe('index.js', function () {
 
     });
     it('should return a template module with remote info', function (done) {
-      remoteRequest.get('/tpl/test.ejs?m&c')
+      remoteRequest.get('/tpl/test.html?m&c')
         .expect(200)
         .expect('content-type', /application\/javascript/)
-        .expect(/Cube\("REMOTE:\/tpl\/test\.ejs"/, done);
+        .expect(/Cube\('REMOTE:\/tpl\/test\.html'/, done);
     });
     it('should process require with vars ok with remote info', function (done) {
       remoteRequest.get('/test/test_require_with_var.js?m')
@@ -107,7 +101,7 @@ describe('index.js', function () {
           // only left side
           expect(res.text).to.match(/load\('REMOTE:\/test\/' \+ a,/ig);
           // only right side, dev model will not change the ext
-          expect(res.text).to.match(/load\(a \+ '\.coffee',/ig);
+          expect(res.text).to.match(/load\(a \+ '\.coffee\.js',/ig);
           // only var
           expect(res.text).to.match(/load\(a,/ig);
         })
@@ -194,11 +188,11 @@ describe('index.js', function () {
         .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           var body = res.text;
-          expect(body).to.match(/\("\/css\/test_css\.css",""\)/);
+          expect(body).to.match(/\('\/css\/test_css\.css',''\)/);
         })
         .end(done);
     });
-    it('should return transfered coffee file', function (done) {
+    it.skip('should return transfered coffee file', function (done) {
       request.get('/test/test_coffee.coffee?m')
         .expect(200)
         .expect('content-type', /application\/javascript/)
@@ -209,7 +203,7 @@ describe('index.js', function () {
         })
         .end(done);
     });
-    it('should return transfered coffee file call like a js file', function (done) {
+    it.skip('should return transfered coffee file call like a js file', function (done) {
       request.get('/test/test_coffee.js?m')
         .expect(200)
         .expect('content-type', /application\/javascript/)
@@ -227,7 +221,7 @@ describe('index.js', function () {
         .expect('content-type', /application\/javascript/)
         .expect(function (res) {
           var body = res.text;
-          expect(body).to.match(/Cube\("\/test\/test_main\.js/);
+          expect(body).to.match(/Cube\('\/test\/test_main\.js/);
           expect(body).not.match(/\/\*\!/);
         })
         .end(done);
@@ -301,7 +295,7 @@ describe('index.js', function () {
           // only left side
           expect(res.text).to.match(/load\('\/test\/' \+ a,/ig);
           // only right side, dev model will not change the ext
-          expect(res.text).to.match(/load\(a \+ '\.coffee',/ig);
+          expect(res.text).to.match(/load\(a \+ '\.coffee.js',/ig);
           // only var
           expect(res.text).to.match(/load\(a,/ig);
         })
@@ -482,7 +476,7 @@ describe('index.js', function () {
           expect(code).to.match(/<h3>/);
         }).end(done);
     });
-    it('should return a compiled ejs file', function (done) {
+    it.skip('should return a compiled ejs file', function (done) {
       request.get('/tpl/test_ejs.ejs?m')
         .expect(200)
         .expect(function (res) {
@@ -490,7 +484,7 @@ describe('index.js', function () {
           expect(code).match(/^Cube\(/);
         }).end(done);
     });
-    it('should return a compiled jade file', function (done) {
+    it.skip('should return a compiled jade file', function (done) {
       request.get('/tpl/test_jade.jade?m')
         .expect(200)
         .expect(function (res) {
