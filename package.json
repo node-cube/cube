@@ -38,7 +38,7 @@
   "devDependencies": {
     "@babel/preset-env": "*",
     "@babel/preset-react": "*",
-    "cube-babel": "^1.0.2",
+    "cube-babel": "^1.0.3",
     "cube-lazy-parse": "*",
     "cube-less": "*",
     "cube-stylus": "*",
