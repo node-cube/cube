@@ -9,12 +9,8 @@
     },
     "processors": {
       ".less": "cube-less",
-      ".jsx": ["cube-react", "./empty_processor.js"],
-      ".coffee": "cube-coffee",
-      ".ejs": "cube-ejs",
-      ".jade": "cube-jade",
       ".styl": "cube-stylus",
-      ".js": [
+      ".js,.jsx": [
         [
           "cube-lazy-parse",
           {
@@ -24,7 +20,10 @@
         [
           "cube-babel",
           {
-            "presets": [["env"]]
+            "presets": [
+              "react",
+              ["env"]
+            ]
           }
         ]
       ]

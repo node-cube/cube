@@ -1,12 +1,4 @@
-###
-# cube: example/test/test_modules.js
-# Authors  : fish <zhengxinlin@gmail.com> (https://github.com/fishbar)
-# Create   : 2014-05-06 00:00:01
-# CopyRight 2014 (c) Fish And Other Contributors
-####
-
-describe 'test/test_module', () ->
-
+describe('test/test_module', () => {
   test = require('test')
   testLibA = require('test/lib/a')
   testLibB = require('test/lib/b.js')
@@ -16,24 +8,33 @@ describe 'test/test_module', () ->
   testModulejs = require('module.js')
   testModuleMap = require('modulemap')
 
-  it 'expect require the test module according package.json::main', () ->
+  it('expect require the test module according package.json::main', () => {
     expect(test.version).to.be('1.0.1');
     expect(test.moduleName).to.be('test');
+  });
 
-  it 'expect require the test/index', () ->
+  it('expect require the test/index', () => {
     expect(testLibA.run()).to.be('this is test.lib.a')
+  });
 
-  it 'expect require the module with ns, default index.js', () ->
+  it('expect require the module with ns, default index.js', () => {
     expect(testNs.name).to.be('cube can load module with ns: @ali/ns_test');
+  });
 
-  it 'expect require the module with ns, default index.js', () ->
+  it('expect require the module with ns, default index.js', () => {
     expect(testNsCoffee.name).to.be('index coffee')
+  });
 
-  it 'expect require the module with dot success', () ->
+  it('expect require the module with dot success', () => {
     expect(testModuleWithDot).to.be('success')
+  });
 
-  it 'expect require module.js with package.json and index.js', () ->
+  it('expect require module.js with package.json and index.js', () => {
     expect(testModulejs).to.be('module.js/lib/index.js')
+  });
 
-  it 'expect require modulemap should return test', () ->
+  it('expect require modulemap should return test', () => {
     expect(testModuleMap).to.be('test')
+  });
+  
+});

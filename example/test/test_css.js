@@ -1,19 +1,26 @@
-describe 'test/test_css', ()->
+describe('test/test_css', () => {
 
-  it 'expect loading wrap css module fine, compatible with IE hacks', (done) ->
-    load '../css/test_css.css', '', (css) ->
+  it('expect loading wrap css module fine, compatible with IE hacks', (done) => {
+    load('../css/test_css.css', '', (css) => {
       expect(css).to.match(/\.test\s*\{/)
       expect(css).to.match(/color:/)
       done()
+    });
+  });
 
-  it 'expect inject css fine', (done) ->
-    load '../css/test_css.css', '.namespace', (css) ->
+  it('expect inject css fine', (done) => {
+    load('../css/test_css.css', '.namespace', (css) => {
       res = $('style[mod="/css/test_css.css"][ns=".namespace"]').html() || $('style[mod="/css/test_css.css.js"][ns=".namespace"]').html()
       expect(res).to.match(/\.namespace\s+\.test/)
       done()
+    });
+  });
 
-  it 'expect inject css fine with require(css, namespace)', () ->
+  it('expect inject css fine with require(css, namespace)', () => {
     mname = require('../css/test_require_css.css', '.ns');
     node = $('style[mod="' + mname + '"][ns=".ns"]');
     expect(node.length).to.be(1);
     expect(node.html()).to.match(/\.test_require/)
+  });
+
+})
