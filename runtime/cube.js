@@ -131,7 +131,7 @@
    * @param requires
    * @param referer
    */
-  function load(requires, referer) {
+  function load(requires, referer, customArgs) {
     if (typeof requires === 'string') {
       requires = [requires];
     }
@@ -164,6 +164,11 @@
       if (debug) {
         q.push('m');
         q.push('ref=' + referer);
+      }
+      if (customArgs) {
+        Array.prototype.push.apply(q, Object.keys(customArgs).map(c => {
+          return `${c}=${customArgs[c]}`
+        }));
       }
 
       if (q.length) {
@@ -335,8 +340,11 @@
     }
     cb = cb || noop;
 
+    let customArgs;
     if (typeof mods === 'string') {
-      mods = [mods];
+      const arr = mods.split('?');
+      mods = [arr[0]];
+      customArgs = parseQueryString(arr[1]);
     }
     if (!noFix) {
       mods = fixUseModPath(mods);
@@ -363,7 +371,7 @@
       };
     }());
 
-    load(mods, referer);
+    load(mods, referer, customArgs);
     return this;
   };
   /**
@@ -476,5 +484,15 @@
       Cube.init(cfg);
       Cube.use(cfg.main || 'index.js', function(app){app.run&& app.run();});
     }
+  }
+
+  function parseQueryString(param) {
+    var regExp = /([^&=]+)=([\w\W]*?)(&|$)/g;
+    var ret = {};
+        
+    while ((result = regExp.exec(param)) != null) {
+      ret[result[1]] = result[2];
+    }
+    return ret;
   }
 })(window, null);
