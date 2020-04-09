@@ -131,7 +131,7 @@
    * @param requires
    * @param referer
    */
-  function load(requires, referer, customArgs) {
+  function load(requires, referer) {
     if (typeof requires === 'string') {
       requires = [requires];
     }
@@ -157,6 +157,12 @@
 
       var rebaseName = reBase(require);
       var srcPath = rebaseName || (base + require);
+
+      // 解析入参
+      const urlArr = srcPath.split('?');
+      srcPath = urlArr[0];
+      const customArgs = parseQueryString(urlArr[1]);
+
       var q = [];
       if (version) {
         q.push(version);
@@ -165,7 +171,7 @@
         q.push('m');
         q.push('ref=' + referer);
       }
-      if (customArgs) {
+      if (!!urlArr[1] && customArgs) {
         Array.prototype.push.apply(q, Object.keys(customArgs).map(c => {
           return `${c}=${customArgs[c]}`
         }));
@@ -340,12 +346,10 @@
     }
     cb = cb || noop;
 
-    let customArgs;
     if (typeof mods === 'string') {
-      const arr = mods.split('?');
-      mods = [arr[0]];
-      customArgs = parseQueryString(arr[1]);
+      mods = [mods];
     }
+
     if (!noFix) {
       mods = fixUseModPath(mods);
     }
@@ -371,7 +375,7 @@
       };
     }());
 
-    load(mods, referer, customArgs);
+    load(mods, referer);
     return this;
   };
   /**
