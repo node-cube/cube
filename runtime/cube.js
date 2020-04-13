@@ -497,12 +497,12 @@
   }
 
   function parseQueryString(param) {
-    var regExp = /([^&=]+)=([\w\W]*?)(&|$)/g;
-    var ret = {};
-        
-    while ((result = regExp.exec(param)) != null) {
-      ret[result[1]] = result[2];
-    }
-    return ret;
+    let kvs = param.split('&');
+    let obj = {};
+    kvs.forEach((kv) => {
+      let tmp = kv.split('=');
+      obj[tmp[0]] = obj[tmp[1]];
+   });
+    return obj;
   }
 })(window, null);
