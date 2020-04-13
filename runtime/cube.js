@@ -351,7 +351,8 @@
       const tmpArr = m.split('?');
       const mod = tmpArr[0];
       const custom = tmpArr[1];
-      customArgs[mod] = parseQueryString(custom);
+
+      if (!!custom) customArgs[mod] = parseQueryString(custom);
       return mod;
     });
 
