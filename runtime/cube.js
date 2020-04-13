@@ -131,7 +131,8 @@
    * @param requires
    * @param referer
    */
-  function load(requires, referer, customArgs = {}) {
+  function load(requires, referer, customArgs) {
+    customArgs = customArgs || {};
     if (typeof requires === 'string') {
       requires = [requires];
     }
@@ -347,7 +348,9 @@
 
     let customArgs = {};
     mods = mods.map(m => {
-      const [ mod, custom ] = m.split('?');
+      const tmpArr = m.split('?');
+      const mod = tmpArr[0];
+      const custom = tmpArr[1];
       customArgs[mod] = parseQueryString(custom);
       return mod;
     });
