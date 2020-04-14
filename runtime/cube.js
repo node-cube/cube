@@ -132,7 +132,8 @@
    * @param requires
    * @param referer
    */
-  function load(requires, referer) {
+  function load(requires, referer, customArgs) {
+    customArgs = customArgs || {};
     if (typeof requires === 'string') {
       requires = [requires];
     }
@@ -158,6 +159,7 @@
 
       var rebaseName = reBase(require);
       var srcPath = rebaseName || (base + require);
+
       var q = [];
       if (version) {
         q.push(version);
@@ -165,6 +167,11 @@
       if (debug) {
         q.push('m');
         q.push('ref=' + referer);
+      }
+      if (customArgs[require]) {
+        Array.prototype.push.apply(q, Object.keys(customArgs[require]).map(c => {
+          return `${c}=${customArgs[require][c]}`
+        }));
       }
 
       if (q.length) {
@@ -343,6 +350,17 @@
     if (typeof mods === 'string') {
       mods = [mods];
     }
+
+    let customArgs = {};
+    mods = mods.map(m => {
+      const tmpArr = m.split('?');
+      const mod = tmpArr[0];
+      const custom = tmpArr[1];
+
+      if (!!custom) customArgs[mod] = parseQueryString(custom);
+      return mod;
+    });
+
     if (!noFix) {
       mods = fixUseModPath(mods);
     }
@@ -376,7 +394,7 @@
       };
     }());
 
-    load(mods, referer);
+    load(mods, referer, customArgs);
     return this;
   };
   /**
@@ -489,5 +507,15 @@
       Cube.init(cfg);
       Cube.use(cfg.main || 'index.js', function(app){app.run&& app.run();});
     }
+  }
+
+  function parseQueryString(param) {
+    let kvs = param.split('&');
+    let obj = {};
+    kvs.forEach((kv) => {
+      let tmp = kv.split('=');
+      obj[tmp[0]] = obj[tmp[1]];
+    });
+    return obj;
   }
 })(window, null);
