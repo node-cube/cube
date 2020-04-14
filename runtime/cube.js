@@ -502,7 +502,7 @@
     kvs.forEach((kv) => {
       let tmp = kv.split('=');
       obj[tmp[0]] = obj[tmp[1]];
-   });
+    });
     return obj;
   }
 })(window, null);
