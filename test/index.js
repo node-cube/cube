@@ -250,7 +250,7 @@ describe('index.js', function () {
       request.get('/test/test_error.js?m')
         .expect(200)
         .expect(function (res) {
-          expect(res.text).match(/Unexpected token/ig);
+          expect(res.text).match(/Missing semicolon/ig);
         })
         .end(done);
     });
