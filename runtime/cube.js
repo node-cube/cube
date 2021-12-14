@@ -37,7 +37,7 @@
   /* store requires before init */
   var inited = false;
   var loadQueue = [];
-  console.time('cube load');
+  debug && console.time('cube load');
   /**
    * The require function
    * @param module
@@ -89,8 +89,9 @@
    */
   function reBase(mod) {
     var offset = mod.indexOf ? mod.indexOf(remoteSeparator) : 0;
-    if (offset > 0) {
-      return remoteBase[mod.substr(0, offset)] + mod.substr(offset + 1);
+    var rbase = mod.substr(0, offset);
+    if (offset > 0 && remoteBase[rbase]) {
+      return remoteBase[rbase] + mod.substr(offset + 1);
     } else {
       return '';
     }
@@ -122,7 +123,7 @@
         return false;
       }
     }
-    console.timeEnd('cube load');
+    debug && console.timeEnd('cube load');
     startAppAndCallback();
   }
 
@@ -197,10 +198,11 @@
   function fireModule(module) {
     var m = installedModules[module];
     if (!m) {
+      const err = new Error('Cube Error: Cannot find module ' + '\'' + module + '\'');
       if (strict) {
-        throw new Error('Cube Error: Cannot find module ' + '\'' + module + '\'');
+        throw err;
       } else {
-        log.error(e);
+        log.error(err);
         return {};
       }
     }
@@ -225,7 +227,7 @@
    */
   function startAppAndCallback() {
     var key, arr;
-    console.time('cube exec');
+    debug && console.time('cube exec');
     for (key in entrances) {
       if (entrances.hasOwnProperty(key)) {
         arr = key.split(',');
@@ -244,7 +246,7 @@
         });
       }
     }
-    console.timeEnd('cube exec');
+    debug && console.timeEnd('cube exec');
   }
 
 
@@ -391,7 +393,7 @@
    */
   Cube.register = function (module, exports) {
     if (installedModules[module]) {
-      return log.error('Cube Error: Module ' + '\'' + module + '\'' + ' already registered');
+      return log.warn('Cube Warning: Module ' + '\'' + module + '\'' + ' already registered');
     }
     installedModules[module] = {
       exports: exports,
