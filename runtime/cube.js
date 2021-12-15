@@ -89,12 +89,12 @@
    */
   function reBase(mod) {
     var offset = mod.indexOf ? mod.indexOf(remoteSeparator) : 0;
+    if (offset <= 0) return '';
+    
     var rbase = mod.substr(0, offset);
-    if (offset > 0 && remoteBase[rbase]) {
-      return remoteBase[rbase] + mod.substr(offset + 1);
-    } else {
-      return '';
-    }
+    if (!remoteBase[rbase]) return '';
+
+    return remoteBase[rbase] + mod.substr(offset + 1);
   }
 
   function fixUseModPath(mods) {
