@@ -23,6 +23,9 @@
   var strict = true;
   var debug = true;
   var entrances = {};  // Cube.use's cb
+  // 兼容请求 key 带入参，返回 key 不带入参的情况。eg. 请求 /xxx?env=xx 返回 Cube('/xxx',), requireMap 缓存了 { '/xxx': '/xxx?env=xx' }
+  // 此兼容是在业务方已知的情况，后期会改造返回的代码头。
+  var requireMap = {};
 
   var mockedProcess = {
     env: {NODE_ENV: 'production'}
@@ -132,8 +135,7 @@
    * @param requires
    * @param referer
    */
-  function load(requires, referer, customArgs) {
-    customArgs = customArgs || {};
+  function load(requires, referer) {
     if (typeof requires === 'string') {
       requires = [requires];
     }
@@ -146,6 +148,9 @@
       if (installedModules[require]) {
         return;
       }
+
+      // 只有拼 src 时要带上 m & ref 时才需要分离 require 里的入参 query, 平时 /xxx?query=xx 才作为 installedModules 的 key
+      const [mod, custom] = require.split('?');
       // download form server
       var script = doc.createElement('script');
       script.type = 'text/javascript';
@@ -157,8 +162,8 @@
         });
       };
 
-      var rebaseName = reBase(require);
-      var srcPath = rebaseName || (base + require);
+      var rebaseName = reBase(mod);
+      var srcPath = rebaseName || (base + mod);
 
       var q = [];
       if (version) {
@@ -168,9 +173,11 @@
         q.push('m');
         q.push('ref=' + referer);
       }
-      if (customArgs[require]) {
-        Array.prototype.push.apply(q, Object.keys(customArgs[require]).map(c => {
-          return `${c}=${customArgs[require][c]}`
+
+      if (custom) {
+        const customArgs = parseQueryString(custom);
+        Array.prototype.push.apply(q, Object.keys(customArgs).map(c => {
+          return `${c}=${customArgs[c]}`
         }));
       }
 
@@ -185,6 +192,7 @@
         loaded: false,
         fired: false
       };
+      requireMap[mod] = require;
       loading[require] = true;
     });
     checkAllDownloaded();
@@ -249,14 +257,16 @@
     debug && console.timeEnd('cube exec');
   }
 
-
   /**
    * 非构造函数,只供模块的wrapper调用
+   * installedModules[name] name 是带入参的，不同入参的，不同key
    * @param name
    * @param requires
    * @param callback
    */
   function Cube(name, requires, callback) {
+    // 暂时兼容返回的 name 不带入参的情况 
+    name = requireMap[name] || name;
     var mod = installedModules[name];
     if (!mod) {
       mod = installedModules[name] = {
@@ -266,6 +276,7 @@
     }
     mod.loaded = true;
     mod.fn = callback;
+    requireMap[name] && delete requireMap[name];
     if (loading[name]) {
       delete loading[name];
       load(requires, name);
@@ -348,16 +359,6 @@
       mods = [mods];
     }
 
-    let customArgs = {};
-    mods = mods.map(m => {
-      const tmpArr = m.split('?');
-      const mod = tmpArr[0];
-      const custom = tmpArr[1];
-
-      if (!!custom) customArgs[mod] = parseQueryString(custom);
-      return mod;
-    });
-
     if (!noFix) {
       mods = fixUseModPath(mods);
     }
@@ -383,7 +384,7 @@
       };
     }());
 
-    load(mods, referer, customArgs);
+    load(mods, referer);
     return this;
   };
   /**
