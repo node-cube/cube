@@ -22,7 +22,7 @@
   var version;
   var strict = true;
   var debug = true;
-  var entrances = {};  // Cube.use's cb
+  var entrances = new Map();  // Cube.use's cb
   // 兼容请求 key 带入参，返回 key 不带入参的情况。eg. 请求 /xxx?env=xx 返回 Cube('/xxx',), requireMap 缓存了 { '/xxx': '/xxx?env=xx' }
   // 此兼容是在业务方已知的情况，后期会改造返回的代码头。
   var requireMap = {};
@@ -234,25 +234,24 @@
    * 从Cube.use的文件开始自上而下运行,并调用回调函数
    */
   function startAppAndCallback() {
-    var key, arr;
     debug && console.time('cube exec');
-    for (key in entrances) {
-      if (entrances.hasOwnProperty(key)) {
-        arr = key.split(',');
-        arr.forEach(function (entrance) {
-          var count = 0;
-          fireModule(entrance);
-          entrances[key].forEach(function (fn) {
-            var called = fn(installedModules[entrance].exports);
-            if (called) {
-              count++;
-            }
-          });
-          if (entrances[key].length === count) {  // 回调函数都执行完后删除
-            delete entrances[key];
+    for (let [key, value] of entrances) {
+      key.length && key.forEach(function (entrance) {
+        // 出现多次 startAppAndCallback, 在某次 startAppAndCallback 未结束时，entrances 增加了，但其实 loading 并未结束
+        // 严格检查
+        if (loading[entrance]) return;
+        var count = 0;
+        fireModule(entrance);
+        value.length && value.forEach(function (fn) {
+          var called = fn(installedModules[entrance].exports);
+          if (called) {
+            count++;
           }
         });
-      }
+        if (value.length === count) {  // 回调函数都执行完后删除
+          entrances.delete(key);
+        }
+      });
     }
     debug && console.timeEnd('cube exec');
   }
@@ -363,10 +362,11 @@
       mods = fixUseModPath(mods);
     }
 
-    if (!entrances[mods]) {
-      entrances[mods] = [];
+    // WARN: mods 是数组，会被自然的用 , 拼接，但 query 入参也可能带 , 所以这边 entrances 用 Map
+    if (!entrances.has(mods)) {
+      entrances.set(mods, []);
     }
-    entrances[mods].push(function () {
+    entrances.get(mods).push(function () {
       var apps = [];
       var length = mods.length;
       var firing = false;
