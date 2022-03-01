@@ -265,6 +265,7 @@
    */
   function Cube(name, requires, callback) {
     // 暂时兼容返回的 name 不带入参的情况 
+    const oldName = name;
     name = requireMap[name] || name;
     var mod = installedModules[name];
     if (!mod) {
@@ -275,7 +276,7 @@
     }
     mod.loaded = true;
     mod.fn = callback;
-    requireMap[name] && delete requireMap[name];
+    requireMap[oldName] && delete requireMap[oldName];
     if (loading[name]) {
       delete loading[name];
       load(requires, name);
