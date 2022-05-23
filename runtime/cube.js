@@ -26,6 +26,7 @@
   // 兼容请求 key 带入参，返回 key 不带入参的情况。eg. 请求 /xxx?env=xx 返回 Cube('/xxx',), requireMap 缓存了 { '/xxx': '/xxx?env=xx' }
   // 此兼容是在业务方已知的情况，后期会改造返回的代码头。
   var requireMap = {};
+  var registerArr = [];
 
   var mockedProcess = {
     env: {NODE_ENV: 'production'}
@@ -145,12 +146,12 @@
     }
 
     requires.forEach(function (require) {
-      if (installedModules[require]) {
+      if (installedModules[require] || getGlobalRegister(require)) {
         return;
       }
-
+      
       // 只有拼 src 时要带上 m & ref 时才需要分离 require 里的入参 query, 平时 /xxx?query=xx 才作为 installedModules 的 key
-      const [mod, custom] = require.split('?');
+      const [mod, custom] = String(require).split('?');
       // download form server
       var script = doc.createElement('script');
       script.type = 'text/javascript';
@@ -198,13 +199,23 @@
     checkAllDownloaded();
   }
 
+  // require => datav:/npm/react/16.4.6?env=xxx
+  function getGlobalRegister(require) {
+    for (const register of registerArr) {
+      if (require && register.match.test(require)) {
+        return register.module;
+      } 
+    }
+    return false;
+  }
+
   /**
    * 运行模块
    * @param module
    * @returns {*}
    */
   function fireModule(module) {
-    var m = installedModules[module];
+    var m = installedModules[module] || getGlobalRegister(module);
     if (!m) {
       const err = new Error('Cube Error: Cannot find module ' + '\'' + module + '\'');
       if (strict) {
@@ -265,7 +276,7 @@
    */
   function Cube(name, requires, callback) {
     // 暂时兼容返回的 name 不带入参的情况 
-    const oldName = name;
+    const oldName = String(name);
     name = requireMap[name] || name;
     var mod = installedModules[name];
     if (!mod) {
@@ -390,10 +401,12 @@
   };
   /**
    * register module in to cache
-   * @param  {string} module    [description]
-   * @param  {} exports [description]
+   * @param {string} module [description]
+   * @param {} exports [description]
+   * @param {object} options 配置项
+   * @param {string} options.matchType 匹配模式，version 默认为按版本全匹配; module 按库级别，只要库一致就替换
    */
-  Cube.register = function (module, exports) {
+  Cube.register = function (module, exports, { matchType = 'version' } = {}) {
     if (installedModules[module]) {
       return log.warn('Cube Warning: Module ' + '\'' + module + '\'' + ' already registered');
     }
@@ -401,8 +414,18 @@
       exports: exports,
       fn: noop,
       loaded: true,
-      fired: true
+      fired: true,
     };
+
+    if (matchType === 'module') {
+      registerArr.push({
+        require: module,
+        matchType,
+        match: new RegExp(`^datav:\/npm\/${module}\/([^\/]+)?$`),
+        module: installedModules[module],
+      });
+    }
+
     return this;
   };
   /**
