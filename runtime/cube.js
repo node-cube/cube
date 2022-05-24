@@ -32,6 +32,7 @@
     env: {NODE_ENV: 'production'}
   };
   var mockedGlobal = undefined;
+  var esModule = false;
 
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
   var loading = {};
@@ -238,7 +239,7 @@
         }
       }
     }
-    return m.exports;
+    return isEsModule(m.exports) ? m.exports.default : m.exports;
   }
 
   /**
@@ -252,9 +253,9 @@
         // 严格检查
         if (loading[entrance]) return;
         var count = 0;
-        fireModule(entrance);
+        const exportModule = fireModule(entrance);
         value.length && value.forEach(function (fn) {
-          var called = fn(installedModules[entrance].exports);
+          var called = fn(exportModule);
           if (called) {
             count++;
           }
@@ -334,6 +335,10 @@
     }
     if (config.global) {
       mockedGlobal = config.global;
+    }
+    // support ES6 module, default is true
+    if (config.esModule !== undefined) {
+      esModule = config.esModule;
     }
 
     inited = true;
@@ -531,5 +536,9 @@
       obj[tmp[0]] = tmp[1];
     });
     return obj;
+  }
+
+  function isEsModule(module) {
+    return esModule && module && typeof module === 'object' && module.__esModule;
   }
 })(window, null);
