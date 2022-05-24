@@ -32,7 +32,7 @@
     env: {NODE_ENV: 'production'}
   };
   var mockedGlobal = undefined;
-  var esModule = true;
+  var esModule = false;
 
   var installedModules = {/*exports, fn, loaded, fired*/};  // The module cache
   var loading = {};
