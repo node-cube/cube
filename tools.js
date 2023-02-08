@@ -280,7 +280,7 @@ function processDirSmart(cube, data, cb) {
         // );
         xfs.writeFileSync(
           path.join(dest, 'cube.js'),
-          xfs.readFileSync(path.join(__dirname, './runtime-reconstruct/cube.min.js'))
+          xfs.readFileSync(path.join(__dirname, './runtime/cube-reconstruction.min.js'))
         );
         xfs.writeFileSync(
           path.join(dest, 'cube_file_map.json'),
