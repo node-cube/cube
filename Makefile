@@ -5,6 +5,7 @@ install:
 
 release:
 	@$(min) ./runtime/cube.js -o ./runtime/cube.min.js
+	@$(min) ./runtime/cube-reconstruction.js -o ./runtime/cube-reconstruction.min.js
 	@node ./bin/version.js
 
 publish: release tag
