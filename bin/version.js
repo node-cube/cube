@@ -1,16 +1,23 @@
 'use strict';
 
-var fs = require('xfs');
-var path = require('path');
-var pkg = require('../package.json');
-var fpath = path.join(__dirname, '../runtime/cube.min.js');
-var code = fs.readFileSync(fpath).toString();
+const fs = require('xfs');
+const path = require('path');
+const pkg = require('../package.json');
+const fpath1 = path.join(__dirname, '../runtime/cube.min.js');
+const fpath2 = path.join(__dirname, '../runtime/cube-reconstruction.min.js');
 
-code = code.replace(/\$\$version\$\$/, pkg.version);
-var cmt =
-`/*!
- * Cube v${pkg.version}
- */
-`;
+function combine(fpath) {
+  let code = fs.readFileSync(fpath).toString();
 
-fs.writeFileSync(fpath, cmt + code);
+  code = code.replace(/\$\$version\$\$/, pkg.version);
+  const cmt =
+  `/*!
+  * Cube v${pkg.version}
+  */
+  `;
+
+  fs.writeFileSync(fpath, cmt + code);
+}
+
+combine(fpath1);
+combine(fpath2);
