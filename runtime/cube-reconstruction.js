@@ -1,10 +1,24 @@
 // WATCH! 该文件由 cube-reconstruct.ts 导出 请勿直接改动
-var __assign =
-  (this && this.__assign) ||
-  function () {
+(function () {
+  /******************************************************************************
+  Copyright (c) Microsoft Corporation.
+  
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted.
+  
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+  REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+  INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+  LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  PERFORMANCE OF THIS SOFTWARE.
+  ***************************************************************************** */
+
+  var __assign = function () {
     __assign =
       Object.assign ||
-      function (t) {
+      function __assign(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
           s = arguments[i];
           for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
@@ -13,9 +27,8 @@ var __assign =
       };
     return __assign.apply(this, arguments);
   };
-var __spreadArray =
-  (this && this.__spreadArray) ||
-  function (to, from, pack) {
+
+  function __spreadArray(to, from, pack) {
     if (pack || arguments.length === 2)
       for (var i = 0, l = from.length, ar; i < l; i++) {
         if (ar || !(i in from)) {
@@ -24,151 +37,133 @@ var __spreadArray =
         }
       }
     return to.concat(ar || Array.prototype.slice.call(from));
-  };
-// 支持 cube 的一些工具方法
-function noop() {}
-function baseCodeProxy(c) {
-  return c;
-}
-function fetchCubeCode(url, inputCodeProxy) {
-  var codeProxy = inputCodeProxy || baseCodeProxy;
-  return fetch(url, {
-    headers: {
-      'Content-Type': 'text/plain',
-    },
-  })
-    .then(function (response) {
-      return response.text();
+  }
+
+  // 支持 cube 的一些工具方法
+  function noop() {}
+  function baseCodeProxy(c) {
+    return c;
+  }
+  function combineExecute(c) {
+    return 'Cube.cStart();' + c + ';Cube.cStop();';
+  }
+  function fetchCubeCode(url, inputCodeProxy) {
+    var codeProxy = inputCodeProxy || baseCodeProxy;
+    return fetch(url, {
+      headers: {
+        'Content-Type': 'text/plain',
+      },
     })
-    .then(function (code) {
-      return new Function(codeProxy(code))();
-    });
-}
-var head = document.querySelector('head');
-/** 原有 cube 请求方法 */
-function scriptCubeCode(url) {
-  var script = document.createElement('script');
-  script.type = 'text/javascript';
-  script.async = true;
-  script.onerror = function () {
-    window.Cube(require, [], function () {
-      console.error('load module: '.concat(require, ' failed.'));
-    });
-  };
-  script.src = url;
-  head.appendChild(script);
-}
-function generateModuleCallback(moduleNames, callback) {
-  var exportModules = {};
-  return function (exportModule, path) {
-    exportModules[path] = exportModule;
-    // 外部调用时保障了对应关系 此处简单判断
-    if (Object.keys(exportModules).length === moduleNames.length) {
-      // 保证 module 顺序
-      callback.apply(
-        void 0,
-        moduleNames.map(function (k) {
-          return exportModules[k];
-        })
-      );
-      return true;
-    }
-    return false;
-  };
-}
-function fixMododulePath(paths, remoteSeparator) {
-  var len = paths.length;
-  var mod;
-  for (var i = 0; i < len; i++) {
-    mod = paths[i];
-    if (mod.indexOf(remoteSeparator) === -1) {
-      /** fix #12 **/
-      if (mod.indexOf('./') === 0) {
-        // be compatible with ./test.js
-        paths[i] = mod.substr(1);
-      } else if (mod[0] !== '/') {
-        // be campatible with test.js
-        paths[i] = '/' + mod;
+      .then(function (response) {
+        return response.text();
+      })
+      .then(function (code) {
+        return new Function(codeProxy(code))();
+      });
+  }
+  var head = document.querySelector('head');
+  /** 原有 cube 请求方法 */
+  function scriptCubeCode(url) {
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.async = true;
+    script.onerror = function () {
+      console.error('load module failed.');
+    };
+    script.src = url;
+    head.appendChild(script);
+  }
+  function fixMododulePath(paths, remoteSeparator) {
+    var len = paths.length;
+    var mod;
+    for (var i = 0; i < len; i++) {
+      mod = paths[i];
+      if (mod.indexOf(remoteSeparator) === -1) {
+        /** fix #12 **/
+        if (mod.indexOf('./') === 0) {
+          // be compatible with ./test.js
+          paths[i] = mod.substr(1);
+        } else if (mod[0] !== '/') {
+          // be campatible with test.js
+          paths[i] = '/' + mod;
+        }
       }
     }
+    return paths;
   }
-  return paths;
-}
-var parseCssRe = /([^};]+)(\{[^}]+\})/g;
-/** 原有 css 请求方法 */
-function scriptCubeCss(originCss, namespace, file) {
-  var css = originCss;
-  if (namespace) {
-    css = originCss.replace(parseCssRe, function (_m0, m1, m2) {
-      var selectors = m1.split(',').map(function (selector) {
-        return namespace + ' ' + selector.trim();
+  var parseCssRe = /([^};]+)(\{[^}]+\})/g;
+  /** 原有 css 请求方法 */
+  function scriptCubeCss(originCss, namespace, file) {
+    var css = originCss;
+    if (namespace) {
+      css = originCss.replace(parseCssRe, function (_m0, m1, m2) {
+        var selectors = m1.split(',').map(function (selector) {
+          return namespace + ' ' + selector.trim();
+        });
+        return selectors.join(',') + m2;
       });
-      return selectors.join(',') + m2;
+    }
+    var style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    if (file) {
+      style.setAttribute('mod', file);
+    }
+    if (namespace) {
+      style.setAttribute('ns', namespace);
+    }
+    head.appendChild(style);
+    style.innerHTML = css;
+    return css;
+  }
+  function parseQueryString(param) {
+    var kvs = param.split('&');
+    var obj = {};
+    kvs.forEach(function (kv) {
+      var tmp = kv.split('=');
+      obj[tmp[0]] = tmp[1];
     });
+    return obj;
   }
-  var style = document.createElement('style');
-  style.setAttribute('type', 'text/css');
-  if (file) {
-    style.setAttribute('mod', file);
+  /**
+   * If name is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
+   */
+  function rebase(name, config) {
+    var base = config.base,
+      remoteSeparator = config.remoteSeparator,
+      remoteBase = config.remoteBase;
+    var defaultPath = base + name;
+    var offset = name.indexOf ? name.indexOf(remoteSeparator) : 0;
+    if (offset <= 0) return defaultPath;
+    var rbase = name.substr(0, offset);
+    if (!remoteBase[rbase]) return defaultPath;
+    return remoteBase[rbase] + name.substr(offset + 1);
   }
-  if (namespace) {
-    style.setAttribute('ns', namespace);
-  }
-  head.appendChild(style);
-  style.innerHTML = css;
-  return css;
-}
-function parseQueryString(param) {
-  var kvs = param.split('&');
-  var obj = {};
-  kvs.forEach(function (kv) {
-    var tmp = kv.split('=');
-    obj[tmp[0]] = tmp[1];
-  });
-  return obj;
-}
-/**
- * If name is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
- */
-function rebase(name, config) {
-  var base = config.base,
-    remoteSeparator = config.remoteSeparator,
-    remoteBase = config.remoteBase;
-  var defaultPath = base + name;
-  var offset = name.indexOf ? name.indexOf(remoteSeparator) : 0;
-  if (offset <= 0) return defaultPath;
-  var rbase = name.substr(0, offset);
-  if (!remoteBase[rbase]) return defaultPath;
-  return remoteBase[rbase] + name.substr(offset + 1);
-}
 
-/**
- * 默认配置项变量
- */
-var DEFAULT_CUBE_CONFIG = {
-  base: '',
-  remoteBase: {},
-  remoteSeparator: ':',
-  mockedProcess: {
-    env: { NODE_ENV: 'production' },
-  },
-  mockedGlobal: undefined,
-  /** 这个字段应该已经废弃了 */
-  charset: 'utf-8',
-  /** 仅严格模式 */
-  strict: true,
-  /** 声明组件源码是否使用 esModule 模式*/
-  esModule: false,
-  version: undefined,
-  /** 是否开启 debug 模式*/
-  debug: true,
-  /** 是否开启请求合并 */
-  combine: false,
-  /** 声明使用 fetch 请求还是创建 script 请求 */
-  requestMethod: 'fetch',
-};
-
-(function () {
+  /**
+   * 默认配置项变量
+   */
+  var DEFAULT_CUBE_CONFIG = {
+    base: '',
+    remoteBase: {},
+    remoteSeparator: ':',
+    mockedProcess: {
+      env: { NODE_ENV: 'production' },
+    },
+    mockedGlobal: undefined,
+    /** 这个字段应该已经废弃了 */
+    charset: 'utf-8',
+    /** 仅严格模式 */
+    strict: true,
+    /** 声明组件源码是否使用 esModule 模式*/
+    esModule: false,
+    version: undefined,
+    /** 是否开启 debug 模式*/
+    debug: true,
+    /** 是否开启请求合并 */
+    combine: false,
+    /** 声明使用 fetch 请求还是创建 script 请求 */
+    requestMethod: 'fetch',
+  };
   /**
    * cube 重构
    * https://yuque.antfin.com/lcv0by/ph89oq/chzehxz50ldg5krg
@@ -190,12 +185,13 @@ var DEFAULT_CUBE_CONFIG = {
         /** 记录 css 模块加载情况 */
         cssModule: {},
         /** 已下载模块 */
-        installedModules: {},
+        installedModules: getStringOnlyObj(),
         /** 注册模块 */
         registerModules: [],
         // 兼容请求 key 带入参，返回 key 不带入参的情况。
         // eg. 请求 /xxx?env=xx 返回 Cube('/xxx',), requireMap 缓存了 { '/xxx': '/xxx?env=xx' }
         requireMap: {},
+        fileExecuting: false,
       };
       /**
        * 跳过请求注册模块
@@ -218,6 +214,7 @@ var DEFAULT_CUBE_CONFIG = {
           refer: { upperDep: [], entryDep: [] },
           ready: true,
           loaded: true,
+          firing: false,
           fired: true,
         };
         if (matchType === 'module') {
@@ -231,7 +228,7 @@ var DEFAULT_CUBE_CONFIG = {
       };
       /** 初始化 */
       this.init = function (config) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e;
         if (config.base && config.base !== '/') {
           _this.config.base = config.base.replace(/\/$/, '');
         }
@@ -246,6 +243,8 @@ var DEFAULT_CUBE_CONFIG = {
         _this.config.esModule = (_b = config.esModule) !== null && _b !== void 0 ? _b : _this.config.esModule;
         _this.config.debug = (_c = config.debug) !== null && _c !== void 0 ? _c : _this.config.debug;
         _this.config.combine = (_d = config.combine) !== null && _d !== void 0 ? _d : _this.config.combine;
+        _this.config.requestMethod =
+          (_e = config.requestMethod) !== null && _e !== void 0 ? _e : _this.config.requestMethod;
         _this.state.inited = true;
         while (_this.state.pendingQueue.length) {
           var pendingInfo = _this.state.pendingQueue.shift();
@@ -261,7 +260,12 @@ var DEFAULT_CUBE_CONFIG = {
         }
         // 整理入参
         // 确保 moduleNames 唯一
-        var moduleNames = typeof moduleName === 'string' ? [moduleName] : __spreadArray([], moduleName, true);
+        var moduleNames =
+          typeof moduleName === 'string'
+            ? [moduleName]
+            : typeof moduleName === 'number'
+            ? [moduleName.toString()]
+            : __spreadArray([], moduleName, true);
         var omitFix = omitFixOrUndefined;
         // let _referer: string | undefined;
         var callback;
@@ -279,11 +283,16 @@ var DEFAULT_CUBE_CONFIG = {
           callback: callback,
           loadSources: __spreadArray([], moduleNames, true),
         });
-        _this._load(moduleNames, moduleNames);
+        moduleNames.forEach(function (mName) {
+          return _this._load(mName, moduleNames);
+        });
       };
       /** 执行 cube 源码 即原 Cube(...) */
       this.execute = function (responseName, requires, sourceCode) {
         var _a;
+        if (typeof responseName === 'number') {
+          responseName = responseName.toString();
+        }
         var moduleName = _this._calibrateName(responseName);
         // load 处已做判断 但仍有可能某个模块源码带有其他冗余模块的情况
         if ((_a = _this.state.installedModules[moduleName]) === null || _a === void 0 ? void 0 : _a.loaded) {
@@ -329,44 +338,47 @@ var DEFAULT_CUBE_CONFIG = {
             refer: { upperDep: [], entryDep: [] },
             loaded: true,
             ready: false,
+            firing: false,
             fired: false,
           };
         }
       };
       /** 请求资源 */
-      this._load = function (moduleNames, refer) {
-        if (!_this.state.inited) {
-          _this.state.pendingQueue.push([moduleNames, refer]);
+      this._load = function (moduleName, refer) {
+        if (typeof moduleName === 'number') {
+          moduleName = moduleName.toString();
+        }
+        if (!_this.state.inited || _this.state.fileExecuting) {
+          _this.state.pendingQueue.push([moduleName, refer]);
           return;
         }
-        moduleNames.forEach(function (moduleName) {
-          var module = _this.state.installedModules[moduleName];
-          if (_this._getReadyModule(moduleName)) {
-            _this._triggerCallback(_this._addReferToModule({ upperDep: [], entryDep: [] }, refer));
-            return;
-          }
-          if (module) {
-            _this._addReferToModule(module.refer, refer);
-            return;
-          }
-          var name = moduleName.split('?')[0];
-          _this.state.requireMap[name] = moduleName;
-          _this.state.installedModules[moduleName] = {
-            exports: {},
-            sourceCode: undefined,
-            dep: [],
-            refer: {
-              entryDep: [],
-              upperDep: [],
-            },
-            loaded: false,
-            ready: false,
-            fired: false,
-          };
-          _this._addReferToModule(_this.state.installedModules[moduleName].refer, refer);
-          var srcPath = _this._generatePath(moduleName);
-          fetchCubeCode(srcPath);
-        });
+        var module = _this.state.installedModules[moduleName];
+        if (_this._getReadyModule(moduleName)) {
+          _this._triggerCallback(_this._addReferToModule({ upperDep: [], entryDep: [] }, refer));
+          return;
+        }
+        if (module) {
+          _this._addReferToModule(module.refer, refer);
+          return;
+        }
+        var name = moduleName.split('?')[0];
+        _this.state.requireMap[name] = moduleName;
+        _this.state.installedModules[moduleName] = {
+          exports: {},
+          sourceCode: undefined,
+          dep: [],
+          refer: {
+            entryDep: [],
+            upperDep: [],
+          },
+          loaded: false,
+          ready: false,
+          firing: false,
+          fired: false,
+        };
+        _this._addReferToModule(_this.state.installedModules[moduleName].refer, refer);
+        var srcPath = _this._generatePath(moduleName);
+        _this.config.requestMethod === 'fetch' ? fetchCubeCode(srcPath, combineExecute) : scriptCubeCode(srcPath);
       };
       /** 向上检索树依赖及回调 */
       this._triggerCallback = function (refer) {
@@ -392,24 +404,39 @@ var DEFAULT_CUBE_CONFIG = {
           if (module.dep.length) {
             var allLoad_1 = true;
             module.dep.forEach(function (name) {
-              if (_this._getReadyModule(name)) return;
-              if (_this._checkCursiveDep(moduleName, name)) return;
+              var dep = _this._getModule(name);
+              if (dep) {
+                if (dep.fired || dep.firing || dep.ready) return;
+              }
               allLoad_1 = false;
-              _this._load([name], moduleName);
+              _this._load(name, moduleName);
             });
             if (!allLoad_1) return;
           }
         }
-        // 此处直接fire 请求资源都默认为需要的
         _this.state.installedModules[moduleName].ready = true;
+        // 由于目前的文件管理机制，此处不能立刻实例化，仅允许顶层触发
         _this._triggerCallback(module.refer);
       };
       /** 执行回调函数 */
       this._triggerEntryCallback = function (entry) {
         var entryInfo = _this.state.entrances.get(entry);
         if (entryInfo && entryInfo.loadSources.every(_this._getReadyModule)) {
-          // 存在隐藏依赖的情况 降低 _fireModule 触发时机
-          if (entryInfo.loadSources.every(_this._fireModule)) {
+          var readyCallback_1 = true;
+          entryInfo.loadSources.forEach(function (moduleName) {
+            var module = _this._getModule(moduleName);
+            if (module.fired) return;
+            if (module.firing) {
+              readyCallback_1 = false;
+              return;
+            }
+            if (module.ready) {
+              _this._fireModule(moduleName);
+              if (module.fired) return;
+            }
+            readyCallback_1 = false;
+          });
+          if (readyCallback_1) {
             entryInfo.callback.apply(
               entryInfo,
               entry.map(function (e) {
@@ -425,10 +452,16 @@ var DEFAULT_CUBE_CONFIG = {
         var module = _this.state.installedModules[moduleName];
         if (!module || !module.ready) return false;
         if (module.fired) return true;
+        // 处理循环依赖问题
+        if (module.firing) {
+          return true;
+        }
         var fireResult = true;
         try {
+          module.firing = true;
           var exports = module.sourceCode.apply(window, [
             module,
+            // 此处需要组件不改变实例
             module.exports,
             _this._cubeRequire(moduleName),
             _this._cubeLoad(moduleName),
@@ -447,13 +480,14 @@ var DEFAULT_CUBE_CONFIG = {
             module.error = true;
           }
         } finally {
+          module.firing = false;
           // 避免组件内部有 catch 导致 抓不到错误的情况
           if (_this.state.lostDepModule[moduleName]) {
             module.ready = false;
             _this.state.lostDepModule[moduleName].forEach(function (name) {
               if (!module.dep.includes(name)) {
                 module.dep.push(name);
-                _this._load([name], moduleName);
+                _this._load(name, moduleName);
                 console.warn('Cube module '.concat(moduleName, ' \u7F3A\u5931\u58F0\u660E\u4F9D\u8D56 ').concat(name));
               }
             });
@@ -473,14 +507,8 @@ var DEFAULT_CUBE_CONFIG = {
             if (module === null || module === void 0 ? void 0 : module.fired) {
               return module.exports;
             }
-            if (_this._checkCursiveDep(selfName, moduleName)) {
-              console.error(
-                'Cube \u68C0\u6D4B\u5230\u5FAA\u73AF\u4F9D\u8D56 '.concat(moduleName, ' --> ').concat(selfName)
-              );
-              return {};
-            }
-            var fireSucceed = _this._fireModule(moduleName);
-            if (!module || !fireSucceed) {
+            var fireFinished = _this._fireModule(moduleName);
+            if (!module || !fireFinished) {
               if (_this.state.lostDepModule[selfName]) {
                 _this.state.lostDepModule[selfName].push(moduleName);
               } else {
@@ -533,8 +561,6 @@ var DEFAULT_CUBE_CONFIG = {
           custom = _a[1];
         var srcPath = rebase(name, _this.config);
         var query = [];
-        // 历史逻辑 疑似命中缓存
-        query.push('m=1');
         if (_this.config.version) {
           query.push(_this.config.version);
         }
@@ -542,12 +568,16 @@ var DEFAULT_CUBE_CONFIG = {
           query.push('combine=true');
         }
         if (custom) {
-          var customArgs_2 = parseQueryString(custom);
+          var customArgs_1 = parseQueryString(custom);
           query.push(
-            Object.keys(customArgs_2).map(function (c) {
-              return ''.concat(c, '=').concat(customArgs_2[c]);
+            Object.keys(customArgs_1).map(function (c) {
+              return ''.concat(c, '=').concat(customArgs_1[c]);
             })
           );
+        }
+        // 历史逻辑 疑似命中缓存
+        if (!query.includes('m=1')) {
+          query.push('m=1');
         }
         if (query.length) {
           srcPath = srcPath + '?' + query.join('&');
@@ -579,15 +609,6 @@ var DEFAULT_CUBE_CONFIG = {
         }
         return moduleName;
       };
-      // /** 引用信息缺失时 自构建引用关系 剩者为王 */
-      // private chaosBattle = (names: string[]) => {
-      //   if (names.length === 1) {
-      //     this._initiateAndCallback(names[0]);
-      //   } else if (names.length > 1) {
-      //     // this.state.combineStatus = 'execute';
-      //     names.forEach((name) => this._initiateAndCallback(name));
-      //   }
-      // };
       /**
        * 获取全局默认模块
        * requirePath => datav:/npm/react/16.4.6?env=xxx
@@ -616,30 +637,15 @@ var DEFAULT_CUBE_CONFIG = {
       this._isEsModule = function (module) {
         return _this.config.esModule && module && typeof module === 'object' && module.__esModule;
       };
-      this._checkCursiveDep = function (selfName, requireName) {
-        if (requireName === selfName) return true;
-        var depArr = [requireName];
-        var detected = false;
-        var times = 6; // 防止下层依赖环
-        var _loop_1 = function () {
-          var newDep = [];
-          depArr.forEach(function (d) {
-            var depModule = _this.state.installedModules[d];
-            if (depModule && !depModule.fired) {
-              newDep.push.apply(newDep, depModule.dep);
-            }
-          });
-          if (newDep.includes(selfName)) {
-            detected = true;
-          }
-          depArr = newDep;
-          times -= 1;
-        };
-        do {
-          _loop_1();
-        } while (detected === false && times > 0 && depArr.length > 0);
-        if (detected) return true;
-        return false;
+      this.cStart = function () {
+        _this.state.fileExecuting = true;
+      };
+      this.cStop = function () {
+        _this.state.fileExecuting = false;
+        while (_this.state.pendingQueue.length) {
+          var pendingInfo = _this.state.pendingQueue.shift();
+          _this._load(pendingInfo[0], pendingInfo[1]);
+        }
       };
       // 测试使用
       // private _unResolvedDep = () => {
@@ -650,18 +656,22 @@ var DEFAULT_CUBE_CONFIG = {
       /****************************** 以下为原有方法兼容 **************************/
       /** 原有方法 直接打印内部状态 */
       this.cache = function () {
-        console.info('modules:', _this.state.installedModules);
+        console.info('modules:', Object.fromEntries(Object.entries(_this.state.installedModules)));
         console.info(
           'unloaded:',
-          Object.values(_this.state.installedModules).filter(function (m) {
-            return !m.loaded;
-          })
+          Object.fromEntries(
+            Object.entries(_this.state.installedModules).filter(function (m) {
+              return !m[1].loaded;
+            })
+          )
         );
         console.info(
           'unfired:',
-          Object.values(_this.state.installedModules).filter(function (m) {
-            return !m.fired;
-          })
+          Object.fromEntries(
+            Object.entries(_this.state.installedModules).filter(function (m) {
+              return !m[1].fired;
+            })
+          )
         );
       };
       /** @deprecated */
@@ -675,6 +685,21 @@ var DEFAULT_CUBE_CONFIG = {
     }
     return Cube;
   })();
+  function getStringOnlyObj() {
+    return new Proxy(
+      {},
+      {
+        get: function (target, propKey) {
+          var key = typeof propKey === 'number' ? propKey.toString() : propKey;
+          return Reflect.get(target, key);
+        },
+        set: function (target, propKey, value, receiver) {
+          var key = typeof propKey === 'number' ? propKey.toString() : propKey;
+          return Reflect.set(target, key, value, receiver);
+        },
+      }
+    );
+  }
   /** 全局初始化单例 */
   function setGlobalCube(alias) {
     if (alias === void 0) {
@@ -701,6 +726,6 @@ var DEFAULT_CUBE_CONFIG = {
     global[alias] = mockCube;
     return global[alias];
   }
-  /** 模拟目前主动挂在 window 的做法 */
+
   setGlobalCube();
 })();
