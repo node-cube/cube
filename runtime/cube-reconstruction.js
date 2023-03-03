@@ -133,6 +133,509 @@ function rebase(name, config) {
     return remoteBase[rbase] + name.substr(offset + 1);
 }
 
+// import Cube from 'node-cube/runtime/cube';
+
+function mockClassialCube() {
+  /* short global val */
+  var global = window;
+  var win = window;
+  var doc = document;
+  var log = console;
+
+  /* settings */
+  var base = '';
+  var remoteBase = {};
+  var remoteSeparator = ':';
+  var charset = 'utf-8';
+  var version;
+  var strict = true;
+  var debug = true;
+  var combine = false;
+
+  var mockedProcess = {
+    env: { NODE_ENV: 'production' },
+  };
+  var mockedGlobal = undefined;
+  var esModule = false;
+
+  var entrances = new Map(); // Cube.use's cb
+  // 兼容请求 key 带入参，返回 key 不带入参的情况。eg. 请求 /xxx?env=xx 返回 Cube('/xxx',), requireMap 缓存了 { '/xxx': '/xxx?env=xx' }
+  // 此兼容是在业务方已知的情况，后期会改造返回的代码头。
+  var requireMap = {};
+  var registerArr = [];
+  var installedModules = {
+    /*exports, fn, loaded, fired*/
+  }; // The module cache
+  var loading = {};
+
+  /* store requires before init */
+  var inited = false;
+  /** 未初始化时添加的等待请求的 module */
+  var loadQueue = [];
+  // let isIntercepted = false;
+
+  /**
+   * The require function
+   * @param module
+   * @param namespace
+   * @returns {*}
+   * @private
+   */
+  function __cube_require__(module, namespace) {
+    if (arguments.length === 1) {
+      return fireModule(module);
+    } else {
+      var css = fireModule(module);
+      Cube.css(css, namespace, module);
+      return module;
+    }
+  }
+
+  /**
+   * This function creates the load function
+   */
+  function __cube_load_creator__(referer) {
+    /**
+     * The load function
+     * @param module
+     * @param namespace
+     * @param cb
+     * @private
+     */
+    return function __cube_load__(module, namespace, cb) {
+      if (arguments.length === 2 && typeof namespace === 'function') {
+        cb = namespace;
+        namespace = null;
+        Cube.use(module, referer, cb);
+      } else {
+        Cube.use(module, referer, function (css) {
+          css = Cube.css(css, namespace, module);
+          cb && cb(css);
+        });
+      }
+    };
+  }
+
+  Cube.setRemoteBase = function (_remoteBase) {
+    Object.assign(remoteBase, _remoteBase);
+  };
+
+  function checkAllDownloaded() {
+    if (loadQueue.length) {
+      return false;
+    }
+    for (var i in loading) {
+      if (loading.hasOwnProperty(i)) {
+        return false;
+      }
+    }
+    debug && console.timeEnd('cube load');
+    startAppAndCallback();
+  }
+
+  /**
+   * 下载模块
+   * @param requires
+   * @param referer
+   */
+  function load(requires, referer) {
+    if (typeof requires === 'string') {
+      requires = [requires];
+    }
+    if (!inited) {
+      loadQueue.push([requires, referer]);
+      return;
+    }
+
+    requires.forEach(function (require) {
+      if (installedModules[require] || getGlobalRegister(require)) {
+        return;
+      }
+
+      // 只有拼 src 时要带上 m & ref 时才需要分离 require 里的入参 query, 平时 /xxx?query=xx 才作为 installedModules 的 key
+      const [mod, custom] = String(require).split('?');
+      var srcPath = rebase(mod, { base, remoteSeparator, remoteBase });
+
+      var query = [];
+      // 这个格式 没有key对吗？
+      if (version) {
+        query.push(version);
+      }
+      if (combine) {
+        query.push('combine=true');
+      }
+
+      if (custom) {
+        const customArgs = parseQueryString(custom);
+        Array.prototype.push.apply(
+          query,
+          Object.keys(customArgs).map((c) => {
+            return `${c}=${customArgs[c]}`;
+          })
+        );
+      }
+
+      if (query.length) {
+        srcPath = srcPath + '?' + query.join('&');
+      }
+      {
+        fetchCubeCode(srcPath);
+      }
+
+      installedModules[require] = {
+        exports: {},
+        loaded: false,
+        fired: false,
+      };
+      requireMap[mod] = require;
+      loading[require] = true;
+    });
+    checkAllDownloaded();
+  }
+
+  // require => datav:/npm/react/16.4.6?env=xxx
+  function getGlobalRegister(require) {
+    for (const register of registerArr) {
+      if (require && register.match.test(require)) {
+        return register.module;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 运行模块
+   * @param module
+   * @returns {*}
+   */
+  function fireModule(module) {
+    var m = installedModules[module] || getGlobalRegister(module);
+    if (!m) {
+      const err = new Error('Cube Error: Cannot find module ' + "'" + module + "'");
+      if (strict) {
+        throw err;
+      } else {
+        log.error(err);
+        return {};
+      }
+    }
+    if (!m.fired) {
+      m.fired = true;
+      if (strict) {
+        m.exports = m.fn.apply(global, [
+          m,
+          m.exports,
+          __cube_require__,
+          __cube_load_creator__(module),
+          mockedProcess,
+          mockedGlobal,
+        ]);
+      } else {
+        try {
+          m.exports = m.fn.apply(global, [
+            m,
+            m.exports,
+            __cube_require__,
+            __cube_load_creator__(module),
+            mockedProcess,
+            mockedGlobal,
+          ]);
+        } catch (e) {
+          log.error(e);
+          m.exports = {};
+        }
+      }
+    }
+    return isEsModule(m.exports) ? m.exports.default : m.exports;
+  }
+
+  /**
+   * 从Cube.use的文件开始自上而下运行,并调用回调函数
+   */
+  function startAppAndCallback() {
+    for (let [key, value] of entrances) {
+      key.length &&
+        key.forEach(function (entrance) {
+          // 出现多次 startAppAndCallback, 在某次 startAppAndCallback 未结束时，entrances 增加了，但其实 loading 并未结束
+          // 严格检查
+          if (loading[entrance]) return;
+          var count = 0;
+          const exportModule = fireModule(entrance);
+          value.length &&
+            value.forEach(function (fn) {
+              var called = fn(exportModule);
+              if (called) {
+                count++;
+              }
+            });
+          if (value.length === count) {
+            // 回调函数都执行完后删除
+            entrances.delete(key);
+          }
+        });
+    }
+    debug && console.timeEnd('cube exec');
+  }
+
+  /**
+   * 非构造函数,只供模块的wrapper调用
+   * installedModules[name] name 是带入参的，不同入参的，不同key
+   * @param name
+   * @param requires
+   * @param sourceCode
+   */
+  function Cube(name, requires, callback) {
+    // 暂时兼容返回的 name 不带入参的情况
+    const oldName = String(name);
+    name = requireMap[name] || name;
+    var mod = installedModules[name];
+    if (!mod) {
+      mod = installedModules[name] = {
+        exports: {},
+        fired: false,
+      };
+    }
+    mod.loaded = true;
+    mod.fn = callback;
+    requireMap[oldName] && delete requireMap[oldName];
+    if (loading[name]) {
+      delete loading[name];
+      load(requires, name);
+    } else if (requires.length) {
+      load(requires, name);
+    }
+  }
+
+  /** version, will replace in `make release` **/
+  Cube.toString = function () {
+    return 'Cube:v$$version$$';
+  };
+
+  /**
+   * init global setting for Cube
+   * @static
+   * @param  {Object} config {base, remoteBase, charset, version}
+   */
+  Cube.init = function (config) {
+    if (config.base && config.base !== '/') {
+      base = config.base.replace(/\/$/, '');
+    }
+    if (config.remoteBase) {
+      for (var key in config.remoteBase) {
+        if (config.remoteBase.hasOwnProperty(key)) {
+          remoteBase[key] = config.remoteBase[key].replace(/\/$/, '');
+        }
+      }
+    }
+    if (config.charset) {
+      charset = config.charset;
+    }
+    if (config.version) {
+      version = config.version;
+    }
+    if (config.debug !== undefined) {
+      debug = config.debug;
+    }
+    if (config.strict !== undefined) {
+      strict = config.strict;
+    }
+    if (config.env) {
+      mockedProcess.env.NODE_ENV = config.env;
+    }
+    if (config.global) {
+      mockedGlobal = config.global;
+    }
+    if (config.combine) {
+      combine = config.combine;
+    }
+    // support ES6 module, default is true
+    if (config.esModule !== undefined) {
+      esModule = config.esModule;
+    }
+
+    inited = true;
+
+    while (loadQueue.length) {
+      var deps = loadQueue.shift();
+      load(deps[0], deps[1]);
+    }
+
+    return this;
+  };
+  /**
+   * loading module async, this function only support abs path
+   * @public
+   * @param  {Path}     moduleNames module abs path
+   * @param  {Function} cb  callback function, usually with module.exports as it's first param
+   * @param  {Boolean}  noFix used only in single mode
+   */
+  Cube.use = function (moduleNames, referer, cb, noFix) {
+    if (!moduleNames) {
+      throw new Error('Cube.use(moduleName) moduleName is undefined!');
+    }
+    if (typeof referer === 'function') {
+      noFix = cb;
+      cb = referer;
+      referer = undefined;
+    }
+    if (!referer) {
+      referer = 'Cube.use';
+    }
+    cb = cb || noop;
+
+    if (typeof moduleNames === 'string') {
+      moduleNames = [moduleNames];
+    }
+
+    if (!noFix) {
+      moduleNames = fixMododulePath(moduleNames, remoteSeparator);
+    }
+
+    // WARN: mods 是数组，会被自然的用 , 拼接，但 query 入参也可能带 , 所以这边 entrances 用 Map
+    if (!entrances.has(moduleNames)) {
+      entrances.set(moduleNames, []);
+    }
+    entrances.get(moduleNames).push(
+      (function () {
+        var apps = [];
+        var length = moduleNames.length;
+        var firing = false;
+
+        return function (exports) {
+          if (firing) {
+            return;
+          }
+          apps.push(exports);
+          if (apps.length === length) {
+            firing = true;
+            cb.apply(global, apps);
+            return true;
+          }
+        };
+      })()
+    );
+
+    load(moduleNames, referer);
+    return this;
+  };
+  /**
+   * register module in to cache
+   * @param {string} module [description]
+   * @param {} exports [description]
+   * @param {object} options 配置项
+   * @param {string} options.matchType 匹配模式，version 默认为按版本全匹配; module 按库级别，只要库一致就替换
+   */
+  Cube.register = function (module, exports, { matchType = 'version' } = {}) {
+    if (installedModules[module]) {
+      return log.warn('Cube Warning: Module ' + "'" + module + "'" + ' already registered');
+    }
+    installedModules[module] = {
+      exports: exports,
+      fn: noop,
+      loaded: true,
+      fired: true,
+    };
+
+    if (matchType === 'module') {
+      registerArr.push({
+        require: module,
+        matchType,
+        match: new RegExp(`^datav:\/npm\/${module}\/([^\/]+)?$`),
+        module: installedModules[module],
+      });
+    }
+
+    return this;
+  };
+  var cssMod = {};
+  Cube.css = function (css, namespace, file) {
+    if (!css) {
+      return;
+    }
+    var modId = file + '@' + namespace;
+    if (cssMod[modId]) {
+      return;
+    }
+    cssMod[modId] = true;
+    return scriptCubeCss(css, namespace, file);
+  };
+
+  /* debug */
+  Cube.debug = function () {
+    log.error('Cube Error: Cube.debug nolonger supported');
+  };
+
+  Cube.cache = function () {
+    var unloaded = {},
+      unfired = {},
+      i,
+      m;
+
+    for (i in installedModules) {
+      if (installedModules.hasOwnProperty(i)) {
+        m = installedModules[i];
+        if (!m.loaded) {
+          unloaded[i] = m;
+        }
+        if (!m.fired) {
+          unfired[i] = m;
+        }
+      }
+    }
+
+    log.info('modules:', installedModules);
+    log.info('unloaded:', unloaded);
+    log.info('unfired:', unfired);
+  };
+
+  if (win.localStorage && localStorage.cube === 'debug') {
+    debug = true;
+    win.addEventListener('load', Cube.cache);
+  }
+
+  if (global['Cube']) {
+    log.error('Cube Error: window.' + 'Cube' + ' already in using, replace the last "null" param in cube.js');
+  } else {
+    global['Cube'] = Cube;
+  }
+
+  /**
+   * intergration with <script> tag
+   * <script data-base="" src=""></script>
+   */
+  var cse = doc.currentScript;
+  if (cse) {
+    var cfg = cse.dataset;
+    if (cfg.base) {
+      Cube.init(cfg);
+      Cube.use(cfg.main || 'index.js', function (app) {
+        app.run && app.run();
+      });
+    }
+  }
+  // 支持 Cube 获取配置信息与新版一致
+  Object.defineProperty(Cube, 'config', {
+    get() {
+      return {
+        base,
+        remoteBase,
+        remoteSeparator,
+        version,
+        strict,
+        debug,
+        esModule,
+        mockedGlobal,
+        mockedProcess,
+        charset,
+      };
+    },
+  });
+
+  function isEsModule(module) {
+    return esModule && module && typeof module === 'object' && module.__esModule;
+  }
+}
+
 /**
  * 默认配置项变量
  */
@@ -157,6 +660,12 @@ var DEFAULT_CUBE_CONFIG = {
     combine: false,
     /** 声明使用 fetch 请求还是创建 script 请求 */
     requestMethod: 'fetch',
+    // 旧版 fetchUndeclaredModule = false && aggregateFetch = true
+    // 新版 fetchUndeclaredModule = true && aggregateFetch = false
+    /** 是否重新请求未声明的文件 */
+    fetchUndeclaredModule: false,
+    /** 是否聚合请求 */
+    aggregateFetch: true,
 };
 /**
  * cube 重构
@@ -168,7 +677,7 @@ var Cube = /** @class */ (function () {
         this.config = __assign({}, DEFAULT_CUBE_CONFIG);
         this.state = {
             /** 是否完成初始化 */
-            inited: true,
+            inited: false,
             /** 是否被拦截 */
             isIntercepted: false,
             /** 未初始化时添加的等待请求的 module */
@@ -185,7 +694,11 @@ var Cube = /** @class */ (function () {
             // 兼容请求 key 带入参，返回 key 不带入参的情况。
             // eg. 请求 /xxx?env=xx 返回 Cube('/xxx',), requireMap 缓存了 { '/xxx': '/xxx?env=xx' }
             requireMap: {},
+            // 是否处于文件合并执行状态
             fileExecuting: false,
+            // 聚合请求
+            aggregateLoading: {},
+            delayTrigger: undefined,
         };
         /**
          * 跳过请求注册模块
@@ -194,17 +707,17 @@ var Cube = /** @class */ (function () {
          * @param matchType 匹配模式，version 默认为按版本全匹配; module 按库级别，只要库一致就替换
          */
         this.register = function (moduleName, exports, option) {
+            var _a;
             if (option === void 0) { option = { matchType: 'version' }; }
             var matchType = option.matchType;
-            if (_this._getReadyModule(moduleName)) {
+            if ((_a = _this._getModule(moduleName)) === null || _a === void 0 ? void 0 : _a.fired) {
                 return console.warn('Cube Warning: Module ' + "'" + moduleName + "'" + ' already registered');
             }
             _this.state.installedModules[moduleName] = {
                 exports: exports,
                 sourceCode: noop,
                 dep: [],
-                refer: { upperDep: [], entryDep: [] },
-                ready: true,
+                refer: { entryDep: [] },
                 loaded: true,
                 firing: false,
                 fired: true,
@@ -220,7 +733,10 @@ var Cube = /** @class */ (function () {
         };
         /** 初始化 */
         this.init = function (config) {
-            var _a, _b, _c, _d, _e;
+            var _a, _b, _c, _d, _e, _f, _g;
+            if (_this.state.inited) {
+                console.warn('Cube 重复初始化，可能产生资源请求错误');
+            }
             if (config.base && config.base !== '/') {
                 _this.config.base = config.base.replace(/\/$/, '');
             }
@@ -236,11 +752,14 @@ var Cube = /** @class */ (function () {
             _this.config.debug = (_c = config.debug) !== null && _c !== void 0 ? _c : _this.config.debug;
             _this.config.combine = (_d = config.combine) !== null && _d !== void 0 ? _d : _this.config.combine;
             _this.config.requestMethod = (_e = config.requestMethod) !== null && _e !== void 0 ? _e : _this.config.requestMethod;
+            _this.config.fetchUndeclaredModule = (_f = config.fetchUndeclaredModule) !== null && _f !== void 0 ? _f : _this.config.fetchUndeclaredModule;
+            _this.config.aggregateFetch = (_g = config.aggregateFetch) !== null && _g !== void 0 ? _g : _this.config.aggregateFetch;
             _this.state.inited = true;
-            while (_this.state.pendingQueue.length) {
-                var pendingInfo = _this.state.pendingQueue.shift();
+            for (var i = 0; i < _this.state.pendingQueue.length; i++) {
+                var pendingInfo = _this.state.pendingQueue[i];
                 _this._load(pendingInfo[0], pendingInfo[1]);
             }
+            _this.state.pendingQueue = [];
         };
         /**
          * 异步加载模块
@@ -270,10 +789,18 @@ var Cube = /** @class */ (function () {
             }
             callback = callback || noop;
             moduleNames = !omitFix ? fixMododulePath(moduleNames, _this.config.remoteSeparator) : moduleNames;
-            _this.state.entrances.set(moduleNames, {
+            var entry = {
                 callback: callback,
-                loadSources: __spreadArray([], moduleNames, true),
-            });
+                loadSource: {},
+                targets: __spreadArray([], moduleNames, true),
+            };
+            if (_this.config.aggregateFetch) ;
+            else {
+                moduleNames.forEach(function (i) {
+                    entry.loadSource[i] = false;
+                });
+            }
+            _this.state.entrances.set(moduleNames, entry);
             moduleNames.forEach(function (mName) { return _this._load(mName, moduleNames); });
         };
         /** 执行 cube 源码 即原 Cube(...) */
@@ -309,11 +836,6 @@ var Cube = /** @class */ (function () {
          */
         this._store = function (moduleName, dep, sourceCode) {
             var _a;
-            var _b;
-            // 不重复存储
-            if ((_b = _this.state.installedModules[moduleName]) === null || _b === void 0 ? void 0 : _b.loaded) {
-                return;
-            }
             var module = _this.state.installedModules[moduleName];
             if (module) {
                 (_a = module.dep).push.apply(_a, dep);
@@ -325,30 +847,34 @@ var Cube = /** @class */ (function () {
                     exports: {},
                     sourceCode: sourceCode,
                     dep: dep,
-                    refer: { upperDep: [], entryDep: [] },
+                    refer: { entryDep: [] },
                     loaded: true,
-                    ready: false,
                     firing: false,
                     fired: false,
                 };
             }
         };
         /** 请求资源 */
-        this._load = function (moduleName, refer) {
+        this._load = function (moduleName, entryKey) {
             if (typeof moduleName === 'number') {
                 moduleName = moduleName.toString();
             }
+            if (!_this.config.aggregateFetch) {
+                var entry = _this.state.entrances.get(entryKey);
+                if (entry && !entry.loadSource.hasOwnProperty(moduleName)) {
+                    entry.loadSource[moduleName] = false;
+                }
+            }
             if (!_this.state.inited || _this.state.fileExecuting) {
-                _this.state.pendingQueue.push([moduleName, refer]);
+                _this.state.pendingQueue.push([moduleName, entryKey]);
                 return;
             }
-            var module = _this.state.installedModules[moduleName];
-            if (_this._getReadyModule(moduleName)) {
-                _this._triggerCallback(_this._addReferToModule({ upperDep: [], entryDep: [] }, refer));
-                return;
-            }
+            var module = _this._getModule(moduleName);
             if (module) {
-                _this._addReferToModule(module.refer, refer);
+                _this._addReferToDependency(moduleName, module, entryKey);
+                if (module.loaded) {
+                    _this._triggerCallback(moduleName, module);
+                }
                 return;
             }
             var name = moduleName.split('?')[0];
@@ -359,92 +885,111 @@ var Cube = /** @class */ (function () {
                 dep: [],
                 refer: {
                     entryDep: [],
-                    upperDep: [],
                 },
                 loaded: false,
-                ready: false,
                 firing: false,
                 fired: false,
             };
-            _this._addReferToModule(_this.state.installedModules[moduleName].refer, refer);
+            _this._addReferToDependency(moduleName, _this.state.installedModules[moduleName], entryKey);
             var srcPath = _this._generatePath(moduleName);
             _this.config.requestMethod === 'fetch' ? fetchCubeCode(srcPath, combineExecute) : scriptCubeCode(srcPath);
         };
-        /** 向上检索树依赖及回调 */
-        this._triggerCallback = function (refer) {
-            refer.upperDep.forEach(function (mName) {
-                var upperModule = _this.state.installedModules[mName];
-                if (upperModule) {
-                    _this._initiate(mName);
-                }
-            });
-            refer.entryDep.forEach(function (entry) {
-                var upperModule = _this.state.entrances.get(entry);
-                if (upperModule) {
-                    _this._triggerEntryCallback(entry);
-                }
-            });
-        };
         /** 实例化并执行回调 */
         this._initiate = function (moduleName) {
-            if (!_this.state.installedModules[moduleName] || _this.state.installedModules[moduleName].ready)
-                return;
             var module = _this.state.installedModules[moduleName];
-            if (module) {
-                if (!module.loaded)
-                    return;
-                if (module.dep.length) {
-                    var allLoad_1 = true;
-                    module.dep.forEach(function (name) {
-                        var dep = _this._getModule(name);
-                        if (dep) {
-                            if (dep.fired || dep.firing || dep.ready)
-                                return;
-                            if (_this._isCursiveCausedUnready(name, moduleName))
-                                return;
-                        }
-                        allLoad_1 = false;
-                        _this._load(name, moduleName);
-                    });
-                    if (!allLoad_1)
+            _this._triggerCallback(moduleName, module);
+        };
+        /** 向上检索树依赖及回调 */
+        this._triggerCallback = function (moduleName, module) {
+            if (!module.loaded)
+                return;
+            if (_this.config.aggregateFetch) {
+                module.dep.forEach(function (m) {
+                    var _a;
+                    if ((_a = _this._getModule(m)) === null || _a === void 0 ? void 0 : _a.loaded) {
                         return;
+                    }
+                    _this._load(m, []);
+                });
+                if (_this.state.aggregateLoading[moduleName]) {
+                    delete _this.state.aggregateLoading[moduleName];
+                    _this._triggerAllCallback();
                 }
+                return;
             }
-            _this.state.installedModules[moduleName].ready = true;
-            // 由于目前的文件管理机制，此处不能立刻实例化，仅允许顶层触发
-            _this._triggerCallback(module.refer);
+            var refDep = module.refer;
+            var finishedEntry = [];
+            refDep.entryDep.forEach(function (entryKey) {
+                var entry = _this.state.entrances.get(entryKey);
+                if (entry) {
+                    entry.loadSource[moduleName] = true;
+                    var next_1 = true;
+                    if (!module.fired) {
+                        module.dep.forEach(function (m) {
+                            if (entry.loadSource[m])
+                                return;
+                            var subModule = _this._getModule(m);
+                            if (subModule === null || subModule === void 0 ? void 0 : subModule.fired)
+                                return;
+                            next_1 = false;
+                            _this._load(m, entryKey);
+                        });
+                    }
+                    if (next_1) {
+                        // 考虑标记 unload 提速
+                        if (Object.values(entry.loadSource).every(function (i) { return i; })) {
+                            _this._triggerEntryCallback(entryKey, entry);
+                        }
+                    }
+                }
+                else {
+                    finishedEntry.push(entryKey);
+                }
+            });
+            if (finishedEntry.length) {
+                module.refer.entryDep = refDep.entryDep.filter(function (i) { return !finishedEntry.includes(i); });
+            }
         };
         /** 执行回调函数 */
-        this._triggerEntryCallback = function (entry) {
-            var entryInfo = _this.state.entrances.get(entry);
-            if (entryInfo && entryInfo.loadSources.every(_this._getReadyModule)) {
-                var readyCallback_1 = true;
-                entryInfo.loadSources.forEach(function (moduleName) {
-                    var module = _this._getModule(moduleName);
-                    if (module.fired)
-                        return;
-                    // 理论上不会不存在
-                    if (module.firing) {
-                        readyCallback_1 = false;
-                        return;
-                    }
-                    if (module.ready) {
-                        _this._fireModule(moduleName);
-                        if (module.fired)
-                            return;
-                    }
-                    readyCallback_1 = false;
-                });
-                if (readyCallback_1) {
-                    entryInfo.callback.apply(entryInfo, entry.map(function (e) { return _this.state.installedModules[e].exports; }));
-                    _this.state.entrances.delete(entry);
+        this._triggerEntryCallback = function (entryKey, entry) {
+            var readyCallback = true;
+            entry.targets.forEach(function (moduleName) {
+                var module = _this._getModule(moduleName);
+                if (module.fired)
+                    return;
+                // 理论上不会不存在
+                if (module.firing) {
+                    readyCallback = false;
+                    return;
                 }
+                _this._fireModule(moduleName);
+                if (module.fired)
+                    return;
+                readyCallback = false;
+            });
+            if (readyCallback) {
+                entry.callback.apply(entry, entry.targets.map(function (e) { return _this.state.installedModules[e].exports; }));
+                _this.state.entrances.delete(entryKey);
             }
+        };
+        this._triggerAllCallback = function () {
+            if (_this.state.delayTrigger)
+                return;
+            // this.state.delayTrigger = setTimeout(() => {
+            // this.state.delayTrigger = undefined;
+            if (_this.state.pendingQueue.length)
+                return;
+            if (Object.keys(_this.state.aggregateLoading).length)
+                return;
+            _this.state.entrances.forEach(function (entry, entryKey) {
+                _this._triggerEntryCallback(entryKey, entry);
+            });
+            // });
         };
         /** 实例化某一模块 */
         this._fireModule = function (moduleName) {
             var module = _this.state.installedModules[moduleName];
-            if (!module || !module.ready)
+            if (!module || !module.loaded)
                 return false;
             if (module.fired)
                 return true;
@@ -468,7 +1013,7 @@ var Cube = /** @class */ (function () {
                 module.error = false;
             }
             catch (e) {
-                if (e.message === "Cube inner denpendency lost; refetch inited") {
+                if (_this.config.fetchUndeclaredModule && e.message === "Cube inner denpendency lost; refetch inited") {
                     console.warn('Cube 检测到文件依赖缺失');
                     fireResult = false;
                 }
@@ -480,18 +1025,21 @@ var Cube = /** @class */ (function () {
             }
             finally {
                 module.firing = false;
-                // 避免组件内部有 catch 导致 抓不到错误的情况
-                if (_this.state.lostDepModule[moduleName]) {
-                    module.ready = false;
-                    _this.state.lostDepModule[moduleName].forEach(function (name) {
-                        if (!module.dep.includes(name)) {
-                            module.dep.push(name);
-                            _this._load(name, moduleName);
-                            console.warn("Cube module ".concat(moduleName, " \u7F3A\u5931\u58F0\u660E\u4F9D\u8D56 ").concat(name));
-                        }
-                    });
-                    Reflect.deleteProperty(_this.state.lostDepModule, moduleName);
-                    fireResult = false;
+                if (_this.config.fetchUndeclaredModule) {
+                    // 避免组件内部有 catch 导致 抓不到错误的情况
+                    if (_this.state.lostDepModule[moduleName]) {
+                        _this.state.lostDepModule[moduleName].forEach(function (name) {
+                            if (!module.dep.includes(name)) {
+                                module.dep.push(name);
+                                module.refer.entryDep.forEach(function (eKey) {
+                                    _this._load(name, eKey);
+                                });
+                                console.warn("Cube module ".concat(moduleName, " \u7F3A\u5931\u58F0\u660E\u4F9D\u8D56 ").concat(name));
+                            }
+                        });
+                        Reflect.deleteProperty(_this.state.lostDepModule, moduleName);
+                        fireResult = false;
+                    }
                 }
                 else {
                     module.fired = true;
@@ -508,15 +1056,20 @@ var Cube = /** @class */ (function () {
                 }
                 var fireFinished = _this._fireModule(moduleName);
                 if (!module || !fireFinished) {
-                    if (_this.state.lostDepModule[selfName]) {
-                        _this.state.lostDepModule[selfName].push(moduleName);
+                    if (_this.config.fetchUndeclaredModule) {
+                        if (_this.state.lostDepModule[selfName]) {
+                            _this.state.lostDepModule[selfName].push(moduleName);
+                        }
+                        else {
+                            _this.state.lostDepModule[selfName] = [moduleName];
+                        }
+                        // WATCH! 由于组件内相对路径依赖没有声明 导致必须强行中断流程，
+                        // 后续应该将相对依赖加入依赖中
+                        throw new Error("Cube inner denpendency lost; refetch inited");
                     }
                     else {
-                        _this.state.lostDepModule[selfName] = [moduleName];
+                        throw new Error("Cube \u83B7\u53D6\u672A\u58F0\u660E\u8D44\u6E90 ".concat(moduleName, " \u5931\u8D25"));
                     }
-                    // WATCH! 由于组件内相对路径依赖没有声明 导致必须强行中断流程，
-                    // 后续应该将相对依赖加入依赖中
-                    throw new Error("Cube inner denpendency lost; refetch inited");
                 }
                 else {
                     return module.exports;
@@ -525,8 +1078,8 @@ var Cube = /** @class */ (function () {
             else {
                 // 默认 css 模块不再依赖其它模块
                 var css = void 0;
-                var module = _this._getReadyModule(moduleName);
-                if (!module)
+                var module = _this._getModule(moduleName);
+                if (!module || !module.loaded)
                     return;
                 if (module.fired) {
                     css = module.exports;
@@ -584,21 +1137,20 @@ var Cube = /** @class */ (function () {
             return srcPath;
         };
         /** 存储引用关系 */
-        this._addReferToModule = function (module, referer) {
-            if (!referer) {
-                return module;
-            }
-            // 此处简单判断
-            var isEntry = typeof referer !== 'string';
-            if (isEntry) {
-                module.entryDep.push(referer);
-            }
-            else {
-                if (!module.upperDep.includes(referer)) {
-                    module.upperDep.push(referer);
+        this._addReferToDependency = function (moduleName, module, referer) {
+            if (_this.config.aggregateFetch) {
+                if (!module.loaded) {
+                    _this.state.aggregateLoading[moduleName] = true;
                 }
+                return;
             }
-            return module;
+            var refDep = module.refer;
+            if (!referer) {
+                return;
+            }
+            if (!refDep.entryDep.includes(referer)) {
+                refDep.entryDep.push(referer);
+            }
         };
         /** 修正返回值 */
         this._calibrateName = function (responseName) {
@@ -621,12 +1173,6 @@ var Cube = /** @class */ (function () {
                 }
             }
         };
-        this._getReadyModule = function (name) {
-            var module = _this._getModule(name);
-            if (module === null || module === void 0 ? void 0 : module.ready) {
-                return module;
-            }
-        };
         this._getModule = function (name) {
             var module = _this.state.installedModules[name];
             if (!module) {
@@ -642,33 +1188,32 @@ var Cube = /** @class */ (function () {
         };
         this.cStop = function () {
             _this.state.fileExecuting = false;
-            while (_this.state.pendingQueue.length) {
-                var pendingInfo = _this.state.pendingQueue.shift();
+            for (var i = 0; i < _this.state.pendingQueue.length; i++) {
+                var pendingInfo = _this.state.pendingQueue[i];
                 _this._load(pendingInfo[0], pendingInfo[1]);
             }
+            _this.state.pendingQueue = [];
         };
         // 测试使用
-        this._unResolveDep = function (name, deep) {
-            var _a;
-            if (deep === void 0) { deep = false; }
-            var result = (((_a = _this.state.installedModules[name]) === null || _a === void 0 ? void 0 : _a.dep) || []).filter(function (m) {
-                var d = _this.state.installedModules[m];
-                if (!d || !d.ready) {
-                    return true;
-                }
-            });
-            if (deep) {
-                var deepResult = [result];
-                var i = 0;
-                while (i < 5) {
-                    result = result.map(_this._unResolveDep);
-                    deepResult.push(result);
-                    i += 1;
-                }
-                return deepResult;
-            }
-            return result;
-        };
+        // private _unResolveDep = (name: string, deep = false) => {
+        //   let result: any = (this.state.installedModules[name]?.dep || []).filter((m) => {
+        //     const d = this.state.installedModules[m];
+        //     if (!d || !d.ready) {
+        //       return true;
+        //     }
+        //   });
+        //   if (deep) {
+        //     const deepResult = [result];
+        //     let i = 0;
+        //     while (i < 5) {
+        //       result = result.map(this._unResolveDep);
+        //       deepResult.push(result);
+        //       i += 1;
+        //     }
+        //     return deepResult;
+        //   }
+        //   return result;
+        // };
         /****************************** 以下为原有方法兼容 **************************/
         /** 原有方法 直接打印内部状态 */
         this.cache = function () {
@@ -685,39 +1230,6 @@ var Cube = /** @class */ (function () {
             console.error('不支持动态修改 remoteBase');
         };
     }
-    Cube.prototype._isCursiveCausedUnready = function (depName, targetName) {
-        var _this = this;
-        if (depName === targetName)
-            return true;
-        var depArr = [depName];
-        var breakIter = false;
-        var detected = false;
-        var times = 500; // 防止下层依赖环
-        var _loop_1 = function () {
-            var newDep = [];
-            depArr.some(function (d) {
-                var depModule = _this.state.installedModules[d];
-                if (!depModule || !depModule.loaded) {
-                    breakIter = true;
-                    return true;
-                }
-                else {
-                    newDep.push.apply(newDep, depModule.dep);
-                }
-            });
-            if (newDep.includes(targetName)) {
-                detected = true;
-            }
-            depArr = newDep;
-            times -= 1;
-        };
-        do {
-            _loop_1();
-        } while (!detected && !breakIter && times > 0 && depArr.length > 0);
-        if (detected)
-            return true;
-        return false;
-    };
     return Cube;
 }());
 function getStringOnlyObj() {
@@ -733,29 +1245,35 @@ function getStringOnlyObj() {
     });
 }
 /** 全局初始化单例 */
-function setGlobalCube(alias) {
-    if (alias === void 0) { alias = 'Cube'; }
+function setGlobalCube(oldVersion) {
+    console.log('setGlobalCube');
+    var alias = 'Cube';
     var global = window;
     if (global[alias]) {
         console.error('Cube Error: window.' + alias + ' already in using');
         return global[alias];
     }
-    var cube = new Cube();
-    // 支持 Cube(...args) 的写法
-    var cubeHandler = function (moduleName, requires, instance) {
-        return cube.execute(moduleName, requires, instance);
-    };
-    var mockCube = new Proxy(cubeHandler, {
-        get: function (handler, key) {
-            if (Reflect.ownKeys(cube).includes(key)) {
-                return cube[key];
-            }
-            return Reflect.get(handler, key);
-        },
-    });
-    global[alias] = mockCube;
+    if (oldVersion) {
+        mockClassialCube();
+    }
+    else {
+        var cube_1 = new Cube();
+        // 支持 Cube(...args) 的写法
+        var cubeHandler = function (moduleName, requires, instance) {
+            return cube_1.execute(moduleName, requires, instance);
+        };
+        var mockCube = new Proxy(cubeHandler, {
+            get: function (handler, key) {
+                if (Reflect.ownKeys(cube_1).includes(key)) {
+                    return cube_1[key];
+                }
+                return Reflect.get(handler, key);
+            },
+        });
+        global[alias] = mockCube;
+    }
     return global[alias];
 }
 
-setGlobalCube();
+setGlobalCube(true);
 })();
