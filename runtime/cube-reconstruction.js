@@ -150,7 +150,6 @@ function mockClassialCube() {
   var version;
   var strict = true;
   var debug = true;
-  var combine = false;
 
   var mockedProcess = {
     env: { NODE_ENV: 'production' },
@@ -254,15 +253,18 @@ function mockClassialCube() {
 
       // 只有拼 src 时要带上 m & ref 时才需要分离 require 里的入参 query, 平时 /xxx?query=xx 才作为 installedModules 的 key
       const [mod, custom] = String(require).split('?');
-      var srcPath = rebase(mod, { base, remoteSeparator, remoteBase });
+      // download form server
+
+      var rebaseName = rebase(mod, { base, remoteSeparator, remoteBase });
+      var srcPath = rebaseName || base + mod;
 
       var query = [];
-      // 这个格式 没有key对吗？
       if (version) {
         query.push(version);
       }
-      if (combine) {
-        query.push('combine=true');
+      if (debug) {
+        query.push('m');
+        query.push('ref=' + referer);
       }
 
       if (custom) {
@@ -278,10 +280,10 @@ function mockClassialCube() {
       if (query.length) {
         srcPath = srcPath + '?' + query.join('&');
       }
-      {
-        fetchCubeCode(srcPath);
-      }
 
+      {
+        scriptCubeCode(srcPath);
+      }
       installedModules[require] = {
         exports: {},
         loaded: false,
@@ -446,7 +448,7 @@ function mockClassialCube() {
       mockedGlobal = config.global;
     }
     if (config.combine) {
-      combine = config.combine;
+      config.combine;
     }
     // support ES6 module, default is true
     if (config.esModule !== undefined) {
@@ -469,8 +471,8 @@ function mockClassialCube() {
    * @param  {Function} cb  callback function, usually with module.exports as it's first param
    * @param  {Boolean}  noFix used only in single mode
    */
-  Cube.use = function (moduleNames, referer, cb, noFix) {
-    if (!moduleNames) {
+  Cube.use = function (mods, referer, cb, noFix) {
+    if (!mods) {
       throw new Error('Cube.use(moduleName) moduleName is undefined!');
     }
     if (typeof referer === 'function') {
@@ -483,22 +485,22 @@ function mockClassialCube() {
     }
     cb = cb || noop;
 
-    if (typeof moduleNames === 'string') {
-      moduleNames = [moduleNames];
+    if (typeof mods === 'string') {
+      mods = [mods];
     }
 
     if (!noFix) {
-      moduleNames = fixMododulePath(moduleNames, remoteSeparator);
+      mods = fixMododulePath(mods, remoteSeparator);
     }
 
     // WARN: mods 是数组，会被自然的用 , 拼接，但 query 入参也可能带 , 所以这边 entrances 用 Map
-    if (!entrances.has(moduleNames)) {
-      entrances.set(moduleNames, []);
+    if (!entrances.has(mods)) {
+      entrances.set(mods, []);
     }
-    entrances.get(moduleNames).push(
+    entrances.get(mods).push(
       (function () {
         var apps = [];
-        var length = moduleNames.length;
+        var length = mods.length;
         var firing = false;
 
         return function (exports) {
@@ -514,8 +516,7 @@ function mockClassialCube() {
         };
       })()
     );
-
-    load(moduleNames, referer);
+    load(mods, referer);
     return this;
   };
   /**
@@ -547,6 +548,13 @@ function mockClassialCube() {
 
     return this;
   };
+  /**
+   * @interface inject css into page
+   * css inject is comp
+   * ie8 and lower only support 32 stylesheets, so this function
+   * @param  {String} name module name
+   * @param  {CssCode} css  css code
+   */
   var cssMod = {};
   Cube.css = function (css, namespace, file) {
     if (!css) {
