@@ -138,7 +138,6 @@ function rebase(name, config) {
 function mockClassialCube() {
   /* short global val */
   var global = window;
-  var win = window;
   var doc = document;
   var log = console;
 
@@ -150,6 +149,7 @@ function mockClassialCube() {
   var version;
   var strict = true;
   var debug = true;
+  var combine = false;
 
   var mockedProcess = {
     env: { NODE_ENV: 'production' },
@@ -228,7 +228,6 @@ function mockClassialCube() {
         return false;
       }
     }
-    debug && console.timeEnd('cube load');
     startAppAndCallback();
   }
 
@@ -253,7 +252,6 @@ function mockClassialCube() {
 
       // 只有拼 src 时要带上 m & ref 时才需要分离 require 里的入参 query, 平时 /xxx?query=xx 才作为 installedModules 的 key
       const [mod, custom] = String(require).split('?');
-      // download form server
 
       var rebaseName = rebase(mod, { base, remoteSeparator, remoteBase });
       var srcPath = rebaseName || base + mod;
@@ -262,9 +260,9 @@ function mockClassialCube() {
       if (version) {
         query.push(version);
       }
-      if (debug) {
-        query.push('m');
-        query.push('ref=' + referer);
+
+      if (combine) {
+        query.push('combine=true');
       }
 
       if (custom) {
@@ -376,7 +374,6 @@ function mockClassialCube() {
           }
         });
     }
-    debug && console.timeEnd('cube exec');
   }
 
   /**
@@ -435,9 +432,7 @@ function mockClassialCube() {
     if (config.version) {
       version = config.version;
     }
-    if (config.debug !== undefined) {
-      debug = config.debug;
-    }
+
     if (config.strict !== undefined) {
       strict = config.strict;
     }
@@ -448,7 +443,7 @@ function mockClassialCube() {
       mockedGlobal = config.global;
     }
     if (config.combine) {
-      config.combine;
+      combine = config.combine;
     }
     // support ES6 module, default is true
     if (config.esModule !== undefined) {
@@ -568,7 +563,6 @@ function mockClassialCube() {
     return scriptCubeCss(css, namespace, file);
   };
 
-  /* debug */
   Cube.debug = function () {
     log.error('Cube Error: Cube.debug nolonger supported');
   };
@@ -595,11 +589,6 @@ function mockClassialCube() {
     log.info('unloaded:', unloaded);
     log.info('unfired:', unfired);
   };
-
-  if (win.localStorage && localStorage.cube === 'debug') {
-    debug = true;
-    win.addEventListener('load', Cube.cache);
-  }
 
   if (global['Cube']) {
     log.error('Cube Error: window.' + 'Cube' + ' already in using, replace the last "null" param in cube.js');
