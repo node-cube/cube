@@ -28,7 +28,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       req.query = q.query;
     }
     /**
-     * for cube loader
+     * for cube loader: cube.js
      */
     if (qpath === cubeLoaderPath) {
       res.setHeader('content-type', 'text/javascript');
@@ -52,6 +52,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
       });
       return;
     } else if (qpath === '/__clean_cache__') {
+      // for cache clean call
       return cube.caches.clean((err) => {
         res.setHeader('content-type', 'image/png');
         if (err) {
@@ -81,7 +82,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
          * 贯穿转换过程的Data数据结构
          */
         let data = {
-          queryPath: qpath,   // 查询path
+          queryPath: qpath,   // querypath, 查询的原始path
           absPath: null,      // 绝对路径
           realPath: null,     // 真实path
           type: null,         // 文件类型
@@ -92,12 +93,11 @@ function createMiddleware(cube, serveStatic, checkSkip) {
           modifyTime: null,   // 修改时间，检测缓存用
           mime: null,         // mime 类型
           wrap: flagWrap,      // 是否wrap代码
-          skip: !flagWrap,    // 是否跳过解析
           compress: flagCompress
         };
         done(null, data);
       },
-      /** 检查cache，以便下次快速返回 */
+      /** 检查cache，以便下次快速返回 
       function checkCache(data, callback) {
         if (!config.devCache) {
           return callback(null, data);
@@ -125,6 +125,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
           callback(null, data);
         });
       },
+      */
       cube.seekFile.bind(cube),
       cube.readFile.bind(cube),
       cube.transferCode.bind(cube),
@@ -133,7 +134,6 @@ function createMiddleware(cube, serveStatic, checkSkip) {
         data.genCode(function (err, data) {
           if (!err && config.devCache) {
             debug('cache processed file: %s, %s', data.queryPath, data.modifyTime);
-            delete data.ast;
             if (useCache) {
               cube.caches.set(cachePath, data);
             }
@@ -156,8 +156,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
             return errorMsg(err, result);
         }
       }
-      var code = flagWrap ? result.codeWraped : result.code;
-
+      var code = result.code;
       output();
 
       function output() {
@@ -202,7 +201,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
 exports.init = function (cube) {
   let config = cube.config;
   let root = config.root;
-  let serveStatic;
+  let midStatic;
   let cubeMiddleware;
   let app;
 
@@ -231,23 +230,23 @@ exports.init = function (cube) {
   /**
    * fallback the 404 request
    */
-  serveStatic = connectStatic(config.cached ? config.cached : config.root, {
+  midStatic = connectStatic(config.cached ? config.cached : config.root, {
     maxAge: config.maxAge
   });
 
   /**
    * cube middleware
    */
-  cubeMiddleware = createMiddleware(cube, serveStatic, checkSkip);
+  cubeMiddleware = createMiddleware(cube, midStatic, checkSkip);
 
   if (config.middleware) {
-    cube.middleware = config.static || config.cached ? serveStatic : cubeMiddleware;
+    cube.middleware = config.static || config.cached ? midStatic : cubeMiddleware;
     cube.middleware.getCube = function () {
       return cube;
     };
   } else {
     app = connect();
-    app.use(config.router, config.static || config.cached ? serveStatic : cubeMiddleware);
+    app.use(config.router, config.static || config.cached ? midStatic : cubeMiddleware);
     app.use(function(err, req, res, next) {
       if (/favicon\.ico$/.test(req.url)) {
         res.statusCode = 200;

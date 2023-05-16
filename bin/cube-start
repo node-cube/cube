@@ -1,18 +1,14 @@
 #!/usr/bin/env node
-'use strict';
 const path = require('path');
 const cmd = require('commander');
 const Cube = require('../index');
 
 cmd
-  .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
+  .option('--prefix [value]', 'the http path prefix, i.e `http://localhost/res/js/`, prefix -> `/res/js/`')
   .option('-p, --port [value]', 'server port')
-  .option('-c, --clean-cache', 'clean .cubecache')
   .option('-R, --remote [value]', 'set remote option')
-  .option('-o, --output [value]', 'output dir')
   .option('--built', 'if code in root path already built, set this flag')
   .option('-s --static', 'run as a pure simple static server')
-  .option('--router [value]', 'url prefix')
   .option('--no-cache', 'forbidden cache')
   .option('--no-optimize', 'do not optimize loading file, no more file will merged to cube.js')
   .parse(process.argv);
@@ -31,7 +27,7 @@ Cube.service({
   root: root,
   port: args.port ? args.port : 9999,
   router: args.router || '/',
-  resBase: args.base || args.resbase,
+  resBase: args.prefix || args.resbase,
   remote: args.remote,
   service: true,
   built: args.built,

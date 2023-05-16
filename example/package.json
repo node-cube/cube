@@ -8,29 +8,13 @@
       "modulemap": "lib/index.js"
     },
     "processors": {
-      ".less": "cube-less",
-      ".styl": "cube-stylus",
-      ".js,.jsx": [
-        [
-          "cube-lazy-parse",
-          {
-            "match": "\\.min\\.js$"
-          }
-        ],
-        [
-          "cube-babel",
-          {
-            "presets": [
-              "react",
-              ["env"]
-            ]
-          }
-        ]
-      ]
+      ".less": "cube-less"
     },
-    "ignoreRules": {
+    "ignores": {
       "skip":[],
-      "ignore": []
+      "ignore": [
+        
+      ]
     },
     "export": []
   }

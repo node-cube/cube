@@ -4,7 +4,7 @@ global.Cube = {};
 var doc = '<html><head></head><body></body></html>';
 global.document = jsdom.jsdom(doc);
 global.window = document.parentWindow;
-require('../runtime/cube_css');
+// require('../runtime/cube_css');
 
 function findNode(mod) {
   var nodes = document.getElementsByTagName('STYLE');

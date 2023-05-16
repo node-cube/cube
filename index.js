@@ -39,7 +39,7 @@ Cube.middleware = function (cube, config) {
  *     - cached     {Path} the cached path
  * @return {cube}
  */
-Cube.service = function (config) {
+Cube.service = Cube.server = function (config) {
   let cube = new Cube(config);
   let service = require('./service');
   service.init(cube);

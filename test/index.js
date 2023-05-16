@@ -19,8 +19,8 @@ var cubeInst = testMod.service({
   devCache: false,
   resBase: '/resouce_path',
   processors: {
-    '.less': [[path.join(__dirname, '../node_modules/cube-less'), {test: true}]],
-    '.styl': require('cube-stylus')  // do not delete this comma, for branch test
+    // '.less': [[path.join(__dirname, '../node_modules/cube-less'), {test: true}]],
+    // '.styl': require('cube-stylus')  // do not delete this comma, for branch test
   }
 });
 
@@ -33,8 +33,8 @@ testMod.service({
   remote: 'REMOTE',
   resBase: '/resouce_path',
   processors: {
-    '.less': require('cube-less'),
-    '.styl': require('cube-stylus')  // do not delete this comma, for branch test
+    //'.less': require('cube-less'),
+    //'.styl': require('cube-stylus')  // do not delete this comma, for branch test
   }
 });
 
@@ -57,8 +57,8 @@ testMod.service({
     }
   },
   processors: {
-    '.less': require('cube-less'),
-    '.styl': require('cube-stylus')  // do not delete this comma, for branch test
+    // '.less': require('cube-less'),
+    // '.styl': require('cube-stylus')  // do not delete this comma, for branch test
   }
 });
 

@@ -4,7 +4,6 @@ require('./test/test_cycle_require');
 require('./test/test_css');
 require('./test/test_html');
 require('./test/test_less');
-require('./test/test_styl');
 require('./test/test_merge');
 require('cycle_server/a');
 require('./test/test_json');

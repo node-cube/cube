@@ -1,6 +1,6 @@
 describe('test/test_cycle_require', () => {
-  cache = []
-  originWarn = ''
+  let cache = []
+  let originWarn = ''
   before(() => {
     originWarn = console.warn
     console.warn = (msg, msg2) => {

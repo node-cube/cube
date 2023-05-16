@@ -1,12 +1,12 @@
 describe('test/test_module', () => {
-  test = require('test')
-  testLibA = require('test/lib/a')
-  testLibB = require('test/lib/b.js')
-  testModuleWithDot = require('module_with_dot.js');
-  testNs = require('@ali/ns_test')
-  testNsCoffee = require('@ali/ns_coffee')
-  testModulejs = require('module.js')
-  testModuleMap = require('modulemap')
+  let test = require('test')
+  let testLibA = require('test/lib/a')
+  let testLibB = require('test/lib/b.js')
+  let testModuleWithDot = require('module_with_dot.js');
+  let testNs = require('@ali/ns_test')
+  let testNsCoffee = require('@ali/ns_coffee')
+  let testModulejs = require('module.js')
+  let testModuleMap = require('modulemap')
 
   it('expect require the test module according package.json::main', () => {
     expect(test.version).to.be('1.0.1');

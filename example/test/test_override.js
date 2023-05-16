@@ -10,5 +10,3 @@ function test(require, module) {
 function require() {
 
 }
-
-require('./hello_abc');
