@@ -32,13 +32,17 @@
   function combineExecute(c) {
     return 'Cube.cStart();' + c + ';Cube.cStop();';
   }
-  function fetchCubeCode(url, inputCodeProxy) {
+  function fetchCubeCode(url, inputCodeProxy, responseAdapter) {
     var codeProxy = inputCodeProxy || baseCodeProxy;
     return fetch(url, {
       headers: {
         'Content-Type': 'text/plain',
       },
     })
+      .then(function (response) {
+        if (responseAdapter) responseAdapter(response);
+        return response;
+      })
       .then(function (response) {
         return response.text();
       })
@@ -122,6 +126,28 @@
     var rbase = name.substr(0, offset);
     if (!remoteBase[rbase]) return defaultPath;
     return remoteBase[rbase] + name.substr(offset + 1);
+  }
+  // 定制业务逻辑 ?env=publish === 不加 env
+  // 此逻辑加在 cube 处不合理
+  function removePublishName(name) {
+    var _a = String(name).split('?'),
+      main = _a[0],
+      params = _a[1];
+    if (params) {
+      var kvs = params.split('&');
+      if (kvs.includes('env=publish')) {
+        kvs = kvs.filter(function (v) {
+          return v !== 'env=publish';
+        });
+        var newParams = kvs.join('&');
+        if (newParams) {
+          return main + '?' + newParams;
+        } else {
+          return main;
+        }
+      }
+    }
+    return name;
   }
 
   // import Cube from 'node-cube/runtime/cube';
@@ -243,7 +269,12 @@
 
       requires.forEach(function (require) {
         if (installedModules[require] || getGlobalRegister(require)) {
-          if (!installedModules[require].loaded && installedModules[require].combine);
+          if (
+            combineMap[require] &&
+            combineMap[require].failed &&
+            installedModules[require] &&
+            installedModules[require].loaded === false
+          );
           else {
             return;
           }
@@ -270,13 +301,17 @@
           query.push('combine=true');
           installedModules[require].combine = true;
           if (!combineMap[require]) {
-            combineMap[require] = setTimeout(() => {
-              if (loading[require]) {
-                load(require, referer);
-                // 标记超时了
-                combineMap[require] = true;
-              }
-            }, 3000);
+            combineMap[require] = {
+              start: Date.now(),
+              timeout: setTimeout(() => {
+                if (loading[require]) {
+                  combineMap[require].failed = true;
+                  load(require, referer);
+                  // 标记超时了
+                }
+              }, 3000),
+              failed: false,
+            };
           }
         }
 
@@ -295,7 +330,15 @@
         }
 
         if (requestMethod === 'fetch') {
-          fetchCubeCode(srcPath);
+          if (combine && combineMap[require] && !combineMap[require].traceId) {
+            fetchCubeCode(srcPath, undefined, (res) => {
+              if (res.headers.has('request-id')) {
+                combineMap[require].traceId = res.headers.get('request-id');
+              }
+            });
+          } else {
+            fetchCubeCode(srcPath);
+          }
         } else {
           scriptCubeCode(srcPath);
         }
@@ -401,19 +444,28 @@
       const oldName = String(name);
       name = requireMap[name] || name;
       var mod = installedModules[name];
+      // 定制业务逻辑 ?env=publish === 不加 env
+      mod = removePublishName(mod);
       if (!mod) {
         mod = installedModules[name] = {
           exports: {},
           fired: false,
         };
       }
+      // 记录或清理合并接口信息
+      if (combineMap[name] && !mod.loaded) {
+        if (!combineMap[name].failed) {
+          clearTimeout(combineMap[name].timeout);
+          delete combineMap[name];
+        } else {
+          combineMap[name].end = Date.now();
+        }
+      }
+
       mod.loaded = true;
       mod.fn = callback;
       requireMap[oldName] && delete requireMap[oldName];
-      if (combineMap[name] && combineMap[name] !== true) {
-        clearTimeout(combineMap[name]);
-        delete combineMap[name];
-      }
+
       if (loading[name]) {
         delete loading[name];
         load(requires, name);
@@ -501,7 +553,9 @@
       cb = cb || noop;
 
       if (typeof mods === 'string') {
-        mods = [mods];
+        mods = [removePublishName(mods)];
+      } else {
+        mods = mods.map(removePublishName);
       }
 
       if (!noFix) {
@@ -1294,7 +1348,7 @@
       });
       global[alias] = mockCube;
     }
-    var cubeVersion = '5.0.0-beta.7';
+    var cubeVersion = '5.0.0-beta.11';
     global[alias].cubeVersion = cubeVersion;
     global[alias].oldVersion = oldVersion;
     return global[alias];

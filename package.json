@@ -2,7 +2,7 @@
   "author": "fish <zhengxinlin@gmail.com> (https://github.com/fishbar)",
   "name": "node-cube",
   "description": "a new way to write js in browser",
-  "version": "5.0.0-beta.7",
+  "version": "5.0.0-beta.11",
   "homepage": "https://github.com/fishbar/cube",
   "repository": {
     "type": "git",
@@ -32,6 +32,7 @@
     "debug": "4.1.0",
     "lodash": "4.17.15",
     "serve-static": "1.12.4",
+    "tnpm-sync": "^1.0.1",
     "uglify-js": "^3.14.1",
     "uuid": "^8.3.0",
     "xfs": "~0.2.2"
@@ -53,6 +54,5 @@
     "minami": "^1.1.1",
     "mocha": "3.2.0",
     "supertest": "3.0.0"
-  },
-  "optionalDependencies": {}
+  }
 }
