@@ -63,6 +63,13 @@ let option = {
 }
 ```
 
+### Cube.Server(servOption)
+
+```js
+Cube.
+```
+
+
 ### 定制processor
 
 cube支持4种类型的文件:

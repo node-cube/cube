@@ -9,12 +9,12 @@ cmd
   .option('-R, --remote [value]', 'set remote option')
   .option('--built', 'if code in root path already built, set this flag')
   .option('-s --static', 'run as a pure simple static server')
-  .option('--no-cache', 'forbidden cache')
-  .option('--no-optimize', 'do not optimize loading file, no more file will merged to cube.js')
+  .option('cache', 'forbidden cache')
   .parse(process.argv);
 
 let args = cmd;
 let rootPath = cmd.args[0];
+let httpPath = args.prefix || '/';
 let root;
 
 if (/^(\/|\w:\\)/.test(rootPath)) {
@@ -23,7 +23,22 @@ if (/^(\/|\w:\\)/.test(rootPath)) {
   root = path.join(process.cwd(), rootPath || '');
 }
 
-Cube.service({
+let cubeOpt = {
+  rootPath: root,
+  httpPath: httpPath,
+  remote: args.remote,
+  cache: args.cache,
+};
+
+let cube = new Cube(cubeOpt);
+let servOpt = {
+  port: args.port || 8008,
+};
+
+Cube.server(cube, servOpt)
+
+/**
+server({
   root: root,
   port: args.port ? args.port : 9999,
   router: args.router || '/',
@@ -32,8 +47,9 @@ Cube.service({
   service: true,
   built: args.built,
   static: args.static,
-  passUnknowExt: true,
+  // passUnknowExt: true,
   optimize: args.optimize,
   devCache: args.cache,
   cleanCache: args.cleanCache
 });
+*/

@@ -18,31 +18,24 @@ const Cube = require('./lib/cube');
  * @return {cube}
  */
 Cube.middleware = function (cube, config) {
-  if (config === undefined) {
-    config = cube;
-    cube = new Cube(config);
-  }
-  config.middleware = true;
-  let service = require('./service');
-  service.init(cube);
-  return cube.middleware;
+  let middleware = require('./lib/cube_server').middleware;
+  return middleware(cube);
 };
 /**
  * 初始化一个服务
  * @param  {Object} config config object
- *
  *     - port       listen port [optional]
  *     - connect    the connect object
  *     - root       {Path} static root
  *     - base       {Path} http prefix
  *     - processors {Array} extenal processors
  *     - cached     {Path} the cached path
+ * @param {Object}
  * @return {cube}
  */
-Cube.service = Cube.server = function (config) {
-  let cube = new Cube(config);
-  let service = require('./service');
-  service.init(cube);
+Cube.service = Cube.server = function (cube, servOpt) {
+  let server = require('./lib/cube_server').server;
+  server(cube, servOpt);
   return cube;
 };
 /**
