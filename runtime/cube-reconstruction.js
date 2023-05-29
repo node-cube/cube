@@ -128,7 +128,7 @@
     return remoteBase[rbase] + name.substr(offset + 1);
   }
   // 定制业务逻辑 ?env=publish === 不加 env
-  // 此逻辑加在 cube 处不合理
+  // 此逻辑加在 cube 似乎处不合理
   function removePublishName(name) {
     var _a = String(name).split('?'),
       main = _a[0],
@@ -189,6 +189,7 @@
     var inited = false;
     /** 未初始化时添加的等待请求的 module */
     var loadQueue = [];
+    var combineFailTime = 10000;
 
     // watch! 旧版使用 fetch 容易产生问题
     let requestMethod = 'script'; // 'fetch' | 'script'
@@ -309,7 +310,7 @@
                   load(require, referer);
                   // 标记超时了
                 }
-              }, 3000),
+              }, combineFailTime),
               failed: false,
             };
           }
@@ -520,6 +521,10 @@
       // support ES6 module, default is true
       if (config.esModule !== undefined) {
         esModule = config.esModule;
+      }
+
+      if (config.combineFailTime) {
+        combineFailTime = config.combineFailTime;
       }
 
       inited = true;
@@ -1348,7 +1353,7 @@
       });
       global[alias] = mockCube;
     }
-    var cubeVersion = '5.0.0-beta.11';
+    var cubeVersion = '5.0.0-beta.12';
     global[alias].cubeVersion = cubeVersion;
     global[alias].oldVersion = oldVersion;
     return global[alias];
