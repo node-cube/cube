@@ -95,22 +95,22 @@
     execEntry();
   }
   /**
-   * loading script from server
+   * load script from server
    * @param requires
    * @param referer
    */
   function load(requires, referer) {
-    for (let i=0, ll = requires.length;i<ll; i++) {
+    for (let i = 0, ll = requires.length; i < ll; i ++) {
       let require = requires[i];
       if (installedModules[require]) {
-        return;
+        continue;
       }
       // load script from server
       var script = doc.createElement('script');
       script.type = 'text/javascript';
       script.async = 'true';
       script.onerror = () => {
-        // set up required module loading error
+        // set up required module load error
         // so the require(module) will print this error message
         Cube(require, [], () => {
           console.error(`load module: ${require} failed.`);
@@ -118,13 +118,13 @@
       };
       var srcPath = reBase(require) || (base + require);
       var q = ['m', version];
-      script.src = srcPath + '?' + q.join('&');
       installedModules[require] = {
         exports: {},
         fired: false
       };
-      // loading[require] = true;
       loading ++;
+      // console.log('>> loading +1 ', require);
+      script.src = srcPath + '?' + q.join('&');
       head.appendChild(script);
     }
   }
@@ -177,6 +177,7 @@
    * @param callback
    */
   function Cube(name, requires, callback) {
+    // console.log('>> loaded', name, requires, loading);
     var mod = installedModules[name];
     var preload = false;
     // preload module will trigger this condition
@@ -198,6 +199,7 @@
 
     if (!preload) {
       loading--;
+      // console.log('loading -1, value:', loading);
       checkAllDownloaded();
     }
   }
@@ -229,7 +231,7 @@
     return this;
   };
   /**
-   * loading module async, this function only support abs path
+   * load module async, this function only support abs path
    * @public
    * @param  {Path}     mod module abs path
    * @param  {Function} cb  callback function, usually with module.exports as it's first param

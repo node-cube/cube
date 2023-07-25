@@ -68,25 +68,19 @@ function findRoot(file) {
       break;
     }
   }
-  return res;
+  return path.dirname(file).replace(/(\/|\\)$/, '');
 }
 
 cmd
   .usage(' your_code_dir')
   .description('build the hole project')
-  .option('-p, --processors [value]', 'process list, "a,b,c"')
   .option('-o, --output [value]', 'set the output dir')
-  .option('-b, --base [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
+  .option('--http-path [value]', 'the http virtual base, i.e `http://static.taobao.com/res/js/`, base -> `/res/js/`')
   .option('-r, --root [value]', 'the code root dir')
   .option('--all-in-one', 'all in one code')
-  .option('--output-file [value]', 'set the output file')
   .option('--remote [value]', 'set the namespace for remote call')
-  .option('--export [value]', 'files will be exported, do not merge, example: /a.js,/b.js')
   .option('--mangle-file-name', 'mangle the file name into random name')
   .option('--without-compress', 'do not compress code')
-  .option('--without-wrap', 'do not wraper code')
-  .option('--smart', 'smart build, only build necessary')
-  .option('--merge-factor [value]', 'merge factor, it\'s a number, default is 3, means when module with 3 common refer will be merge to __common__.js ')
   .parse(process.argv);
 
 var source = cmd.args[0];
@@ -97,23 +91,12 @@ if (!args || !source) {
   return;
 }
 
-let map = {};
-
-if (args.export) {
-  let tmp = args.export.split(',');
-  tmp.forEach((key) => {
-    map[key] = true;
-  });
-}
-
-args.export = map;
-
 var cwd = getCwd();
 var fstat;
 var inputPath, outputPath, cube, tool, root;
 var compress = args.withoutCompress ? false : true;
 
-root = args.root ? args.root : '';
+root = args.root || '';
 if (root) {
   root = isAbsPath(root) ? root : path.join(cwd, root);
 }
@@ -123,7 +106,7 @@ inputPath = source;
 try {
   fstat = fs.statSync(source);
 } catch (e) {
-  console.log('source not fould', e);
+  console.error('source not fould', e);
   cmd.help();
   return;
 }
@@ -140,58 +123,30 @@ if (fstat.isFile()) {
   outputPath = args.output ?
     (isAbsPath(args.output) ? args.output : path.join(cwd, args.output)) :
     undefined;
-  root = (root ? root : findRoot(source) || path.dirname(source)).replace(/(\/|\\)$/, '');
+  root = root || findRoot(source);
   cube = new Cube({
-    release: true,
-    root: root,
-    compress: compress,
-    middleware: false,
-    processors: args.processors,
-    resBase: args.base,
+    rootPath: root,
+    httpPath: args.httpPath,
     remote: args.remote,
-    withoutWrap: args.withoutWrap,
-    mangleFileName: args.mangleFileName,
-    export: args.export,
-    lazyWrap: args.smart,
-    mergeFactor: args.mergeFactor || 3,
-    minify: {}
+    cache: false,
   });
   tool = Cube.tools;
-  if (args.allInOne) {
-    tool.allInOneCode(cube, {
-      queryPath: source.substr(root.length),
-      compress: compress,
-      ignoreFirstCodeWrap: true
-    }, (err, data) => {
-      buildOutput(err, data);
-      process.exit((err && err.length) ? 1 : 0);
-    });
-  } else {
-    tool.processFile(cube, {
-      src: source,
-      dest: outputPath,
-      destFile: args.outputFile
-    }, function (err, data) {
-      buildOutput(err, data);
-      process.exit((err && err.length) ? 1 : 0);
-    });
-  }
+  tool.processFile(cube, {
+    src: source,
+    dest: outputPath,
+    destFile: args.outputFile
+  }, function (err, data) {
+    buildOutput(err, data);
+    process.exit((err && err.length) ? 1 : 0);
+  });
 } else if (fstat.isDirectory()) {
   outputPath = args.output ? (isAbsPath(args.output) ? args.output : path.join(cwd, args.output)) : (source.replace(/(\/|\\)$/, '') + '.release');
-  root = (root ? root : source).replace(/(\/|\\)$/, '');
+  root = (root || source).replace(/(\/|\\)$/, '');
   cube = new Cube({
-    release: true,
-    root: root,
-    compress: compress,
-    middleware: false,
-    processors: args.processors,
-    resBase: args.base,
+    rootPath: root,
+    httpPath: args.httpPath,
     remote: args.remote,
-    mangleFileName: args.mangleFileName,
-    export: args.export,
-    lazyWrap: args.smart,
-    mergeFactor: args.mergeFactor || 3,
-    minify: {}
+    cache: false,
   });
   tool = Cube.tools;
   tool[args.smart ? 'processDirSmart' : 'processDir'](cube, {src: inputPath, dest:outputPath}, function (err, data) {

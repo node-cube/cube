@@ -120,7 +120,12 @@ function processDirSmart(cube, data, cb) {
   // console.time('process app file');
 
   // analyseNoduleModules(path.join(source, 'node_modules'), nodeModulesMap, function () {
-  xfs.walk(source, function check(p) {
+  xfs.walk(source, 
+  /** 
+   * 跳过源码根目录下node_modules 目录下的文件 
+   * 跳过.开头的文件 和 目录
+   */
+  function check(p) {
     var relFile = utils.fixWinPath(p.substr(root.length));
     if (/^\/node_modules\//.test(relFile)) {
       return false;
@@ -129,10 +134,11 @@ function processDirSmart(cube, data, cb) {
       return false;
     }
     return true;
-  }, function (err, sourceFile, done) {
+  },
+
+  function (err, sourceFile, done) {
     // 遍历得到使用中的 node_modules 包 requiredModuleFile
     // 所有文件放入 files
-    // code, codeWraped, absPath, requires, requiresOrigin, ast, queryPath, realPath
     if (err) {
       return done(err);
     }
@@ -202,25 +208,25 @@ function processDirSmart(cube, data, cb) {
       tmpEndTime = new Date();
       cube.log.info('process node_modules file done, cost:', (tmpEndTime - tmpStartTime) + 'ms');
       tmpStartTime = new Date();
-
       files = files.concat(modFiles);
+      let filesAsync = {};
 
-      let filesLoad = {};
-
-      // TODO 优化这个遍历，可以合并入processMerge， 但需要续订processMerge的测试
+      // 获取异步加载的文件列表
       files.forEach((f) => {
-        f.loads && f.loads.forEach((v) => {
-          filesLoad[v.replace(/^[^:]+:/, '')] = true;
+        f.asyncs && f.asyncs.forEach((v) => {
+          // 剔除remote引用名的影响，获得本地真实文件名，确保异步处理不缺失
+          filesAsync[v.replace(/^[^:]+:/, '')] = true;
         });
       });
 
-      let rootFiles = _.merge({}, cube.config.export, filesLoad);
+      let rootFiles = _.merge({}, cube.config.export, filesAsync);
       let finalfiles = processMerge(cube, files, rootFiles);
       let actions = [];
       finalfiles.forEach(function (tmp) {
         cube.setMangleFileNameSaveFlag(tmp.queryPath);
         actions.push(function (done) {
           let nodes = [];
+          // 合并节点
           function mergeNode(node) {
             nodes.push(node);
             if (node.merges) {
@@ -229,7 +235,7 @@ function processDirSmart(cube, data, cb) {
               });
             }
           }
-
+          // 生成代码
           function genCode(callback) {
             let codes = [];
             async.eachSeries(nodes, function (node, done) {
@@ -259,7 +265,6 @@ function processDirSmart(cube, data, cb) {
           }
 
           mergeNode(tmp);
-
           genCode(function (err, codes) {
             if (err) {
               return done(err);

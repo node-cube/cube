@@ -4,17 +4,17 @@ const cmd = require('commander');
 const Cube = require('../index');
 
 cmd
-  .option('--prefix [value]', 'the http path prefix, i.e `http://localhost/res/js/`, prefix -> `/res/js/`')
+  .option('--http-path [value]', 'the http path prefix, i.e `http://localhost/res/js/`, prefix -> `/res/js/`')
   .option('-p, --port [value]', 'server port')
   .option('-R, --remote [value]', 'set remote option')
   .option('--built', 'if code in root path already built, set this flag')
   .option('-s --static', 'run as a pure simple static server')
-  .option('cache', 'forbidden cache')
+  .option('--cache', 'forbidden cache')
   .parse(process.argv);
 
 let args = cmd;
 let rootPath = cmd.args[0];
-let httpPath = args.prefix || '/';
+let httpPath = args.httpPath || '/';
 let root;
 
 if (/^(\/|\w:\\)/.test(rootPath)) {
@@ -27,7 +27,7 @@ let cubeOpt = {
   rootPath: root,
   httpPath: httpPath,
   remote: args.remote,
-  cache: args.cache,
+  cache: args.cache || true,
 };
 
 let cube = new Cube(cubeOpt);
@@ -42,7 +42,7 @@ server({
   root: root,
   port: args.port ? args.port : 9999,
   router: args.router || '/',
-  resBase: args.prefix || args.resbase,
+  httpPath: args.prefix || args.resbase,
   remote: args.remote,
   service: true,
   built: args.built,

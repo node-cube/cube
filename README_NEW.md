@@ -54,8 +54,8 @@ let option = {
     ".less": ["cube-less", "custom-css-processor"],
     // ext to processors with config(if needed), the config is applied by the processor
     ".less": [
-      ["cube-less", {}], 
-      ["custom-css-processor", {}]
+      ["cube-less", {/* cube-less processor's config */}], 
+      ["custom-css-processor", {/* custom processor plugin's config */}]
     ]
   },
   // 当前静态资源的命名空间，适用于多app的资源联合加载使用, ref to former opt.remote
@@ -76,6 +76,5 @@ cube支持4种类型的文件:
   * script
   * style
   * json
-  * 
 
 
