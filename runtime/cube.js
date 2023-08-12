@@ -29,6 +29,7 @@
   var installedModules = {};
   var loading = 0;
   var head = doc.querySelector('head');
+  var referer;
   function noop() {}
 
   console.time('cube load');
@@ -47,22 +48,21 @@
     }
     return mod;
   }
-  /**
-   * This function creates the load function
-   */
-  function __cube_async__(module, namespace, cb) {
-    if (arguments.length === 2 && typeof namespace === 'function') {
-      cb = namespace;
-      namespace = '';
-    }
-    Cube.use(module, (mod) => {
-      if (mod._css_) {
-        Cube.css(mod._css_, namespace, module);
-        mod = module; // css module only return the css file name
+  function __new_cube_async__(referer) {
+    return function (module, namespace, cb) {
+      if (arguments.length === 2 && typeof namespace === 'function') {
+        cb = namespace;
+        namespace = '';
       }
-      cb && cb(mod);
-    });
-  };
+      Cube.use(module, (mod) => {
+        if (mod._css_) {
+          Cube.css(mod._css_, namespace, module);
+          mod = module; // css module only return the css file name
+        }
+        cb && cb(mod);
+      }, referer);
+    };
+  }
   /**
    * If mod is like 'remoteXXX:/com/user/index.js', replace remoteXXX with path defined in init()
    */
@@ -102,7 +102,8 @@
   function load(requires, referer) {
     for (let i = 0, ll = requires.length; i < ll; i ++) {
       let require = requires[i];
-      if (installedModules[require]) {
+      let loadedM = installedModules[require];
+      if (loadedM) {
         continue;
       }
       // load script from server
@@ -117,7 +118,10 @@
         });
       };
       var srcPath = reBase(require) || (base + require);
-      var q = ['m', version];
+      var q = [version];
+      if (debug) {
+        q.push('m', 'ref=' + referer);
+      }
       installedModules[require] = {
         exports: {},
         fired: false
@@ -143,9 +147,9 @@
     if (!m.fired) {
       m.fired = true;
       try {
-        m.fn.apply(global, [m, m.exports, __cube_require__, __cube_async__]);
+        m.fn.apply(global, [m, m.exports, __cube_require__, __new_cube_async__(module)]);
       } catch (e) {
-        log.error(`Cube Error: module "${module}" init error,` + e.message);
+        log.error(`Cube Error: module "${module}" init error: ${e.stack}`);
       }
     }
     return m.exports;
@@ -193,8 +197,9 @@
       requires = [];
     } 
     mod.fn = callback;
+    let ll = requires.length;
     if (requires.length) {
-      load(requires, name);
+        load(requires, name)
     }
 
     if (!preload) {
@@ -228,6 +233,7 @@
     if (config.version) {
       version = config.version;
     }
+    debug = config.debug;
     return this;
   };
   /**
@@ -236,7 +242,7 @@
    * @param  {Path}     mod module abs path
    * @param  {Function} cb  callback function, usually with module.exports as it's first param
    */
-  Cube.use = function (mod, cb) {
+  Cube.use = function (mod, cb, referer) {
     if (!mod) {
       throw new Error('Cube.use(moduleName) moduleName is undefined!');
     }
@@ -247,7 +253,7 @@
     } else {
       entrances[mod].push(cb)
     }
-    load([mod]);
+    load([mod], referer || 'ENTRY');
     checkAllDownloaded();
     return this;
   };

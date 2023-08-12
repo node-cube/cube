@@ -1,0 +1,11 @@
+require('./test_module');
+require('./test_registered_module');
+require('./test_cycle_require');
+require('./test_css');
+require('./test_html');
+require('./test_less');
+require('./test_merge');
+require('cycle_server/a');
+require('./test_json');
+require('./test_override');
+require('./test_main').run();

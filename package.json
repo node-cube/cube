@@ -21,6 +21,8 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
+    "@babel/core": "^7.22.10",
+    "@babel/types": "*",
     "@swc/core": "^1.3.71",
     "async": "3.2.4",
     "clean-css": "4.2.1",

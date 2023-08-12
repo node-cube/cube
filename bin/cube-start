@@ -9,7 +9,7 @@ cmd
   .option('-R, --remote [value]', 'set remote option')
   .option('--built', 'if code in root path already built, set this flag')
   .option('-s --static', 'run as a pure simple static server')
-  .option('--cache', 'forbidden cache')
+  .option('--no-cache', 'forbidden cache')
   .parse(process.argv);
 
 let args = cmd;
@@ -27,7 +27,7 @@ let cubeOpt = {
   rootPath: root,
   httpPath: httpPath,
   remote: args.remote,
-  cache: args.cache || true,
+  cache: args.cache,
 };
 
 let cube = new Cube(cubeOpt);

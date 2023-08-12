@@ -1,12 +1,13 @@
 .cubecache
 /node_modules
 /static
-example.release
+/example.release
 covreporter.html
 .idea/
-example.abs/
-example.out/
+/example.abs/
+/example.out/
 /test_merge*
 /out/
-example/deps.release
+/example/deps.release
+/example/node_modules
 cube_info.*.json

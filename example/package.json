@@ -2,6 +2,10 @@
   "dependencies": {
     "jade_runtime": "*"
   },
+  "devDependencies": {
+    "@babel/preset-env": "*",
+    "@babel/plugin-transform-runtime":"*"
+  },
   "cube": {
     "moduleMap": {
       "react": "dist/react.js",
