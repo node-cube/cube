@@ -9,6 +9,7 @@ const path = require('path');
 const connect = require('connect');
 const connectStatic = require('serve-static');
 const async = require('async');
+const cors = require('cors');
 
 function createMiddleware(cube, serveStatic, checkSkip) {
   let config = cube.config;
