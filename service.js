@@ -199,7 +199,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
  *
  * @param {Cube} cube instance
  */
-exports.init = function (cube) {
+exports.init = function (cube, servOpt = {}) {
   let config = cube.config;
   let root = config.root;
   let serveStatic;
@@ -247,6 +247,7 @@ exports.init = function (cube) {
     };
   } else {
     app = connect();
+    servOpt.cors && app.use(cors(servOpt.cors));
     app.use(config.router, config.static || config.cached ? serveStatic : cubeMiddleware);
     app.use(function(err, req, res, next) {
       if (/favicon\.ico$/.test(req.url)) {

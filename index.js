@@ -37,12 +37,13 @@ Cube.middleware = function (cube, config) {
  *     - base       {Path} http prefix
  *     - processors {Array} extenal processors
  *     - cached     {Path} the cached path
+ * @param {Object} servOpt config for service
  * @return {cube}
  */
-Cube.service = function (config) {
+Cube.service = function (config, servOpt) {
   let cube = new Cube(config);
   let service = require('./service');
-  service.init(cube);
+  service.init(cube, servOpt);
   return cube;
 };
 /**
