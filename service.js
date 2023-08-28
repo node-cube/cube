@@ -233,7 +233,8 @@ exports.init = function (cube, servOpt = {}) {
    * fallback the 404 request
    */
   serveStatic = connectStatic(config.cached ? config.cached : config.root, {
-    maxAge: config.maxAge
+    maxAge: config.maxAge,
+    ...(servOpt.connect || {}),
   });
 
   /**
@@ -248,7 +249,7 @@ exports.init = function (cube, servOpt = {}) {
     };
   } else {
     app = connect();
-    servOpt.cors && app.use(cors(servOpt.cors));
+    app.use(cors(servOpt.cors || {}));
     app.use(config.router, config.static || config.cached ? serveStatic : cubeMiddleware);
     app.use(function(err, req, res, next) {
       if (/favicon\.ico$/.test(req.url)) {
