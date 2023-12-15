@@ -1340,7 +1340,7 @@ function setGlobalCube(oldVersion) {
         });
         global[alias] = mockCube;
     }
-    var cubeVersion = '5.0.0-beta.14';
+    var cubeVersion = '5.0.0-beta.17';
     global[alias].cubeVersion = cubeVersion;
     global[alias].oldVersion = oldVersion;
     return global[alias];
