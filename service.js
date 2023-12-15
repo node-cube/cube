@@ -9,6 +9,7 @@ const path = require('path');
 const connect = require('connect');
 const connectStatic = require('serve-static');
 const async = require('async');
+const cors = require('cors');
 
 function createMiddleware(cube, serveStatic, checkSkip) {
   let config = cube.config;
@@ -199,7 +200,7 @@ function createMiddleware(cube, serveStatic, checkSkip) {
  *
  * @param {Cube} cube instance
  */
-exports.init = function (cube) {
+exports.init = function (cube, servOpt = {}) {
   let config = cube.config;
   let root = config.root;
   let serveStatic;
@@ -232,7 +233,8 @@ exports.init = function (cube) {
    * fallback the 404 request
    */
   serveStatic = connectStatic(config.cached ? config.cached : config.root, {
-    maxAge: config.maxAge
+    maxAge: config.maxAge,
+    ...(servOpt.connect || {}),
   });
 
   /**
@@ -247,6 +249,7 @@ exports.init = function (cube) {
     };
   } else {
     app = connect();
+    app.use(cors(servOpt.cors || {}));
     app.use(config.router, config.static || config.cached ? serveStatic : cubeMiddleware);
     app.use(function(err, req, res, next) {
       if (/favicon\.ico$/.test(req.url)) {
