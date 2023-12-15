@@ -177,6 +177,8 @@ function mockClassialCube() {
   }; // The module cache
   var loading = {};
   var combineMap = {};
+  // type BlackList = Array<string|regexp>
+  var combineBlackList = [];
 
   /* store requires before init */
   var inited = false;
@@ -290,7 +292,7 @@ function mockClassialCube() {
         query.push(version);
       }
       // 目前仅根节点（组件级别）发起 combine
-      if (combine && root) {
+      if (checkCombineState(srcPath) && root) {
         query.push('combine=true');
         installedModules[require].combine = true;
         if (!combineMap[require]) {
@@ -323,6 +325,7 @@ function mockClassialCube() {
       }
 
       if (requestMethod === 'fetch') {
+        // combine 接口失败后的 traceId 记录排查
         if (combine && combineMap[require] && !combineMap[require].traceId) {
           fetchCubeCode(srcPath, undefined, (res) => {
             if (res.headers.has('request-id')) {
@@ -340,6 +343,15 @@ function mockClassialCube() {
       loading[require] = true;
     });
     checkAllDownloaded();
+  }
+
+  function checkCombineState(path) {
+    if (!combine) return false;
+    if (combineBlackList.length) {
+      return !combineBlackList.some((black) => {
+        return !!path.match(black);
+      });
+    }
   }
 
   // require => datav:/npm/react/16.4.6?env=xxx
@@ -506,6 +518,9 @@ function mockClassialCube() {
     }
     if (config.combine !== undefined) {
       combine = config.combine;
+    }
+    if (config.combineBlackList) {
+      combineBlackList = config.combineBlackList;
     }
     if (config.requestMethod) {
       requestMethod = config.requestMethod;
@@ -1325,7 +1340,7 @@ function setGlobalCube(oldVersion) {
         });
         global[alias] = mockCube;
     }
-    var cubeVersion = '5.0.0-beta.13';
+    var cubeVersion = '5.0.0-beta.14';
     global[alias].cubeVersion = cubeVersion;
     global[alias].oldVersion = oldVersion;
     return global[alias];
