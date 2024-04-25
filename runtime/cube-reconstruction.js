@@ -371,6 +371,8 @@
           return !!path.match(black);
         });
       }
+      // combineBlackList 没有或错误的情况下兜底 combine
+      return true;
     }
   
     // require => datav:/npm/react/16.4.6?env=xxx
@@ -1377,7 +1379,7 @@
           });
           global[alias] = mockCube;
       }
-      var cubeVersion = '5.0.0-beta.18';
+      var cubeVersion = '5.0.0-beta.19';
       global[alias].cubeVersion = cubeVersion;
       global[alias].oldVersion = oldVersion;
       return global[alias];
