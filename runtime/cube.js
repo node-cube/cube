@@ -216,7 +216,7 @@
    * @returns {*}
    */
   function fireModule(module) {
-    var m = installedModules[module] || getGlobalRegister(module);
+    var m = getGlobalRegister(module) || installedModules[module];
     if (!m) {
       const err = new Error('Cube Error: Cannot find module ' + '\'' + module + '\'');
       if (strict) {
