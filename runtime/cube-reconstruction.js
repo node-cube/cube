@@ -656,6 +656,19 @@
         });
       }
   
+      if (matchType === 'function') {
+        const [ moduleName, ...modulePathArr ] = module.split('/');
+        if (!modulePathArr.length) {
+          return log.warn('Cube Warning: Module ' + "'" + module + "'" + ' matchType is function, but no path');
+        }
+        registerArr.push({
+          require: module,
+          matchType,
+          match: new RegExp(`^datav:\/npm\/${moduleName}\/(?<version>\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?(\\+[a-zA-Z0-9.-]+)?)\/${modulePathArr.join('/')}$`),
+          module: installedModules[module],
+        });
+      }
+  
       return this;
     };
     /**
@@ -1379,7 +1392,7 @@
           });
           global[alias] = mockCube;
       }
-      var cubeVersion = '5.0.0-beta.19';
+      var cubeVersion = '5.0.0-beta.20';
       global[alias].cubeVersion = cubeVersion;
       global[alias].oldVersion = oldVersion;
       return global[alias];
