@@ -1392,7 +1392,7 @@
           });
           global[alias] = mockCube;
       }
-      var cubeVersion = '5.0.0-beta.20';
+      var cubeVersion = '5.0.0-beta.21';
       global[alias].cubeVersion = cubeVersion;
       global[alias].oldVersion = oldVersion;
       return global[alias];
