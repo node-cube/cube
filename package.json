@@ -32,6 +32,7 @@
     "cors": "^2.8.5",
     "debug": "4.1.0",
     "lodash": "4.17.15",
+    "resolve.exports": "^2.0.3",
     "serve-static": "1.12.4",
     "tnpm-sync": "^1.0.1",
     "uglify-js": "^3.14.1",
