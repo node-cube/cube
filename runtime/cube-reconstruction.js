@@ -1,5 +1,5 @@
 // WATCH! 该文件由 cube-reconstruct.ts 导出 请勿直接改动
-(function () {
+(function (globalThis) {
 
 var __assign = function() {
     __assign = Object.assign || function __assign(t) {
@@ -58,17 +58,19 @@ function fetchCubeCode(url, inputCodeProxy, responseAdapter) {
         }
     });
 }
-var head = document.querySelector('head');
+var head = typeof document === 'undefined' ? {
+    appendChild: function () { },
+} : document.querySelector('head');
 /** 原有 cube 请求方法 */
 function scriptCubeCode(url) {
-    var script = document.createElement('script');
+    var script = document === null || document === void 0 ? void 0 : document.createElement('script');
     script.type = 'text/javascript';
     script.async = true;
     script.onerror = function () {
         console.error("load module failed.");
     };
     script.src = url;
-    head.appendChild(script);
+    head === null || head === void 0 ? void 0 : head.appendChild(script);
 }
 function fixMododulePath(paths, remoteSeparator) {
     var len = paths.length;
@@ -109,7 +111,7 @@ function scriptCubeCss(originCss, namespace, file) {
     if (namespace) {
         style.setAttribute('ns', namespace);
     }
-    head.appendChild(style);
+    head === null || head === void 0 ? void 0 : head.appendChild(style);
     style.innerHTML = css;
     return css;
 }
@@ -178,10 +180,9 @@ function extractModuleInfoFromRequire(require) {
 
 // import Cube from 'node-cube/runtime/cube';
 
-function mockClassialCube() {
+function mockClassicalCube(global) {
   /* short global val */
-  var global = window;
-  var doc = document;
+  var doc = typeof document === 'undefined' ? {} : document;
   var log = console;
 
   /* settings */
@@ -1175,7 +1176,7 @@ var Cube = /** @class */ (function () {
             var fireResult = true;
             try {
                 module.firing = true;
-                var exports = module.sourceCode.apply(window, [
+                var exports_1 = module.sourceCode.apply(window, [
                     module,
                     // 此处需要组件不改变实例
                     module.exports,
@@ -1184,7 +1185,7 @@ var Cube = /** @class */ (function () {
                     _this.config.mockedProcess,
                     _this.config.mockedGlobal,
                 ]);
-                module.exports = _this._isEsModule(exports) ? exports.default : exports;
+                module.exports = _this._isEsModule(exports_1) ? exports_1.default : exports_1;
                 module.error = false;
             }
             catch (e) {
@@ -1225,12 +1226,12 @@ var Cube = /** @class */ (function () {
         /** 支持组件内模块请求 */
         this._cubeRequire = function (selfName) { return function (moduleName, namespace) {
             if (namespace === undefined) {
-                var module = _this._getModule(moduleName);
-                if (module === null || module === void 0 ? void 0 : module.fired) {
-                    return module.exports;
+                var module_1 = _this._getModule(moduleName);
+                if (module_1 === null || module_1 === void 0 ? void 0 : module_1.fired) {
+                    return module_1.exports;
                 }
                 var fireFinished = _this._fireModule(moduleName);
-                if (!module || !fireFinished) {
+                if (!module_1 || !fireFinished) {
                     if (_this.config.fetchUndeclaredModule) {
                         if (_this.state.lostDepModule[selfName]) {
                             _this.state.lostDepModule[selfName].push(moduleName);
@@ -1247,21 +1248,21 @@ var Cube = /** @class */ (function () {
                     }
                 }
                 else {
-                    return module.exports;
+                    return module_1.exports;
                 }
             }
             else {
                 // 默认 css 模块不再依赖其它模块
                 var css = void 0;
-                var module = _this._getModule(moduleName);
-                if (!module || !module.loaded)
+                var module_2 = _this._getModule(moduleName);
+                if (!module_2 || !module_2.loaded)
                     return;
-                if (module.fired) {
-                    css = module.exports;
+                if (module_2.fired) {
+                    css = module_2.exports;
                 }
                 var fireSucceed = _this._fireModule(moduleName);
                 if (fireSucceed) {
-                    css = module.exports;
+                    css = module_2.exports;
                 }
                 return _this.css(css, namespace, moduleName);
             }
@@ -1405,13 +1406,13 @@ function getStringOnlyObj() {
 /** 全局初始化单例 */
 function setGlobalCube(oldVersion) {
     var alias = 'Cube';
-    var global = window;
+    var global = typeof window !== 'undefined' ? window : globalThis;
     if (global[alias]) {
         console.error('Cube Error: window.' + alias + ' already in using');
         return global[alias];
     }
     if (oldVersion) {
-        mockClassialCube();
+        mockClassicalCube(global);
     }
     else {
         var cube_1 = new Cube();
@@ -1429,11 +1430,17 @@ function setGlobalCube(oldVersion) {
         });
         global[alias] = mockCube;
     }
-    var cubeVersion = '5.0.0-beta.22';
+    var cubeVersion = '5.0.0-beta.26';
     global[alias].cubeVersion = cubeVersion;
     global[alias].oldVersion = oldVersion;
     return global[alias];
 }
 
-setGlobalCube(true);
-})();
+
+  if (typeof window === 'undefined') {
+    module.exports = setGlobalCube(true);
+  } else {
+    setGlobalCube(true);
+  }
+
+})(typeof window !== "undefined" ? window : globalThis);
