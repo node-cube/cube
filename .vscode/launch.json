@@ -7,23 +7,21 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "Debug Jsx",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/index.js",
+      "env": {
+        "DEBUG": "cube:*"
+      },
+      "program": "${workspaceFolder}/bin/cube-start",
+      "args": [
+        "/Users/fish/workspace/PDA/view/src",
+        "--no-cache"
+      ],
       "outFiles": [
         "${workspaceFolder}/**/*.js"
       ]
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "test_swc_plugin",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "program": "${file}"
     }
   ]
 }

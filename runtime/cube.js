@@ -195,14 +195,12 @@
     if (!callback) {
       callback = requires;
       requires = [];
-    } 
-    mod.fn = callback;
-    let ll = requires.length;
-    if (requires.length) {
-        load(requires, name)
     }
-
+    mod.fn = callback;
     if (!preload) {
+      if (requires.length) {
+          load(requires, name)
+      }
       loading--;
       // console.log('loading -1, value:', loading);
       checkAllDownloaded();
