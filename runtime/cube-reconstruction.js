@@ -160,9 +160,63 @@
     return { moduleName, modulePath };
   }
 
-  // import Cube from 'node-cube/runtime/cube';
+  function _defineProperty(e, r, t) {
+    return (
+      (r = _toPropertyKey(r)) in e
+        ? Object.defineProperty(e, r, {
+            value: t,
+            enumerable: !0,
+            configurable: !0,
+            writable: !0,
+          })
+        : (e[r] = t),
+      e
+    );
+  }
+  function ownKeys(e, r) {
+    var t = Object.keys(e);
+    if (Object.getOwnPropertySymbols) {
+      var o = Object.getOwnPropertySymbols(e);
+      r &&
+        (o = o.filter(function (r) {
+          return Object.getOwnPropertyDescriptor(e, r).enumerable;
+        })),
+        t.push.apply(t, o);
+    }
+    return t;
+  }
+  function _objectSpread2(e) {
+    for (var r = 1; r < arguments.length; r++) {
+      var t = null != arguments[r] ? arguments[r] : {};
+      r % 2
+        ? ownKeys(Object(t), !0).forEach(function (r) {
+            _defineProperty(e, r, t[r]);
+          })
+        : Object.getOwnPropertyDescriptors
+        ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t))
+        : ownKeys(Object(t)).forEach(function (r) {
+            Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+          });
+    }
+    return e;
+  }
+  function _toPrimitive(t, r) {
+    if ('object' != typeof t || !t) return t;
+    var e = t[Symbol.toPrimitive];
+    if (void 0 !== e) {
+      var i = e.call(t, r || 'default');
+      if ('object' != typeof i) return i;
+      throw new TypeError('@@toPrimitive must return a primitive value.');
+    }
+    return ('string' === r ? String : Number)(t);
+  }
+  function _toPropertyKey(t) {
+    var i = _toPrimitive(t, 'string');
+    return 'symbol' == typeof i ? i : i + '';
+  }
 
   function mockClassicalCube(global) {
+    var _global$process, _global$process$env, _global$process2;
     /* short global val */
     var doc = typeof document === 'undefined' ? {} : document;
     var log = console;
@@ -176,17 +230,37 @@
     var strict = true;
     var debug = true;
     var combine = true;
-
-    var mockedProcess = {
-      ...(global.process ?? {}),
-      env: {
-        ...(global.process?.env ?? {}),
-        NODE_ENV: 'production',
-      },
-    };
+    var mockedProcess = _objectSpread2(
+      _objectSpread2(
+        {},
+        (_global$process = global.process) !== null &&
+          _global$process !== void 0
+          ? _global$process
+          : {}
+      ),
+      {},
+      {
+        env: _objectSpread2(
+          _objectSpread2(
+            {},
+            (_global$process$env =
+              (_global$process2 = global.process) === null ||
+              _global$process2 === void 0
+                ? void 0
+                : _global$process2.env) !== null &&
+              _global$process$env !== void 0
+              ? _global$process$env
+              : {}
+          ),
+          {},
+          {
+            NODE_ENV: 'production',
+          }
+        ),
+      }
+    );
     var mockedGlobal = undefined;
     var esModule = false;
-
     var entrances = new Map(); // Cube.use's cb
     // 兼容请求 key 带入参，返回 key 不带入参的情况。eg. 请求 /xxx?env=xx 返回 Cube('/xxx',), requireMap 缓存了 { '/xxx': '/xxx?env=xx' }
     // 此兼容是在业务方已知的情况，后期会改造返回的代码头。
@@ -254,11 +328,9 @@
         }
       };
     }
-
     Cube.setRemoteBase = function (_remoteBase) {
       Object.assign(remoteBase, _remoteBase);
     };
-
     function checkAllDownloaded() {
       if (loadQueue.length) {
         return false;
@@ -285,7 +357,6 @@
         loadQueue.push([requires, referer]);
         return;
       }
-
       requires.forEach(function (require) {
         if (installedModules[require] || getGlobalRegister(require)) {
           if (
@@ -298,7 +369,6 @@
             return;
           }
         }
-
         installedModules[require] = {
           exports: {},
           loaded: false,
@@ -307,10 +377,12 @@
 
         // 只有拼 src 时要带上 m & ref 时才需要分离 require 里的入参 query, 平时 /xxx?query=xx 才作为 installedModules 的 key
         const [mod, custom] = String(require).split('?');
-
-        var rebaseName = rebase(mod, { base, remoteSeparator, remoteBase });
+        var rebaseName = rebase(mod, {
+          base,
+          remoteSeparator,
+          remoteBase,
+        });
         var srcPath = rebaseName || base + mod;
-
         var query = [];
         if (version) {
           query.push(version);
@@ -333,21 +405,18 @@
             };
           }
         }
-
         if (custom) {
           const customArgs = parseQueryString(custom);
           Array.prototype.push.apply(
             query,
             Object.keys(customArgs).map((c) => {
-              return `${c}=${customArgs[c]}`;
+              return ''.concat(c, '=').concat(customArgs[c]);
             })
           );
         }
-
         if (query.length) {
           srcPath = srcPath + '?' + query.join('&');
         }
-
         if (requestMethod === 'fetch') {
           // combine 接口失败后的 traceId 记录排查
           if (combine && combineMap[require] && !combineMap[require].traceId) {
@@ -370,13 +439,11 @@
         } else {
           scriptCubeCode(srcPath);
         }
-
         requireMap[mod] = require;
         loading[require] = true;
       });
       checkAllDownloaded();
     }
-
     function checkCombineState(path) {
       if (!combine) return false;
       if (combineBlackList.length) {
@@ -393,15 +460,13 @@
       if (!require.startsWith('datav:/npm/')) {
         return false;
       }
-
       let { moduleName, modulePath } = extractModuleInfoFromRequire(require);
       if (!registerMap[moduleName]) return false;
-
       modulePath = modulePath || 'default';
       if (registerMap[moduleName][modulePath])
         return registerMap[moduleName][modulePath].module;
-
-      Object.entries(registerMap[moduleName]).forEach(([path, register]) => {
+      Object.entries(registerMap[moduleName]).forEach((_ref) => {
+        let [path, register] = _ref;
         if (register.match.test(require)) {
           return register.module;
         }
@@ -513,11 +578,9 @@
           combineMap[name].end = Date.now();
         }
       }
-
       mod.loaded = true;
       mod.fn = callback;
       requireMap[oldName] && delete requireMap[oldName];
-
       if (loading[name]) {
         delete loading[name];
         load(requires, name);
@@ -553,7 +616,6 @@
       if (config.version) {
         version = config.version;
       }
-
       if (config.strict !== undefined) {
         strict = config.strict;
       }
@@ -576,26 +638,20 @@
       if (config.esModule !== undefined) {
         esModule = config.esModule;
       }
-
       if (config.fetchMethod) {
         fetchMethod = config.fetchMethod;
       }
-
       if (config.onCodeError) {
         onCodeError = config.onCodeError;
       }
-
       if (config.combineFailTime) {
         combineFailTime = config.combineFailTime;
       }
-
       inited = true;
-
       while (loadQueue.length) {
         var deps = loadQueue.shift();
         load(deps[0], deps[1]);
       }
-
       return this;
     };
     /**
@@ -618,13 +674,11 @@
         referer = 'Cube.use';
       }
       cb = cb || noop;
-
       if (typeof mods === 'string') {
         mods = [removePublishName(mods)];
       } else {
         mods = mods.map(removePublishName);
       }
-
       if (!noFix) {
         mods = fixMododulePath(mods, remoteSeparator);
       }
@@ -638,7 +692,6 @@
           var apps = [];
           var length = mods.length;
           var firing = false;
-
           return function (exports) {
             if (firing) {
               return;
@@ -662,7 +715,9 @@
      * @param {object} options 配置项
      * @param {string} options.matchType 匹配模式，version 默认为按版本全匹配; module 按库级别，只要库一致就替换
      */
-    Cube.register = function (module, exports, { matchType = 'version' } = {}) {
+    Cube.register = function (module, exports) {
+      let { matchType = 'version' } =
+        arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
       if (installedModules[module]) {
         return log.warn(
           'Cube Warning: Module ' + "'" + module + "'" + ' already registered'
@@ -674,21 +729,18 @@
         loaded: true,
         fired: true,
       };
-
       if (matchType === 'module') {
         registerMap[module] = registerMap[module] || {};
         registerMap[module].default = {
           require: module,
           matchType,
-          match: new RegExp(`^datav:\/npm\/${module}\/([^\/]+)?$`),
+          match: new RegExp('^datav:/npm/'.concat(module, '/([^/]+)?$')),
           module: installedModules[module],
           moduleName: module,
         };
       }
-
       if (matchType === 'function') {
         const { moduleName, modulePath } = extractModuleInfo(module);
-
         if (!modulePath) {
           return log.warn(
             'Cube Warning: Module ' +
@@ -698,19 +750,22 @@
               ' matchType is function, but no path'
           );
         }
-
         registerMap[moduleName] = registerMap[moduleName] || {};
         registerMap[moduleName][modulePath] = {
           require: module,
           matchType,
           match: new RegExp(
-            `^datav:\/npm\/${moduleName}\/(?<version>\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?(\\+[a-zA-Z0-9.-]+)?)\/${modulePath}$`
+            '^datav:/npm/'
+              .concat(
+                moduleName,
+                '/(?<version>\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?(\\+[a-zA-Z0-9.-]+)?)/'
+              )
+              .concat(modulePath, '$')
           ),
           module: installedModules[module],
           moduleName,
         };
       }
-
       return this;
     };
     /**
@@ -732,17 +787,14 @@
       cssMod[modId] = true;
       return scriptCubeCss(css, namespace, file);
     };
-
     Cube.debug = function () {
       log.error('Cube Error: Cube.debug nolonger supported');
     };
-
     Cube.cache = function () {
       var unloaded = {},
         unfired = {},
         i,
         m;
-
       for (i in installedModules) {
         if (installedModules.hasOwnProperty(i)) {
           m = installedModules[i];
@@ -754,12 +806,10 @@
           }
         }
       }
-
       log.info('modules:', installedModules);
       log.info('unloaded:', unloaded);
       log.info('unfired:', unfired);
     };
-
     if (global['Cube']) {
       log.error(
         'Cube Error: window.' +
@@ -803,7 +853,6 @@
         };
       },
     });
-
     function isEsModule(module) {
       return (
         esModule && module && typeof module === 'object' && module.__esModule
