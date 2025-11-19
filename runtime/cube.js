@@ -28,9 +28,9 @@
   var requireMap = {};
   var registerArr = [];
 
-  var mockedProcess = {
+  var mockedProcess = Object.assign(global.process || {}, {
     env: {NODE_ENV: 'production'}
-  };
+  });
   var mockedGlobal = undefined;
   var esModule = false;
 

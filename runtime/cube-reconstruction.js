@@ -178,7 +178,11 @@
     var combine = true;
 
     var mockedProcess = {
-      env: { NODE_ENV: 'production' },
+      ...(global.process ?? {}),
+      env: {
+        ...(global.process?.env ?? {}),
+        NODE_ENV: 'production',
+      },
     };
     var mockedGlobal = undefined;
     var esModule = false;
@@ -1516,7 +1520,7 @@
       });
       global[alias] = mockCube;
     }
-    const cubeVersion = '5.0.0-beta.26';
+    const cubeVersion = '5.0.0-beta.27';
     global[alias].cubeVersion = cubeVersion;
     global[alias].oldVersion = oldVersion;
     return global[alias];
